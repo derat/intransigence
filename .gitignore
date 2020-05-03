@@ -2,3 +2,4 @@
 .out.tmp
 inline/*.min
 out/
+/render_page
