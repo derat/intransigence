@@ -36,16 +36,19 @@ Block-style images are inserted using fenced code blocks of type `image`. In
 
 ## Inline images
 
-Inline images are inserted using `<img-inline>` tags, with options specified via
-attributes.
+Inline images are inserted using `<img-inline></img-inline>`, with details
+specified via attributes on the opening tag.
 
 ## URLs
 
-URLs can be specified within `<code-url>` tags.
-`<code-url>http\://www.example.com/</code-url>` produces `<code
-class="url">http://www.example.com/</code>`. Note that the contents are not
+URLs can be specified within `<code-url></code-url>`. The contents are not
 escaped. Add a backslash in the scheme to prevent auto-linking.
 
 ## Clearing floats
 
-A `<clear-floats>` tag can be used to clear all floats.
+`<clear-floats></clear-floats>` can be used to clear all floats.
+
+## Text size
+
+`<text-size></text-size>` can be used to change the size of the contained text.
+Valid boolean attributes for the opening tag include `small` and `tiny`.
