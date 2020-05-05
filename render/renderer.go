@@ -646,6 +646,8 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
 	}
 	// If this isn't a regular page, it won't be served by the AMP CDN. Use an absolute URL.
+	// TODO: This is wrong, I think. Relative links should be okay for images
+	// (and some links are changed because of this logic).
 	if !isPage(link) {
 		return baseURL + link, nil
 	}
