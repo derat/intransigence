@@ -10,11 +10,9 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -30,13 +28,8 @@ import (
 )
 
 const (
-	// TODO: All of the uses of these dirs need to prepend the site dir.
-	inlineDir   = "inline"
-	staticDir   = "static"
-	templateDir = "templates"
-	navFile     = "nav.yaml"
-
-	indexID = "index" // index page
+	navFile = "nav.yaml" // file in site dir describing navigation items
+	indexID = "index"    // used for index page
 
 	baseURL     = "https://www.erat.org/"
 	titleSuffix = " - erat.org"          // appended to page titles
@@ -69,20 +62,12 @@ func Page(markdown []byte, dir string, amp bool) ([]byte, error) {
 		return nil, fmt.Errorf("failed parsing nav items: %v", err)
 	}
 
-	r := newRenderer(ni, amp)
+	r := newRenderer(dir, ni, amp)
 	b := md.Run(markdown, md.WithRenderer(r))
 	if r.err != nil {
 		return nil, r.err
 	}
 	return b, nil
-}
-
-func readInline(fn string) string {
-	b, err := ioutil.ReadFile(filepath.Join(inlineDir, fn))
-	if err != nil {
-		log.Fatal("Failed reading inline file: ", err)
-	}
-	return string(b)
 }
 
 type pageInfo struct {
@@ -140,11 +125,12 @@ type imageboxInfo struct {
 }
 
 type renderer struct {
-	tmpls map[string]*template.Template
-	hr    *md.HTMLRenderer
-	pi    pageInfo
-	err   error // error encountered during rendering
-	amp   bool  // rendering an AMP page
+	dir  string // base site dir
+	tmpl *templater
+	hr   *md.HTMLRenderer
+	pi   pageInfo
+	err  error // error encountered during rendering
+	amp  bool  // rendering an AMP page
 
 	startingBox bool         // in the middle of a level-1 header
 	boxTitle    bytes.Buffer // text seen while startingBox is true
@@ -154,10 +140,10 @@ type renderer struct {
 	numMapMarkers     int    // number of boxes with "map_marker"
 }
 
-func newRenderer(navItems []*navItem, amp bool) *renderer {
-	return &renderer{
-		tmpls: make(map[string]*template.Template),
-		hr:    md.NewHTMLRenderer(md.HTMLRendererParameters{}),
+func newRenderer(dir string, navItems []*navItem, amp bool) *renderer {
+	r := renderer{
+		dir: dir,
+		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
 		pi: pageInfo{
 			Desc:                defaultDesc,
 			NavItems:            navItems,
@@ -169,72 +155,49 @@ func newRenderer(navItems []*navItem, amp bool) *renderer {
 		},
 		amp: amp,
 	}
-}
-
-// tagRegexp matches the tag name at the beginning of an HTML tag, e.g. "span" or "/span".
-var tagRegexp = regexp.MustCompile(`^<([^\s>]+)`)
-
-// template runs a template consisting of the named files using the supplied
-// data and functions. The template is cached after it's loaded for the first
-// time, and some standard functions are also included.
-func (r *renderer) template(w io.Writer, names []string, data interface{}, funcs template.FuncMap) error {
-	tname := names[0]
-	tmpl, ok := r.tmpls[tname]
-	if !ok {
-		var paths []string
-		for _, n := range names {
-			paths = append(paths, filepath.Join(templateDir, n))
-		}
-
-		fm := template.FuncMap{
-			"amp": func() bool {
-				return r.amp
-			},
-			"formatDate": func(date, layout string) string {
-				t, err := time.Parse("2006-01-02", date)
-				if err != nil {
-					r.err = fmt.Errorf("failed to parse date %q: %v", date, err)
-					return ""
+	r.tmpl = newTemplater(filepath.Join(dir, templateDir), template.FuncMap{
+		"amp": func() bool {
+			return r.amp
+		},
+		"formatDate": func(date, layout string) string {
+			t, err := time.Parse("2006-01-02", date)
+			if err != nil {
+				r.err = fmt.Errorf("failed to parse date %q: %v", date, err)
+				return ""
+			}
+			return t.Format(layout)
+		},
+		"srcset": func(pre, suf string) string {
+			glob := filepath.Join(r.dir, staticDir, pre+"*"+suf)
+			ps, err := filepath.Glob(glob)
+			if err != nil {
+				r.err = fmt.Errorf("failed to list image files %q: %v", glob, err)
+				return ""
+			}
+			// Ascending order by embedded image width.
+			sort.Slice(ps, func(i, j int) bool {
+				if len(ps[i]) < len(ps[j]) {
+					return true
+				} else if len(ps[i]) > len(ps[j]) {
+					return false
 				}
-				return t.Format(layout)
-			},
-			"srcset": func(pre, suf string) string {
-				glob := filepath.Join(staticDir, pre+"*"+suf)
-				ps, err := filepath.Glob(glob)
-				if err != nil {
-					r.err = fmt.Errorf("failed to list image files %q: %v", glob, err)
-					return ""
-				}
-				// Ascending order by embedded image width.
-				sort.Slice(ps, func(i, j int) bool {
-					if len(ps[i]) < len(ps[j]) {
-						return true
-					} else if len(ps[i]) > len(ps[j]) {
-						return false
-					}
-					return ps[i] < ps[j]
-				})
-				// TODO: Remove this; it's just here to match Ruby's Dir.glob.
-				if ps, err = dirOrder(ps); err != nil {
-					r.err = fmt.Errorf("srcset failed to sort images: %v", err)
-					return ""
-				}
-				var srcs []string
-				for _, p := range ps {
-					width := p[len(filepath.Join(staticDir, pre)) : len(p)-len(suf)]
-					srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
-				}
-				return strings.Join(srcs, ", ")
-			},
-		}
-		for n, f := range funcs {
-			fm[n] = f
-		}
+				return ps[i] < ps[j]
+			})
+			// TODO: Remove this; it's just here to match Ruby's Dir.glob.
+			if ps, err = dirOrder(ps); err != nil {
+				r.err = fmt.Errorf("srcset failed to sort images: %v", err)
+				return ""
+			}
+			var srcs []string
+			for _, p := range ps {
+				width := p[len(filepath.Join(r.dir, staticDir, pre)) : len(p)-len(suf)]
+				srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
+			}
+			return strings.Join(srcs, ", ")
+		},
+	})
 
-		tmpl = template.Must(template.New(tname).Funcs(fm).ParseFiles(paths...))
-		r.tmpls[tname] = tmpl
-	}
-	return tmpl.Execute(w, data)
+	return &r
 }
 
 func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
@@ -373,10 +336,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.LinkRel = "canonical"
 		r.pi.LinkHref = r.pi.NavItem.AbsURL
 
-		r.pi.AMPStyle = template.CSS(readInline("amp-boilerplate.css.min"))
-		r.pi.AMPNoscriptStyle = template.CSS(readInline("amp-boilerplate-noscript.css.min"))
+		r.pi.AMPStyle = template.CSS(r.readInline("amp-boilerplate.css.min"))
+		r.pi.AMPNoscriptStyle = template.CSS(r.readInline("amp-boilerplate-noscript.css.min"))
 		r.pi.AMPCustomStyle = template.CSS(
-			readInline("base.css.min") + readInline("mobile.css.min") + readInline("mobile-amp.css.min"))
+			r.readInline("base.css.min") + r.readInline("mobile.css.min") + r.readInline("mobile-amp.css.min"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -394,12 +357,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.LinkRel = "amphtml"
 		r.pi.LinkHref = r.pi.NavItem.AbsAMPURL
 
-		r.pi.HTMLStyle = template.CSS(readInline("base.css.min") + readInline("base-nonamp.css.min") +
-			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, readInline("desktop.css.min")) +
-			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, readInline("mobile.css.min")))
-		r.pi.HTMLScripts = []template.JS{template.JS(readInline("base.js.min"))}
+		r.pi.HTMLStyle = template.CSS(r.readInline("base.css.min") + r.readInline("base-nonamp.css.min") +
+			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.readInline("desktop.css.min")) +
+			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.readInline("mobile.css.min")))
+		r.pi.HTMLScripts = []template.JS{template.JS(r.readInline("base.js.min"))}
 		if r.pi.HasMap {
-			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(readInline("map.js.min")))
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.readInline("map.js.min")))
 		}
 
 		csp := cspHasher{}
@@ -414,7 +377,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
 
-	r.err = r.template(w, []string{"page_header.tmpl"}, &r.pi, nil)
+	r.err = r.tmpl.run(w, []string{"page_header.tmpl"}, &r.pi, nil)
 }
 
 func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
@@ -422,13 +385,12 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 	if r.err != nil {
 		return
 	}
-
 	if r.inBox {
-		if r.err = r.template(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
+		if r.err = r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
 			return
 		}
 	}
-	r.err = r.template(w, []string{"page_footer.tmpl"}, &r.pi, nil)
+	r.err = r.tmpl.run(w, []string{"page_footer.tmpl"}, &r.pi, nil)
 }
 
 // Renders a node of type md.CodeBlock and returns the appropriate walk status.
@@ -475,7 +437,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		}
 		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
 		info.Href = iframeHref(info.Href)
-		if r.err = r.template(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil); r.err != nil {
+		if r.err = r.tmpl.run(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -499,7 +461,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 				return md.Terminate
 			}
 		}
-		if r.err = r.template(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
+		if r.err = r.tmpl.run(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -516,7 +478,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		info.imageTagInfo.Attr = []string{"placeholder"}
 		info.imageTagInfo.Alt = "[map placeholder]"
 		info.Href = iframeHref(info.Href)
-		if r.err = r.template(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
+		if r.err = r.tmpl.run(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -541,7 +503,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	// template. The box is rendered when we leave the heading node.
 	if entering {
 		if r.inBox {
-			if r.err = r.template(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
+			if r.err = r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
 				return md.Terminate
 			}
 			r.inBox = false
@@ -579,7 +541,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 
 	r.startingBox = false
 	r.inBox = true
-	if r.err = r.template(w, []string{"box_header.tmpl"}, &info, nil); r.err != nil {
+	if r.err = r.tmpl.run(w, []string{"box_header.tmpl"}, &info, nil); r.err != nil {
 		return md.Terminate
 	}
 	return md.GoToNext
@@ -617,7 +579,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := r.template(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
+				if err := r.tmpl.run(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
 					return 0, err
 				}
 			}
@@ -662,6 +624,16 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 		return md.Terminate
 	}
 	return ws
+}
+
+// read reads and returns the contents of the named file in inlineDir.
+// It panics if the file can not be read.
+func (r *renderer) readInline(fn string) string {
+	b, err := ioutil.ReadFile(filepath.Join(r.dir, inlineDir, fn))
+	if err != nil {
+		panic(fmt.Sprint("Failed reading file: ", err))
+	}
+	return string(b)
 }
 
 func (r *renderer) rewriteLink(link string) (string, error) {

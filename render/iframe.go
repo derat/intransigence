@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"path/filepath"
 )
 
@@ -24,6 +25,16 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 	}
 	if err := json.Unmarshal(js, &data); err != nil {
 		return nil, err
+	}
+
+	tmpl := newTemplater(filepath.Join(dir, templateDir), nil)
+
+	readInline := func(fn string) string {
+		b, err := ioutil.ReadFile(filepath.Join(dir, inlineDir, fn))
+		if err != nil {
+			panic(fmt.Sprint("Failed reading file: ", err))
+		}
+		return string(b)
 	}
 
 	jsonData, err := json.MarshalIndent(data.Data, "", "  ")
@@ -59,9 +70,7 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 		csp.hash(cspStyle, string(td.InlineStyle))
 		td.CSPMeta = template.HTML(csp.tag())
 
-		tp := filepath.Join(dir, templateDir, "graph_page.tmpl")
-		tmpl := template.Must(template.ParseFiles(tp))
-		if err := tmpl.Execute(&b, td); err != nil {
+		if err := tmpl.run(&b, []string{"graph_page.tmpl"}, td, nil); err != nil {
 			return nil, err
 		}
 	case "map":
@@ -79,11 +88,8 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 			InlineStyle: template.CSS(readInline("map-iframe.css.min") +
 				"body{background-image:url('" + data.Placeholder + "')}"),
 		}
-
 		// Don't use CSP here; Maps API's gonna do whatever it wants.
-		tp := filepath.Join(dir, templateDir, "map_page.tmpl")
-		tmpl := template.Must(template.ParseFiles(tp))
-		if err := tmpl.Execute(&b, td); err != nil {
+		if err := tmpl.run(&b, []string{"map_page.tmpl"}, td, nil); err != nil {
 			return nil, err
 		}
 	default:
