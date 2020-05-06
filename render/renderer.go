@@ -84,47 +84,6 @@ func readInline(fn string) string {
 	return string(b)
 }
 
-var pageRegexp = regexp.MustCompile("^([a-z_]+)\\.html(#.+)?$")
-
-// splitPage splits a string like "foo.html#frag" into "foo" and "#frag".
-// Returns empty strings if p isn't a page URL.
-func splitPage(p string) (base, fragment string) {
-	m := pageRegexp.FindStringSubmatch(p)
-	if m == nil {
-		return "", ""
-	}
-	return m[1], m[2]
-}
-
-// isPage returns true if p is an HTML page (e.g. "foo.html") with an optional fragment.
-func isPage(p string) bool {
-	base, _ := splitPage(p)
-	return base != ""
-}
-
-// ampPage returns the AMP page corresponding to p, an HTML page.
-// If a fragment is present, it is preserved.
-func ampPage(p string) (string, error) {
-	base, frag := splitPage(p)
-	if base == "" {
-		return "", fmt.Errorf("can't get AMP version of non-page %q", p)
-	}
-	return base + ".amp.html" + frag, nil
-}
-
-// absURL converts the supplied string into an absolute URL by appending it to baseURL.
-// Returns the unchanged string if it's already absolute.
-func absURL(us string) (string, error) {
-	u, err := url.Parse(us)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse %q: %v", us, err)
-	}
-	if u.IsAbs() {
-		return us, nil
-	}
-	return baseURL + us, nil
-}
-
 type pageInfo struct {
 	Title           string `yaml:"title"`             // used in <title> element
 	ID              string `yaml:"id"`                // ID to highlight in navbox
@@ -342,14 +301,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		p.update(r.pi.ID, m)
 	}
 	// Add a fake nav item for the index page if it's current.
+	// URL fields don't need to be set since this item is never rendered.
 	if r.pi.ID == indexID {
 		r.pi.NavItem = &navItem{
-			URL:      baseURL,
 			ID:       indexID,
 			Current:  true,
 			Expanded: true,
-			HTMLURL:  baseURL,
-			AMPURL:   baseURL + "index.amp.html",
 			Children: r.pi.NavItems,
 		}
 	} else if r.pi.NavItem = m[r.pi.ID]; r.pi.NavItem == nil {
@@ -363,7 +320,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	r.pi.StructData = structData{
 		Context:          "http://schema.org",
 		Type:             "Article",
-		MainEntityOfPage: r.pi.NavItem.HTMLURL,
+		MainEntityOfPage: r.pi.NavItem.AbsURL,
 		Headline:         r.pi.Title,
 		DatePublished:    r.pi.Created,
 		Author: structDataAuthor{
@@ -407,7 +364,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	if r.amp {
 		r.pi.LinkRel = "canonical"
-		r.pi.LinkHref = r.pi.NavItem.HTMLURL
+		r.pi.LinkHref = r.pi.NavItem.AbsURL
 
 		r.pi.AMPStyle = template.CSS(readInline("amp-boilerplate.css.min"))
 		r.pi.AMPNoscriptStyle = template.CSS(readInline("amp-boilerplate-noscript.css.min"))
@@ -428,7 +385,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		// https://amp.dev/documentation/guides-and-tutorials/optimize-and-measure/secure-pages/
 	} else {
 		r.pi.LinkRel = "amphtml"
-		r.pi.LinkHref = r.pi.NavItem.AMPURL
+		r.pi.LinkHref = r.pi.NavItem.AbsAMPURL
 
 		r.pi.HTMLStyle = template.CSS(readInline("base.css.min") + readInline("base-nonamp.css.min") +
 			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, readInline("desktop.css.min")) +
@@ -645,21 +602,14 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 	if link[0] == '/' {
 		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
 	}
-	// If this isn't a regular page, it won't be served by the AMP CDN. Use an absolute URL.
-	// TODO: This is wrong, I think. Relative links should be okay for images
-	// (and some links are changed because of this logic).
+	// If this isn't a regular page, it may not be served by the AMP CDN. Use an absolute URL.
 	if !isPage(link) {
 		return baseURL + link, nil
 	}
 
 	// TODO: Support forcing non-AMP.
 	// Use the AMP version of the page instead.
-	// TODO: Does this really need to be absolute? Just matching template_lib.rb here.
-	amp, err := ampPage(link)
-	if err != nil {
-		return "", err
-	}
-	return baseURL + amp, nil
+	return ampPage(link), nil
 }
 
 // mangleOps describes operations that mangleOutput should perform.
