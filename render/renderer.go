@@ -95,6 +95,8 @@ type pageInfo struct {
 	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
 	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append titleSuffix
 	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
+	HasMap          bool   `yaml:"has_map"`           // page contains a map
+	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
 	NavItems []*navItem `yaml:"-"` // hierarchy of nav items
 	NavItem  *navItem   `yaml:"-"` // nav item corresponding to current page
@@ -107,7 +109,7 @@ type pageInfo struct {
 	LinkHref string `yaml:"-"`
 
 	HTMLStyle        template.CSS  `yaml:"-"`
-	HTMLScript       template.JS   `yaml:"-"`
+	HTMLScripts      []template.JS `yaml:"-"`
 	AMPStyle         template.CSS  `yaml:"-"`
 	AMPNoscriptStyle template.CSS  `yaml:"-"`
 	AMPCustomStyle   template.CSS  `yaml:"-"`
@@ -125,13 +127,14 @@ type imageTagInfo struct {
 	Height int    `html:"height",yaml:"height"` // 100% height
 	Alt    string `html:"alt",yaml:"alt"`       // alt text
 
-	Layout string // AMP layout ("responsive" used if empty)
-	Inline bool   // add "inline" class
+	Layout string   // AMP layout ("responsive" used if empty)
+	Inline bool     // add "inline" class
+	Attr   []string // additional attributes to include
 }
 
 type imageboxInfo struct {
-	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right
-	Caption template.HTML `yaml:"caption"` // <figcaption> text; template.HTML to prevent escaping quotes
+	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right, desktop_alt
+	Caption template.HTML `yaml:"caption"` // <figcaption> text; template.HTML to permit links and not escape quotes
 	Class   string        `yaml:"class"`   // CSS class
 }
 
@@ -145,6 +148,9 @@ type renderer struct {
 	startingBox bool         // in the middle of a level-1 header
 	boxTitle    bytes.Buffer // text seen while startingBox is true
 	inBox       bool         // rendering a box
+
+	lastImageboxAlign string // last "align" value used for an imagebox
+	numMapMarkers     int    // number of boxes with "map_marker"
 }
 
 func newRenderer(navItems []*navItem, amp bool) *renderer {
@@ -390,7 +396,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.HTMLStyle = template.CSS(readInline("base.css.min") + readInline("base-nonamp.css.min") +
 			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, readInline("desktop.css.min")) +
 			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, readInline("mobile.css.min")))
-		r.pi.HTMLScript = template.JS(readInline("base.js.min"))
+		r.pi.HTMLScripts = []template.JS{template.JS(readInline("base.js.min"))}
+		if r.pi.HasMap {
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(readInline("map.js.min")))
+		}
 
 		var csp = cspHasher{
 			"default": {"'none'"},
@@ -399,10 +408,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			"img":     {"'self'"},
 		}
 		csp.hash("style", string(r.pi.HTMLStyle))
-		csp.hash("script", string(r.pi.HTMLScript))
+		for _, s := range r.pi.HTMLScripts {
+			csp.hash("script", string(s))
+		}
 		r.pi.CSPMeta = template.HTML(csp.tag())
-
-		// TODO: map
 	}
 
 	// TODO: map junk
@@ -428,6 +437,31 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 // Renders a node of type md.CodeBlock and returns the appropriate walk status.
 // Sets r.err and returns md.Terminate if an error is encountered.
 func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
+	// Rewrites the supplied iframe URL (e.g. iframes/my_map.html) to be either absolute or site-rooted.
+	// The framed page isn't AMP-compliant, so it won't be served by the AMP cache: https://www.erat.org/amp.html#iframes
+	// Absolute URLs could presumably also be used in the non-AMP case, but it makes development harder.
+	iframeHref := func(s string) string {
+		if r.amp {
+			return baseURL + s
+		}
+		return "/" + s
+	}
+
+	// Rewrites the supplied imagebox "align" value to handle "desktop_alt". Also updates lastImageboxAlign.
+	imageboxAlign := func(s string) string {
+		v := func() string {
+			if s != "desktop_alt" {
+				return s
+			}
+			if r.lastImageboxAlign != "desktop_left" {
+				return "desktop_left"
+			}
+			return "desktop_right"
+		}()
+		r.lastImageboxAlign = v
+		return v
+	}
+
 	// TODO: Prefix these by '!', or maybe just use custom HTML elements instead.
 	switch string(node.CodeBlockData.Info) {
 	case "graph":
@@ -442,11 +476,8 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			r.err = fmt.Errorf("failed to parse graph info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		if r.amp {
-			info.Href = baseURL + info.Href
-		} else {
-			info.Href = "/" + info.Href
-		}
+		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
+		info.Href = iframeHref(info.Href)
 		if r.err = r.template(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
 		}
@@ -461,6 +492,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			r.err = fmt.Errorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
+		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
 		if len(info.Href) == 0 && len(info.Suffix) > 0 {
 			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
 			// TODO: check_static_file
@@ -471,6 +503,23 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			}
 		}
 		if r.err = r.template(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
+			return md.Terminate
+		}
+		return md.SkipChildren
+	case "map":
+		var info struct {
+			imageTagInfo `yaml:",inline"` // placeholder image
+			Href         string           `yaml:"href"` // relative path to map iframe page
+		}
+		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
+			r.err = fmt.Errorf("failed to parse map info from %q: %v", node.Literal, err)
+			return md.Terminate
+		}
+		info.imageTagInfo.Layout = "fill"
+		info.imageTagInfo.Attr = []string{"placeholder"}
+		info.imageTagInfo.Alt = "[map placeholder]"
+		info.Href = iframeHref(info.Href)
+		if r.err = r.template(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -508,9 +557,12 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	// Additional attributes can be passed as slash-separated values in the
 	// ID string, e.g. "# Heading #{myid/desktop_only/narrow}".
 	var info = struct {
-		ID                              string
-		Title                           template.HTML
-		DesktopOnly, MobileOnly, Narrow bool
+		ID          string // value for id attribute
+		Title       template.HTML
+		DesktopOnly bool   // only display on desktop
+		MobileOnly  bool   // only display on mobile
+		Narrow      bool   // make the box narrow
+		MapLabel    string // letter label for map marker
 	}{Title: template.HTML(r.boxTitle.String())}
 	for i, v := range strings.Split(node.HeadingData.HeadingID, "/") {
 		switch {
@@ -522,6 +574,9 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 			info.MobileOnly = true
 		case v == "narrow":
 			info.Narrow = true
+		case v == "map_marker":
+			info.MapLabel = string('A' + r.numMapMarkers)
+			r.numMapMarkers++
 		}
 	}
 
@@ -537,10 +592,11 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 // Sets r.err and returns md.Terminate if an error is encountered.
 func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
 	// Wrap all the logic in a function to make it easy to consolidate error-handling.
-	if err := func() error {
+	// md.Terminate is always returned if an error occurs.
+	ws, err := func() (md.WalkStatus, error) {
 		token, err := parseTag(node.Literal)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		switch token.Data {
@@ -550,20 +606,34 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			} else if token.Type == html.EndTagToken {
 				io.WriteString(w, "</span>")
 			}
+			return md.SkipChildren, nil
 		case "code-url":
 			if token.Type == html.StartTagToken {
 				io.WriteString(w, `<code class="url">`)
 			} else if token.Type == html.EndTagToken {
 				io.WriteString(w, "</code>")
 			}
+			return md.SkipChildren, nil
 		case "img-inline":
 			if token.Type == html.StartTagToken {
 				var info = imageTagInfo{Inline: true, Layout: "fixed"}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
-					return err
+					return 0, err
 				}
-				return r.template(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil)
+				if err := r.template(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
+					return 0, err
+				}
 			}
+			return md.SkipChildren, nil
+		case "only-amp":
+			if !r.amp {
+				if token.Type == html.StartTagToken {
+					io.WriteString(w, "<!-- AMP-only content \n")
+				} else if token.Type == html.EndTagToken {
+					io.WriteString(w, "\n-->")
+				}
+			}
+			return md.GoToNext, nil // process nested nodes
 		case "text-size":
 			if token.Type == html.StartTagToken {
 				var info struct {
@@ -571,29 +641,30 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 					Tiny  bool `html:"tiny"`
 				}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
-					return err
+					return 0, err
 				}
-				var classes []string
+				var class string
 				if info.Small {
-					classes = append(classes, "small")
+					class = "small"
+				} else if info.Tiny {
+					class = "real-small"
+				} else {
+					return 0, fmt.Errorf("missing attribute in %q", node.Literal)
 				}
-				if info.Tiny {
-					classes = append(classes, "real-small")
-				}
-				fmt.Fprintf(w, `<span class="%s">`, strings.Join(classes, " "))
+				fmt.Fprintf(w, `<span class="%s">`, class)
 			} else if token.Type == html.EndTagToken {
 				io.WriteString(w, "</span>")
 			}
+			return md.GoToNext, nil // process nested content
 		default:
-			return errors.New("unsupported tag")
+			return 0, errors.New("unsupported tag")
 		}
-		return nil
-	}(); err != nil {
+	}()
+	if err != nil {
 		r.err = fmt.Errorf("Rendering HTML span %q failed: %v", node.Literal, err)
 		return md.Terminate
 	}
-
-	return md.SkipChildren
+	return ws
 }
 
 func (r *renderer) rewriteLink(link string) (string, error) {
@@ -608,14 +679,18 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		return link, nil
 	}
 
-	// Check if we were explicitly asked to return an AMP page.
-	var forceAMP = false
+	// Check if we were explicitly asked to return an AMP or non-AMP page.
+	var forceAMP, forceNonAMP bool
 	if tl := strings.TrimSuffix(link, "!force_amp"); tl != link {
 		forceAMP = true
 		link = tl
+	} else if tl := strings.TrimSuffix(link, "!force_nonamp"); tl != link {
+		forceNonAMP = true
+		link = tl
 	}
+
 	// Non-AMP links don't need to be rewritten.
-	if !r.amp && !forceAMP {
+	if (!r.amp && !forceAMP) || forceNonAMP {
 		return link, nil
 	}
 

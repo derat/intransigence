@@ -18,7 +18,6 @@ See the `renderCodeBlock`, `renderHeading`, and `renderHTMLSpan` functions in
 Every page starts with a fenced code block of type `page_info` that contains a
 single YAML dictionary with high-level information about the page.
 
-
 ## Boxes
 
 Boxes are started by defining level-1 headings:
@@ -32,15 +31,14 @@ customize the box.
 
 The box is automatically closed when a new box is started or the document ends.
 
-## Graphs
+## Iframes
 
-Graphs are inserted using fenced code blocks of type `graph`.
+Graph and map iframes are inserted using fenced code blocks of type `graph` and
+`map`, respectively.
 
-## Block images
+## Images
 
 Block-style images are inserted using fenced code blocks of type `image`.
-
-## Inline images
 
 Inline images are inserted using `<img-inline></img-inline>`, with details
 specified via attributes on the opening tag.
@@ -58,3 +56,14 @@ escaped. Add a backslash in the scheme to prevent auto-linking.
 
 `<text-size></text-size>` can be used to change the size of the contained text.
 Valid boolean attributes for the opening tag include `small` and `tiny`.
+
+## AMP-only content
+
+`<amp-only></amp-only>` can be used to denote content that's only relevant for
+the AMP version of the page. The enclosed markup will be wrapped in an HTML
+comment in the non-AMP version.
+
+## Links
+
+A link to a page can be suffixed with `!force_amp` or `!force_nonamp` to force
+it to always be rewritten to the AMP or non-AMP version of the page.
