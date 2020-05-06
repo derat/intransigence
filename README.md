@@ -59,9 +59,9 @@ Valid boolean attributes for the opening tag include `small` and `tiny`.
 
 ## AMP-only content
 
-`<amp-only></amp-only>` can be used to denote content that's only relevant for
-the AMP version of the page. The enclosed markup will be wrapped in an HTML
-comment in the non-AMP version.
+`<only-amp></only-amp>` and `<only-nonamp></only-nonamp>can be used to denote
+content that's only relevant for the AMP or non-AMP version of the page. The
+enclosed markup will be wrapped in an HTML comment in the other version.
 
 ## Links
 

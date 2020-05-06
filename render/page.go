@@ -580,6 +580,15 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				}
 			}
 			return md.GoToNext, nil // process nested nodes
+		case "only-nonamp":
+			if r.amp {
+				if token.Type == html.StartTagToken {
+					io.WriteString(w, "<!-- non-AMP-only content \n")
+				} else if token.Type == html.EndTagToken {
+					io.WriteString(w, "\n-->")
+				}
+			}
+			return md.GoToNext, nil // process nested nodes
 		case "text-size":
 			if token.Type == html.StartTagToken {
 				var info struct {
