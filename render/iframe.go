@@ -8,16 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"path/filepath"
 )
 
-const (
-	d3URL      = baseURL + "resources/d3.v3.min.js"
-	mapsAPIKey = "AIzaSyBvPAIQSEuw7hTR6EOy-v9IhJv0otYtsP0"
-)
-
-func Iframe(js []byte, dir string) ([]byte, error) {
+func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 	var data struct {
 		Type        string      `json:"type"`        // "graph" or "map"
 		Data        interface{} `json:"data"`        // type-specific data
@@ -27,15 +21,7 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 		return nil, err
 	}
 
-	tmpl := newTemplater(filepath.Join(dir, templateDir), nil)
-
-	readInline := func(fn string) string {
-		b, err := ioutil.ReadFile(filepath.Join(dir, inlineDir, fn))
-		if err != nil {
-			panic(fmt.Sprint("Failed reading file: ", err))
-		}
-		return string(b)
-	}
+	tmpl := newTemplater(filepath.Join(si.TemplateDir()), nil)
 
 	jsonData, err := json.MarshalIndent(data.Data, "", "  ")
 	if err != nil {
@@ -51,12 +37,12 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 			InlineScripts []template.JS
 			InlineStyle   template.CSS
 		}{
-			ScriptURLs: []string{d3URL},
+			ScriptURLs: []string{si.D3ScriptURL},
 			InlineScripts: []template.JS{
-				template.JS(readInline("graph-iframe.js.min")),
+				template.JS(si.ReadInline("graph-iframe.js.min")),
 				template.JS("var dataSets = " + string(jsonData) + ";"),
 			},
-			InlineStyle: template.CSS(readInline("graph-iframe.css.min")),
+			InlineStyle: template.CSS(si.ReadInline("graph-iframe.css.min")),
 		}
 
 		csp := cspHasher{}
@@ -80,12 +66,12 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 			InlineScripts []template.JS
 			InlineStyle   template.CSS
 		}{
-			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + mapsAPIKey},
+			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey},
 			InlineScripts: []template.JS{
 				template.JS("var points = " + string(jsonData) + ";"),
-				template.JS(readInline("map-iframe.js.min")),
+				template.JS(si.ReadInline("map-iframe.js.min")),
 			},
-			InlineStyle: template.CSS(readInline("map-iframe.css.min") +
+			InlineStyle: template.CSS(si.ReadInline("map-iframe.css.min") +
 				"body{background-image:url('" + data.Placeholder + "')}"),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.

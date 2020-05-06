@@ -23,7 +23,7 @@ type navItem struct {
 	AbsAMPURL string `yaml:"-"` // absolute version of AMPURL
 }
 
-func (n *navItem) update(currentID string, m map[string]*navItem) error {
+func (n *navItem) update(currentID, baseURL string, m map[string]*navItem) error {
 	if n.ID != "" {
 		m[n.ID] = n
 	}
@@ -31,7 +31,7 @@ func (n *navItem) update(currentID string, m map[string]*navItem) error {
 	n.Current = n.ID != "" && n.ID == currentID
 	n.Expanded = n.Current
 	for _, c := range n.Children {
-		c.update(currentID, m)
+		c.update(currentID, baseURL, m)
 		if c.Expanded {
 			n.Expanded = true
 		}
@@ -78,13 +78,13 @@ func ampPage(p string) string {
 
 // absURL converts the supplied string into an absolute URL by appending it to baseURL.
 // Returns the unchanged string if it's already absolute.
-func absURL(us string) (string, error) {
-	u, err := url.Parse(us)
+func absURL(u, baseURL string) (string, error) {
+	ur, err := url.Parse(u)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse %q: %v", us, err)
+		return "", fmt.Errorf("failed to parse %q: %v", u, err)
 	}
-	if u.IsAbs() {
-		return us, nil
+	if ur.IsAbs() {
+		return u, nil
 	}
-	return baseURL + us, nil
+	return baseURL + u, nil
 }

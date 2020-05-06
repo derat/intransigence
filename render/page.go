@@ -31,20 +31,6 @@ const (
 	navFile = "nav.yaml" // file in site dir describing navigation items
 	indexID = "index"    // used for index page
 
-	baseURL     = "https://www.erat.org/"
-	titleSuffix = " - erat.org"          // appended to page titles
-	defaultDesc = "Dan Erat's home page" // default meta description
-
-	// Structured data.
-	authorName          = "Daniel Erat"
-	authorEmail         = "dan-website@erat.org"
-	publisherName       = "erat.org"
-	publisherLogoURL    = baseURL + "resources/erat-logo-20161109.png"
-	publisherLogoWidth  = 167
-	publisherLogoHeight = 60
-
-	googleAnalyticsCode = "UA-187852-1"
-
 	mobileMaxWidth  = 640
 	desktopMinWidth = 641
 
@@ -54,15 +40,15 @@ const (
 	collapseImgDate = "20160915"
 )
 
-func Page(markdown []byte, dir string, amp bool) ([]byte, error) {
+func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	var ni []*navItem
-	if b, err := ioutil.ReadFile(filepath.Join(dir, navFile)); err != nil {
+	if b, err := ioutil.ReadFile(filepath.Join(si.Dir, navFile)); err != nil {
 		return nil, err
 	} else if err := yaml.Unmarshal(b, &ni); err != nil {
 		return nil, fmt.Errorf("failed parsing nav items: %v", err)
 	}
 
-	r := newRenderer(dir, ni, amp)
+	r := newRenderer(si, ni, amp)
 	b := md.Run(markdown, md.WithRenderer(r))
 	if r.err != nil {
 		return nil, r.err
@@ -79,7 +65,7 @@ type pageInfo struct {
 	ImgHeight       int    `yaml:"img_height"`        // structured data image width
 	Created         string `yaml:"created"`           // creation date as 'YYYY-MM-DD'
 	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
-	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append titleSuffix
+	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
 	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
@@ -125,10 +111,10 @@ type imageboxInfo struct {
 }
 
 type renderer struct {
-	dir  string // base site dir
+	si   SiteInfo
+	pi   pageInfo
 	tmpl *templater
 	hr   *md.HTMLRenderer
-	pi   pageInfo
 	err  error // error encountered during rendering
 	amp  bool  // rendering an AMP page
 
@@ -140,22 +126,23 @@ type renderer struct {
 	numMapMarkers     int    // number of boxes with "map_marker"
 }
 
-func newRenderer(dir string, navItems []*navItem, amp bool) *renderer {
+func newRenderer(si SiteInfo, navItems []*navItem, amp bool) *renderer {
 	r := renderer{
-		dir: dir,
-		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
+		si: si,
+		// TODO: Avoid copying SiteInfo fields here?
 		pi: pageInfo{
-			Desc:                defaultDesc,
+			Desc:                si.DefaultDesc,
 			NavItems:            navItems,
 			LogoImgDate:         logoImgDate,
 			CollapseImgDate:     collapseImgDate,
-			GoogleAnalyticsCode: googleAnalyticsCode,
+			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
 			BeginContentComment: template.HTML("<!-- begin content -->"),
 			EndContentComment:   template.HTML("<!-- end content -->"),
 		},
+		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
 		amp: amp,
 	}
-	r.tmpl = newTemplater(filepath.Join(dir, templateDir), template.FuncMap{
+	r.tmpl = newTemplater(filepath.Join(si.TemplateDir()), template.FuncMap{
 		"amp": func() bool {
 			return r.amp
 		},
@@ -168,7 +155,7 @@ func newRenderer(dir string, navItems []*navItem, amp bool) *renderer {
 			return t.Format(layout)
 		},
 		"srcset": func(pre, suf string) string {
-			glob := filepath.Join(r.dir, staticDir, pre+"*"+suf)
+			glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
 			ps, err := filepath.Glob(glob)
 			if err != nil {
 				r.err = fmt.Errorf("failed to list image files %q: %v", glob, err)
@@ -190,7 +177,7 @@ func newRenderer(dir string, navItems []*navItem, amp bool) *renderer {
 			}
 			var srcs []string
 			for _, p := range ps {
-				width := p[len(filepath.Join(r.dir, staticDir, pre)) : len(p)-len(suf)]
+				width := p[len(filepath.Join(r.si.StaticDir(), pre)) : len(p)-len(suf)]
 				srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
 			}
 			return strings.Join(srcs, ", ")
@@ -268,7 +255,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	m := make(map[string]*navItem)
 	for _, p := range r.pi.NavItems {
-		p.update(r.pi.ID, m)
+		p.update(r.pi.ID, r.si.BaseURL, m)
 	}
 	// Add a fake nav item for the index page if it's current.
 	// URL fields don't need to be set since this item is never rendered.
@@ -295,22 +282,22 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		DatePublished:    r.pi.Created,
 		Author: structDataAuthor{
 			Type:  "Person",
-			Name:  authorName,
-			Email: authorEmail,
+			Name:  r.si.AuthorName,
+			Email: r.si.AuthorEmail,
 		},
 		Publisher: structDataPublisher{
 			Type: "Organization",
-			Name: publisherName,
-			URL:  baseURL,
+			Name: r.si.PublisherName,
+			URL:  r.si.BaseURL,
 			Logo: structDataImage{
 				Type:   "ImageObject",
-				URL:    publisherLogoURL,
-				Width:  publisherLogoWidth,
-				Height: publisherLogoHeight,
+				URL:    r.si.PublisherLogoURL,
+				Width:  r.si.PublisherLogoWidth,
+				Height: r.si.PublisherLogoHeight,
 			},
 		},
 	}
-	if r.pi.Desc != "" && r.pi.Desc != defaultDesc {
+	if r.pi.Desc != "" && r.pi.Desc != r.si.DefaultDesc {
 		r.pi.StructData.Description = r.pi.Desc
 	}
 	if r.pi.Modified != "" {
@@ -322,24 +309,24 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			Width:  r.pi.ImgWidth,
 			Height: r.pi.ImgHeight,
 		}
-		if r.pi.StructData.Image.URL, r.err = absURL(r.pi.ImgURL); r.err != nil {
+		if r.pi.StructData.Image.URL, r.err = absURL(r.pi.ImgURL, r.si.BaseURL); r.err != nil {
 			return
 		}
 	}
 
 	// Do this here so it's not included in structured data.
 	if !r.pi.HideTitleSuffix {
-		r.pi.Title += titleSuffix
+		r.pi.Title += r.si.TitleSuffix
 	}
 
 	if r.amp {
 		r.pi.LinkRel = "canonical"
 		r.pi.LinkHref = r.pi.NavItem.AbsURL
 
-		r.pi.AMPStyle = template.CSS(r.readInline("amp-boilerplate.css.min"))
-		r.pi.AMPNoscriptStyle = template.CSS(r.readInline("amp-boilerplate-noscript.css.min"))
+		r.pi.AMPStyle = template.CSS(r.si.ReadInline("amp-boilerplate.css.min"))
+		r.pi.AMPNoscriptStyle = template.CSS(r.si.ReadInline("amp-boilerplate-noscript.css.min"))
 		r.pi.AMPCustomStyle = template.CSS(
-			r.readInline("base.css.min") + r.readInline("mobile.css.min") + r.readInline("mobile-amp.css.min"))
+			r.si.ReadInline("base.css.min") + r.si.ReadInline("mobile.css.min") + r.si.ReadInline("mobile-amp.css.min"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -357,12 +344,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.LinkRel = "amphtml"
 		r.pi.LinkHref = r.pi.NavItem.AbsAMPURL
 
-		r.pi.HTMLStyle = template.CSS(r.readInline("base.css.min") + r.readInline("base-nonamp.css.min") +
-			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.readInline("desktop.css.min")) +
-			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.readInline("mobile.css.min")))
-		r.pi.HTMLScripts = []template.JS{template.JS(r.readInline("base.js.min"))}
+		r.pi.HTMLStyle = template.CSS(r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
+			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.si.ReadInline("desktop.css.min")) +
+			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.si.ReadInline("mobile.css.min")))
+		r.pi.HTMLScripts = []template.JS{template.JS(r.si.ReadInline("base.js.min"))}
 		if r.pi.HasMap {
-			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.readInline("map.js.min")))
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.si.ReadInline("map.js.min")))
 		}
 
 		csp := cspHasher{}
@@ -401,7 +388,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 	// Absolute URLs could presumably also be used in the non-AMP case, but it makes development harder.
 	iframeHref := func(s string) string {
 		if r.amp {
-			return baseURL + s
+			return r.si.BaseURL + s
 		}
 		return "/" + s
 	}
@@ -626,16 +613,6 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 	return ws
 }
 
-// read reads and returns the contents of the named file in inlineDir.
-// It panics if the file can not be read.
-func (r *renderer) readInline(fn string) string {
-	b, err := ioutil.ReadFile(filepath.Join(r.dir, inlineDir, fn))
-	if err != nil {
-		panic(fmt.Sprint("Failed reading file: ", err))
-	}
-	return string(b)
-}
-
 func (r *renderer) rewriteLink(link string) (string, error) {
 	// Absolute links don't need to be rewritten.
 	if u, err := url.Parse(link); err != nil {
@@ -669,7 +646,7 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 	}
 	// If this isn't a regular page, it may not be served by the AMP CDN. Use an absolute URL.
 	if !isPage(link) {
-		return baseURL + link, nil
+		return r.si.BaseURL + link, nil
 	}
 
 	// TODO: Support forcing non-AMP.
