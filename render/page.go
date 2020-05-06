@@ -42,7 +42,7 @@ const (
 
 func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	var ni []*navItem
-	if b, err := ioutil.ReadFile(filepath.Join(si.Dir, navFile)); err != nil {
+	if b, err := ioutil.ReadFile(filepath.Join(si.dir, navFile)); err != nil {
 		return nil, err
 	} else if err := yaml.Unmarshal(b, &ni); err != nil {
 		return nil, fmt.Errorf("failed parsing nav items: %v", err)

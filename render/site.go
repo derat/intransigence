@@ -1,0 +1,83 @@
+// Copyright 2020 Daniel Erat <dan@erat.org>.
+// All rights reserved.
+
+package render
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	yaml "gopkg.in/yaml.v3"
+)
+
+type SiteInfo struct {
+	// BaseURL is the base site URL with a trailing slash, e.g. "https://www.example.org/".
+	BaseURL string `yaml:"base_url"`
+	// TitleSuffix is appended to page titles that don't explicitly forbid it.
+	TitleSuffix string `yaml:"title_suffix"`
+	// DefaultDesc is used as the default meta description for pages.
+	DefaultDesc string `yaml:"default_desc"`
+
+	// The following fields are used in structured data.
+	AuthorName          string `yaml:"author_name"`
+	AuthorEmail         string `yaml:"author_email"`
+	PublisherName       string `yaml:"publisher_name"`
+	PublisherLogoURL    string `yaml:"publisher_logo_url"`
+	PublisherLogoWidth  int    `yaml:"publisher_logo_width"`
+	PublisherLogoHeight int    `yaml:"publisher_logo_height"`
+
+	// GoogleAnalyticsCode uniquely identifies the site, e.g. "UA-123456-1".
+	GoogleAnalyticsCode string `yaml:"google_analytics_code"`
+	// GoogleMapsAPIKey is used for Google Maps API billing.
+	GoogleMapsAPIKey string `yaml:"google_maps_api_key"`
+	// D3ScriptURL is the URL of the minified d3.js to use for graphs.
+	D3ScriptURL string `yaml:"d3_script_url"`
+
+	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
+	// It is assumed to be the directory that the SiteInfo was loaded from.
+	dir string
+}
+
+func NewSiteInfo(p string) (*SiteInfo, error) {
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	si := SiteInfo{dir: filepath.Dir(p)}
+	if err := yaml.NewDecoder(f).Decode(&si); err != nil {
+		return nil, err
+	}
+
+	// Make sure the directory looks plausibly correct.
+	ip := filepath.Join(si.PageDir(), "index.md")
+	if _, err := os.Stat(ip); err != nil {
+		return nil, err
+	}
+
+	return &si, nil
+}
+
+func (si *SiteInfo) ReadInline(fn string) string {
+	b, err := ioutil.ReadFile(filepath.Join(si.dir, "inline", fn))
+	if err != nil {
+		panic(fmt.Sprint("Failed reading file: ", err))
+	}
+	return string(b)
+}
+
+func (si *SiteInfo) IframeDir() string {
+	return filepath.Join(si.dir, "iframes")
+}
+func (si *SiteInfo) PageDir() string {
+	return filepath.Join(si.dir, "pages")
+}
+func (si *SiteInfo) StaticDir() string {
+	return filepath.Join(si.dir, "static")
+}
+func (si *SiteInfo) TemplateDir() string {
+	return filepath.Join(si.dir, "templates")
+}
