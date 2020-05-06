@@ -11,7 +11,10 @@ import (
 	"path/filepath"
 )
 
-const d3URL = baseURL + "resources/d3.v3.min.js"
+const (
+	d3URL      = baseURL + "resources/d3.v3.min.js"
+	mapsAPIKey = "AIzaSyBvPAIQSEuw7hTR6EOy-v9IhJv0otYtsP0"
+)
 
 func Iframe(js []byte, dir string) ([]byte, error) {
 	var data struct {
@@ -62,6 +65,27 @@ func Iframe(js []byte, dir string) ([]byte, error) {
 			return nil, err
 		}
 	case "map":
+		// TODO: Replicate check_static_file placeholder check.
+		var td = struct {
+			ScriptURLs    []string
+			InlineScripts []template.JS
+			InlineStyle   template.CSS
+		}{
+			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + mapsAPIKey},
+			InlineScripts: []template.JS{
+				template.JS("var points = " + string(jsonData) + ";"),
+				template.JS(readInline("map-iframe.js.min")),
+			},
+			InlineStyle: template.CSS(readInline("map-iframe.css.min") +
+				"body{background-image:url('" + data.Placeholder + "')}"),
+		}
+
+		// Don't use CSP here; Maps API's gonna do whatever it wants.
+		tp := filepath.Join(dir, templateDir, "map_page.tmpl")
+		tmpl := template.Must(template.ParseFiles(tp))
+		if err := tmpl.Execute(&b, td); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown type %q", data.Type)
 	}
