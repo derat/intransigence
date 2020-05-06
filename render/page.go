@@ -30,6 +30,7 @@ import (
 )
 
 const (
+	// TODO: All of the uses of these dirs need to prepend the site dir.
 	inlineDir   = "inline"
 	staticDir   = "static"
 	templateDir = "templates"
@@ -401,21 +402,17 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(readInline("map.js.min")))
 		}
 
-		var csp = cspHasher{
-			"default": {"'none'"},
-			"child":   {"'self'"},
-			"frame":   {"'self'"}, // deprecated by child; see below
-			"img":     {"'self'"},
-		}
-		csp.hash("style", string(r.pi.HTMLStyle))
+		csp := cspHasher{}
+		csp.add(cspDefault, cspNone)
+		csp.add(cspChild, cspSelf)
+		csp.add(cspImg, cspSelf)
+
+		csp.hash(cspStyle, string(r.pi.HTMLStyle))
 		for _, s := range r.pi.HTMLScripts {
-			csp.hash("script", string(s))
+			csp.hash(cspScript, string(s))
 		}
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
-
-	// TODO: map junk
-	// TODO: amp iframe
 
 	r.err = r.template(w, []string{"page_header.tmpl"}, &r.pi, nil)
 }
