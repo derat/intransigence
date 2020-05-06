@@ -430,6 +430,27 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
 	// TODO: Prefix these by '!', or maybe just use custom HTML elements instead.
 	switch string(node.CodeBlockData.Info) {
+	case "graph":
+		var info struct {
+			imageboxInfo `yaml:",inline"`
+			Href         string `yaml:"href"`   // relative path to graph iframe page
+			Name         string `yaml:"name"`   // graph data name
+			Width        int    `yaml:"width"`  // graph width (without border)
+			Height       int    `yaml:"height"` // graph height (without border)
+		}
+		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
+			r.err = fmt.Errorf("failed to parse graph info from %q: %v", node.Literal, err)
+			return md.Terminate
+		}
+		if r.amp {
+			info.Href = baseURL + info.Href
+		} else {
+			info.Href = "/" + info.Href
+		}
+		if r.err = r.template(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil); r.err != nil {
+			return md.Terminate
+		}
+		return md.SkipChildren
 	case "image":
 		var info struct {
 			imageboxInfo `yaml:",inline"`

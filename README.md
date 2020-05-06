@@ -6,15 +6,18 @@ library](https://github.com/russross/blackfriday).
 
 Markup that is common across all pages is defined in
 `templates/page_header.tmpl` and `templates/page_footer.tmpl`. Page content is
-defined via Markdown in the `pages/` directory. A custom Markdown renderer is
-used to execute additional templates from the `templates/` directory in response
-to specific Markdown data as described below.
+defined via Markdown in the `pages/` directory.
+
+A custom Markdown renderer is used to execute additional templates from the
+`templates/` directory in response to specific Markdown data as described below.
+See the `renderCodeBlock`, `renderHeading`, and `renderHTMLSpan` functions in
+[render/renderer.go](./render/renderer.go) for details.
 
 ## Page info
 
 Every page starts with a fenced code block of type `page_info` that contains a
-single YAML dictionary with high-level information about the page. See
-`renderer.RenderHeader`.
+single YAML dictionary with high-level information about the page.
+
 
 ## Boxes
 
@@ -25,14 +28,17 @@ Boxes are started by defining level-1 headings:
 ```
 
 The (optional) ID can be followed with slash-separated arguments to further
-customize the box. In `renderer.RenderNode`, see the `md.Heading` case.
+customize the box.
 
 The box is automatically closed when a new box is started or the document ends.
 
+## Graphs
+
+Graphs are inserted using fenced code blocks of type `graph`.
+
 ## Block images
 
-Block-style images are inserted using fenced code blocks of type `image`. In
-`renderer.RenderNode`, see the `"image"` case under `md.CodeBlock`.
+Block-style images are inserted using fenced code blocks of type `image`.
 
 ## Inline images
 
