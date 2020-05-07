@@ -9,20 +9,29 @@ import (
 )
 
 const (
-	indexID   = "index" // used for index page
+	// Used by a synthetic NavItem created when the index page is active.
+	indexID   = "index"
 	indexFile = "index.html"
 )
 
-type navItem struct {
-	Name     string     `yaml:"name"`     // name displayed in the nav box
-	URL      string     `yaml:"url"`      // nav URL, e.g. "page.html" or "page.html#frag"
-	ID       string     `yaml:"id"`       // corresponds to page ID; can be empty
-	Children []*navItem `yaml:"children"` // items nested under this one in the menu
+// NavItem describes a single item displayed in the site navigation menu.
+type NavItem struct {
+	// Name contains the short, human-readable name for the item that is displayed in the menu.
+	Name string `yaml:"name"`
+	// URL contains the non-root-relative URL for the item, e.g. "page.html" or "page.html#frag".
+	// It may also be e.g. a "mailto:" link.
+	URL string `yaml:"url"`
+	// ID corresponds to the ID specified in the page linked to by the item.
+	// It may be empty if the item doesn't correspond to the top of a page
+	// (e.g. if it contains a fragment).
+	ID string `yaml:"id"`
+	// Children contains items nested under this one in the menu.
+	Children []*NavItem `yaml:"children"`
 }
 
 // AMPURL returns the the AMP version of n.URL.
 // If n does not represent a page, n.URL is returned.
-func (n *navItem) AMPURL() string {
+func (n *NavItem) AMPURL() string {
 	if isPage(n.URL) {
 		return ampPage(n.URL)
 	}
@@ -35,13 +44,13 @@ func (n *navItem) AMPURL() string {
 }
 
 // HasID returns true if n has the supplied ID.
-func (n *navItem) HasID(id string) bool {
+func (n *NavItem) HasID(id string) bool {
 	return n.ID != "" && n.ID == id
 }
 
 // FindID returns the item with the supplied ID (possibly n itself) rooted at n.
 // Returns nil if the item is not found.
-func (n *navItem) FindID(id string) *navItem {
+func (n *NavItem) FindID(id string) *NavItem {
 	if n.HasID(id) {
 		return n
 	}

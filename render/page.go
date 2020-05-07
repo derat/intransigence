@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -28,8 +27,6 @@ import (
 )
 
 const (
-	navFile = "nav.yaml" // file in site dir describing navigation items
-
 	mobileMaxWidth  = 640
 	desktopMinWidth = 641
 
@@ -39,15 +36,10 @@ const (
 	collapseImgDate = "20160915"
 )
 
+// Page renders and returns the page described by the supplied Markdown data.
+// The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
 func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
-	var ni []*navItem
-	if b, err := ioutil.ReadFile(filepath.Join(si.dir, navFile)); err != nil {
-		return nil, err
-	} else if err := yaml.Unmarshal(b, &ni); err != nil {
-		return nil, fmt.Errorf("failed parsing nav items: %v", err)
-	}
-
-	r := newRenderer(si, ni, amp)
+	r := newRenderer(si, amp)
 	b := md.Run(markdown, md.WithRenderer(r))
 	if r.err != nil {
 		return nil, r.err
@@ -69,8 +61,9 @@ type pageInfo struct {
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
-	TopNavItems []*navItem `yaml:"-"` // top-level nav items
-	NavItem     *navItem   `yaml:"-"` // nav item corresponding to current page
+	// TODO: Move these?
+	TopNavItems []*NavItem `yaml:"-"` // top-level nav items
+	NavItem     *NavItem   `yaml:"-"` // nav item corresponding to current page
 
 	LogoImgDate         string `yaml:"-"`
 	CollapseImgDate     string `yaml:"-"`
@@ -125,13 +118,13 @@ type renderer struct {
 	numMapMarkers     int    // number of boxes with "map_marker"
 }
 
-func newRenderer(si SiteInfo, navItems []*navItem, amp bool) *renderer {
+func newRenderer(si SiteInfo, amp bool) *renderer {
 	r := renderer{
 		si: si,
 		// TODO: Avoid copying SiteInfo fields here?
 		pi: pageInfo{
 			Desc:                si.DefaultDesc,
-			TopNavItems:         navItems,
+			TopNavItems:         si.NavItems,
 			LogoImgDate:         logoImgDate,
 			CollapseImgDate:     collapseImgDate,
 			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
@@ -258,7 +251,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	// Add a fake nav item for the index page if it's current.
 	// The Name and URL fields don't need to be set since this item is never rendered.
 	if r.pi.ID == indexID {
-		r.pi.NavItem = &navItem{ID: indexID, Children: r.pi.TopNavItems}
+		r.pi.NavItem = &NavItem{ID: indexID, Children: r.pi.TopNavItems}
 	} else {
 		for _, n := range r.pi.TopNavItems {
 			if r.pi.NavItem = n.FindID(r.pi.ID); r.pi.NavItem != nil {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 )
 
+// Iframe renders and returns the framed page described by the supplied JS data.
 func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 	var data struct {
 		Type        string      `json:"type"`        // "graph" or "map"

@@ -14,6 +14,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+// SiteInfo specifies high-level information about the site.
 type SiteInfo struct {
 	// BaseURL is the base site URL with a trailing slash, e.g. "https://www.example.org/".
 	BaseURL string `yaml:"base_url"`
@@ -37,11 +38,15 @@ type SiteInfo struct {
 	// D3ScriptURL is the URL of the minified d3.js to use for graphs.
 	D3ScriptURL string `yaml:"d3_script_url"`
 
+	// NavItems specifies the site's navigation hierarchy.
+	NavItems []*NavItem `yaml:"nav_items"`
+
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
 	dir string
 }
 
+// NewSiteInfo constructs a new SiteInfo from the YAML file at p.
 func NewSiteInfo(p string) (*SiteInfo, error) {
 	f, err := os.Open(p)
 	if err != nil {
@@ -63,6 +68,8 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	return &si, nil
 }
 
+// ReadInline reads and returns the contents of the named file in the "inline" dir.
+// It panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
 	b, err := ioutil.ReadFile(filepath.Join(si.dir, "inline", fn))
 	if err != nil {
