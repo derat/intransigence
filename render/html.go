@@ -17,7 +17,7 @@ func parseTag(b []byte) (html.Token, error) {
 	tk := html.NewTokenizer(bytes.NewReader(b))
 	tt := tk.Next()
 	if tt == html.ErrorToken {
-		return html.Token{}, fmt.Errorf("failed to parse %q", b)
+		return html.Token{}, fmt.Errorf("failed to parse %q: %v", b, tk.Err())
 	}
 	return tk.Token(), nil
 }
