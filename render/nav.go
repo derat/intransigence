@@ -9,10 +9,17 @@ import (
 )
 
 const (
+	// Extensions for non-AMP and AMP pages.
+	HTMLExt = ".html"
+	AMPExt  = ".amp.html"
+
 	// Used by a synthetic NavItem created when the index page is active.
-	indexID   = "index"
-	indexFile = "index.html"
+	indexID       = "index"
+	indexFileBase = "index"
 )
+
+// pageRegexp matches regular page filenames with an optional fragment.
+var pageRegexp = regexp.MustCompile("^([a-z_]+)" + regexp.QuoteMeta(HTMLExt) + "(#.+)?$")
 
 // NavItem describes a single item displayed in the site navigation menu.
 type NavItem struct {
@@ -38,7 +45,7 @@ func (n *NavItem) AMPURL() string {
 	// Special case: URL is empty for the synthetic item corresponding to the index,
 	// but we need to use a real filename to link to the AMP version.
 	if n.ID == indexID {
-		return ampPage(indexFile)
+		return ampPage(indexFileBase + HTMLExt)
 	}
 	return n.URL
 }
@@ -61,8 +68,6 @@ func (n *NavItem) FindID(id string) *NavItem {
 	}
 	return nil
 }
-
-var pageRegexp = regexp.MustCompile("^([a-z_]+)\\.html(#.+)?$")
 
 // splitPage splits a string like "foo.html#frag" into "foo" and "#frag".
 // Returns empty strings if p isn't a page URL.
@@ -87,5 +92,5 @@ func ampPage(p string) string {
 	if base == "" {
 		panic(fmt.Sprintf("Can't get AMP version of non-page %q", p))
 	}
-	return base + ".amp.html" + frag
+	return base + AMPExt + frag
 }
