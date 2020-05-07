@@ -46,7 +46,7 @@ func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 			InlineStyle: template.CSS(si.ReadInline("graph-iframe.css.min")),
 		}
 
-		csp := cspHasher{}
+		csp := cspBuilder{}
 		csp.add(cspDefault, cspNone)
 		for _, u := range td.ScriptURLs {
 			csp.add(cspScript, cspSource(u))

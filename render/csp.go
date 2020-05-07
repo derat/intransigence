@@ -28,11 +28,13 @@ const (
 	cspSelf           = "'self'"
 )
 
-type cspHasher map[cspDirective][]cspSource
+// cspBuilder constructs a Content-Security-Policy <meta> tag.
+// See https://www.w3.org/TR/CSP2/ for more info.
+type cspBuilder map[cspDirective][]cspSource
 
 // add adds a raw source expression (e.g. cspNone, cspSelf, "'sha256-...'",
 // "https://example.com/foo.js" -- note quoting) to the supplied directive (cspDefault, cspScript, etc).
-func (c cspHasher) add(dir cspDirective, src cspSource) {
+func (c cspBuilder) add(dir cspDirective, src cspSource) {
 	c[dir] = append(c[dir], src)
 
 	// child-src was introducted by CSP Level 2 and deprecates frame-src.
@@ -44,13 +46,13 @@ func (c cspHasher) add(dir cspDirective, src cspSource) {
 }
 
 // hash hashes the supplied data (e.g. JavaScript or CSS) and adds a hash source to the supplied directive.
-func (c cspHasher) hash(dir cspDirective, val string) {
+func (c cspBuilder) hash(dir cspDirective, val string) {
 	b := sha256.Sum256([]byte(val))
 	c.add(dir, cspSource(fmt.Sprintf("'sha256-%s'", base64.StdEncoding.EncodeToString(b[:]))))
 }
 
 // tag returns a full <meta> tag with the previously-specified directives.
-func (c cspHasher) tag() string {
+func (c cspBuilder) tag() string {
 	var dirs []string
 	for _, dir := range []cspDirective{cspDefault, cspChild, cspImg, cspScript, cspStyle, cspFrame} {
 		var srcs []string

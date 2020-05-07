@@ -351,7 +351,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.si.ReadInline("map.js.min")))
 		}
 
-		csp := cspHasher{}
+		csp := cspBuilder{}
 		csp.add(cspDefault, cspNone)
 		csp.add(cspChild, cspSelf)
 		csp.add(cspImg, cspSelf)
