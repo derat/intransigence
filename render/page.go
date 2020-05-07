@@ -47,6 +47,10 @@ func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	return b, nil
 }
 
+// pageInfo holds information about the current page that is used by the page_header
+// and page_footer templates.
+// TODO: This is a huge mess. It's used heavily by this class, rather than just by templates,
+// and TopNavItems is duplicated from renderer.NavItems.
 type pageInfo struct {
 	Title           string `yaml:"title"`             // used in <title> element
 	ID              string `yaml:"id"`                // ID to highlight in navbox
@@ -61,7 +65,6 @@ type pageInfo struct {
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
-	// TODO: Move these?
 	TopNavItems []*NavItem `yaml:"-"` // top-level nav items
 	NavItem     *NavItem   `yaml:"-"` // nav item corresponding to current page
 
@@ -84,9 +87,11 @@ type pageInfo struct {
 	EndContentComment   template.HTML `yaml:"-"`
 }
 
+// imageTagInfo holds information needed by the image_tag template.
 type imageTagInfo struct {
-	Prefix string `html:"prefix",yaml:"prefix"` // relative path prefix (before width)
-	Suffix string `html:"suffix",yaml:"suffix"` // path suffix (empty if prefix contains full path)
+	Path   string `html:"path",yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
+	Prefix string `html:"prefix",yaml:"prefix"` // path prefix (before width)
+	Suffix string `html:"suffix",yaml:"suffix"` // path suffix (after width)
 	Width  int    `html:"width",yaml:"width"`   // 100% width
 	Height int    `html:"height",yaml:"height"` // 100% height
 	Alt    string `html:"alt",yaml:"alt"`       // alt text
@@ -96,6 +101,22 @@ type imageTagInfo struct {
 	Attr   []string // additional attributes to include
 }
 
+// check validates the stored information.
+func (it *imageTagInfo) check() error {
+	if it.Path != "" && (it.Prefix != "" || it.Suffix != "") ||
+		it.Path == "" && (it.Prefix == "" || it.Suffix == "") {
+		return errors.New("either path or prefix/suffix must be supplied")
+	}
+	if it.Width <= 0 || it.Height <= 0 {
+		return errors.New("height and width must be set")
+	}
+	if it.Alt == "" {
+		return errors.New("alt must be set")
+	}
+	return nil
+}
+
+// imageboxInfo holds information needed by the imagebox template.
 type imageboxInfo struct {
 	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right, desktop_alt
 	Caption template.HTML `yaml:"caption"` // <figcaption> text; template.HTML to permit links and not escape quotes
@@ -437,8 +458,12 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			r.err = fmt.Errorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
+		if err := info.imageTagInfo.check(); err != nil {
+			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
+			return md.Terminate
+		}
 		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
-		if len(info.Href) == 0 && len(info.Suffix) > 0 {
+		if len(info.Href) == 0 && len(info.Prefix) > 0 {
 			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
 			// TODO: check_static_file
 		}
@@ -463,6 +488,10 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		info.imageTagInfo.Layout = "fill"
 		info.imageTagInfo.Attr = []string{"placeholder"}
 		info.imageTagInfo.Alt = "[map placeholder]"
+		if err := info.imageTagInfo.check(); err != nil {
+			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
+			return md.Terminate
+		}
 		info.Href = iframeHref(info.Href)
 		if r.err = r.tmpl.run(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
 			return md.Terminate
@@ -563,6 +592,9 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			if token.Type == html.StartTagToken {
 				var info = imageTagInfo{Inline: true, Layout: "fixed"}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
+					return 0, err
+				}
+				if err := info.check(); err != nil {
 					return 0, err
 				}
 				if err := r.tmpl.run(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
