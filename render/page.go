@@ -29,7 +29,6 @@ import (
 
 const (
 	navFile = "nav.yaml" // file in site dir describing navigation items
-	indexID = "index"    // used for index page
 
 	mobileMaxWidth  = 640
 	desktopMinWidth = 641
@@ -70,8 +69,8 @@ type pageInfo struct {
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
-	NavItems []*navItem `yaml:"-"` // hierarchy of nav items
-	NavItem  *navItem   `yaml:"-"` // nav item corresponding to current page
+	TopNavItems []*navItem `yaml:"-"` // top-level nav items
+	NavItem     *navItem   `yaml:"-"` // nav item corresponding to current page
 
 	LogoImgDate         string `yaml:"-"`
 	CollapseImgDate     string `yaml:"-"`
@@ -132,7 +131,7 @@ func newRenderer(si SiteInfo, navItems []*navItem, amp bool) *renderer {
 		// TODO: Avoid copying SiteInfo fields here?
 		pi: pageInfo{
 			Desc:                si.DefaultDesc,
-			NavItems:            navItems,
+			TopNavItems:         navItems,
 			LogoImgDate:         logoImgDate,
 			CollapseImgDate:     collapseImgDate,
 			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
@@ -145,6 +144,9 @@ func newRenderer(si SiteInfo, navItems []*navItem, amp bool) *renderer {
 	r.tmpl = newTemplater(filepath.Join(si.TemplateDir()), template.FuncMap{
 		"amp": func() bool {
 			return r.amp
+		},
+		"currentID": func() string {
+			return r.pi.NavItem.ID
 		},
 		"formatDate": func(date, layout string) string {
 			t, err := time.Parse("2006-01-02", date)
@@ -253,33 +255,30 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		return
 	}
 
-	m := make(map[string]*navItem)
-	for _, p := range r.pi.NavItems {
-		p.update(r.pi.ID, r.si.BaseURL, m)
-	}
 	// Add a fake nav item for the index page if it's current.
-	// URL fields don't need to be set since this item is never rendered.
+	// The Name and URL fields don't need to be set since this item is never rendered.
 	if r.pi.ID == indexID {
-		r.pi.NavItem = &navItem{
-			ID:       indexID,
-			Current:  true,
-			Expanded: true,
-			Children: r.pi.NavItems,
+		r.pi.NavItem = &navItem{ID: indexID, Children: r.pi.TopNavItems}
+	} else {
+		for _, n := range r.pi.TopNavItems {
+			if r.pi.NavItem = n.FindID(r.pi.ID); r.pi.NavItem != nil {
+				break
+			}
 		}
-	} else if r.pi.NavItem = m[r.pi.ID]; r.pi.NavItem == nil {
-		r.err = fmt.Errorf("no page with ID %q", r.pi.ID)
-		return
+		if r.pi.NavItem == nil {
+			r.err = fmt.Errorf("no page with ID %q", r.pi.ID)
+			return
+		}
 	}
 
 	// It would be much simpler to just use a map[string]interface{} for this,
 	// but the properties are marshaled in an arbitrary order then, making it
 	// hard to compare the output against template_lib.rb.
 	r.pi.StructData = structData{
-		Context:          "http://schema.org",
-		Type:             "Article",
-		MainEntityOfPage: r.pi.NavItem.AbsURL,
-		Headline:         r.pi.Title,
-		DatePublished:    r.pi.Created,
+		Context:       "http://schema.org",
+		Type:          "Article",
+		Headline:      r.pi.Title,
+		DatePublished: r.pi.Created,
 		Author: structDataAuthor{
 			Type:  "Person",
 			Name:  r.si.AuthorName,
@@ -297,6 +296,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			},
 		},
 	}
+	if r.pi.StructData.MainEntityOfPage, r.err = r.si.AbsURL(r.pi.NavItem.URL); r.err != nil {
+		return
+	}
 	if r.pi.Desc != "" && r.pi.Desc != r.si.DefaultDesc {
 		r.pi.StructData.Description = r.pi.Desc
 	}
@@ -309,7 +311,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			Width:  r.pi.ImgWidth,
 			Height: r.pi.ImgHeight,
 		}
-		if r.pi.StructData.Image.URL, r.err = absURL(r.pi.ImgURL, r.si.BaseURL); r.err != nil {
+		if r.pi.StructData.Image.URL, r.err = r.si.AbsURL(r.pi.ImgURL); r.err != nil {
 			return
 		}
 	}
@@ -321,7 +323,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	if r.amp {
 		r.pi.LinkRel = "canonical"
-		r.pi.LinkHref = r.pi.NavItem.AbsURL
+		if r.pi.LinkHref, r.err = r.si.AbsURL(r.pi.NavItem.URL); r.err != nil {
+			return
+		}
 
 		r.pi.AMPStyle = template.CSS(r.si.ReadInline("amp-boilerplate.css.min"))
 		r.pi.AMPNoscriptStyle = template.CSS(r.si.ReadInline("amp-boilerplate-noscript.css.min"))
@@ -342,7 +346,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		// https://amp.dev/documentation/guides-and-tutorials/optimize-and-measure/secure-pages/
 	} else {
 		r.pi.LinkRel = "amphtml"
-		r.pi.LinkHref = r.pi.NavItem.AbsAMPURL
+		if r.pi.LinkHref, r.err = r.si.AbsURL(r.pi.NavItem.AMPURL()); r.err != nil {
+			return
+		}
 
 		r.pi.HTMLStyle = template.CSS(r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
 			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.si.ReadInline("desktop.css.min")) +

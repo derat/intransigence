@@ -6,8 +6,10 @@ package render
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -80,4 +82,21 @@ func (si *SiteInfo) StaticDir() string {
 }
 func (si *SiteInfo) TemplateDir() string {
 	return filepath.Join(si.dir, "templates")
+}
+
+// AbsURL converts the supplied string into an absolute URL by appending it to si.BaseURL.
+// Returns the unchanged string if it's already absolute.
+// Returns an error if the URL is absolute but not prefixed by si.BaseURL.
+func (si *SiteInfo) AbsURL(u string) (string, error) {
+	ur, err := url.Parse(u)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse %q: %v", u, err)
+	}
+	if ur.IsAbs() {
+		if !strings.HasPrefix(u, si.BaseURL) {
+			return "", fmt.Errorf("URL %q doesn't have prefix %q", u, si.BaseURL)
+		}
+		return u, nil
+	}
+	return si.BaseURL + u, nil
 }

@@ -5,8 +5,12 @@ package render
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
+)
+
+const (
+	indexID   = "index" // used for index page
+	indexFile = "index.html"
 )
 
 type navItem struct {
@@ -14,37 +18,38 @@ type navItem struct {
 	URL      string     `yaml:"url"`      // nav URL, e.g. "page.html" or "page.html#frag"
 	ID       string     `yaml:"id"`       // corresponds to page ID; can be empty
 	Children []*navItem `yaml:"children"` // items nested under this one in the menu
-
-	Current  bool `yaml:"-"` // true if nav item corresponds to current page
-	Expanded bool `yaml:"-"` // true if nav item's children should be displayed
-
-	AMPURL    string `yaml:"-"` // AMP analog of URL field
-	AbsURL    string `yaml:"-"` // absolute version of URL
-	AbsAMPURL string `yaml:"-"` // absolute version of AMPURL
 }
 
-func (n *navItem) update(currentID, baseURL string, m map[string]*navItem) error {
-	if n.ID != "" {
-		m[n.ID] = n
+// AMPURL returns the the AMP version of n.URL.
+// If n does not represent a page, n.URL is returned.
+func (n *navItem) AMPURL() string {
+	if isPage(n.URL) {
+		return ampPage(n.URL)
 	}
+	// Special case: URL is empty for the synthetic item corresponding to the index,
+	// but we need to use a real filename to link to the AMP version.
+	if n.ID == indexID {
+		return ampPage(indexFile)
+	}
+	return n.URL
+}
 
-	n.Current = n.ID != "" && n.ID == currentID
-	n.Expanded = n.Current
+// HasID returns true if n has the supplied ID.
+func (n *navItem) HasID(id string) bool {
+	return n.ID != "" && n.ID == id
+}
+
+// FindID returns the item with the supplied ID (possibly n itself) rooted at n.
+// Returns nil if the item is not found.
+func (n *navItem) FindID(id string) *navItem {
+	if n.HasID(id) {
+		return n
+	}
 	for _, c := range n.Children {
-		c.update(currentID, baseURL, m)
-		if c.Expanded {
-			n.Expanded = true
+		if m := c.FindID(id); m != nil {
+			return m
 		}
 	}
-
-	if isPage(n.URL) {
-		n.AMPURL = ampPage(n.URL)
-		n.AbsURL = baseURL + n.URL
-		n.AbsAMPURL = baseURL + n.AMPURL
-	} else {
-		n.AMPURL = n.URL
-	}
-
 	return nil
 }
 
@@ -74,17 +79,4 @@ func ampPage(p string) string {
 		panic(fmt.Sprintf("Can't get AMP version of non-page %q", p))
 	}
 	return base + ".amp.html" + frag
-}
-
-// absURL converts the supplied string into an absolute URL by appending it to baseURL.
-// Returns the unchanged string if it's already absolute.
-func absURL(u, baseURL string) (string, error) {
-	ur, err := url.Parse(u)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse %q: %v", u, err)
-	}
-	if ur.IsAbs() {
-		return u, nil
-	}
-	return baseURL + u, nil
 }
