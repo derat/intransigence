@@ -40,7 +40,7 @@ const (
 // The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
 func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	r := newRenderer(si, amp)
-	b := md.Run(markdown, md.WithRenderer(r))
+	b := md.Run(markdown, md.WithRenderer(r), md.WithExtensions(md.CommonExtensions&^md.Autolink))
 	if r.err != nil {
 		return nil, r.err
 	}

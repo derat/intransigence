@@ -59,7 +59,6 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		return nil, err
 	}
 
-	// Make sure the directory looks plausibly correct.
 	ip := filepath.Join(si.PageDir(), "index.md")
 	if _, err := os.Stat(ip); err != nil {
 		return nil, err
