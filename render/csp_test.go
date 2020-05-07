@@ -25,7 +25,7 @@ func parseCSPTag(tag string) (map[cspDirective][]cspSource, error) {
 		return nil, errors.New("not start tag")
 	}
 
-	var attr = struct {
+	attr := struct {
 		HTTPEquiv string `html:"http-equiv"`
 		Content   string `html:"content"`
 	}{}
