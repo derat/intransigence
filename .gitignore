@@ -1,5 +1,6 @@
-.*.swp
-.out.tmp
+# Minified inlined files.
 inline/*.min
+
+# Current and past/temp generated site.
 out/
-/homepage
+/.out.*

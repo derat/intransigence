@@ -1,0 +1,8 @@
+---
+base_url: https://www.example.org/
+title_suffix: " - example.org"
+default_desc: Default description
+nav_items:
+- name: Features
+  url: features.html
+  id: features
