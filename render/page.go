@@ -89,12 +89,12 @@ type pageInfo struct {
 
 // imageTagInfo holds information needed by the image_tag template.
 type imageTagInfo struct {
-	Path   string `html:"path",yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
-	Prefix string `html:"prefix",yaml:"prefix"` // path prefix (before width)
-	Suffix string `html:"suffix",yaml:"suffix"` // path suffix (after width)
-	Width  int    `html:"width",yaml:"width"`   // 100% width
-	Height int    `html:"height",yaml:"height"` // 100% height
-	Alt    string `html:"alt",yaml:"alt"`       // alt text
+	Path   string `html:"path" yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
+	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width)
+	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width)
+	Width  int    `html:"width" yaml:"width"`   // 100% width
+	Height int    `html:"height" yaml:"height"` // 100% height
+	Alt    string `html:"alt" yaml:"alt"`       // alt text
 
 	Layout string   // AMP layout ("responsive" used if empty)
 	Inline bool     // add "inline" class
