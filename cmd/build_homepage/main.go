@@ -14,8 +14,8 @@ import (
 
 	"golang.org/x/net/html"
 
-	"github.com/derat/homepage/pretty"
 	"github.com/derat/homepage/render"
+	"github.com/derat/htmlpretty"
 )
 
 const (
@@ -46,7 +46,7 @@ func main() {
 	}
 	flag.StringVar(&dir, "dir", dir, "Site directory (defaults to working dir)")
 	out := flag.String("out", "", "Destination directory (site is built under -dir if empty)")
-	pprint := flag.Bool("pretty", true, "Pretty-print HTML")
+	pretty := flag.Bool("pretty", true, "Pretty-print HTML")
 	flag.Parse()
 
 	// TODO: Permit this once everything works.
@@ -54,14 +54,14 @@ func main() {
 		die(2, "-out must be explicitly specified")
 	}
 
-	if err := buildSite(dir, *out, *pprint); err != nil {
+	if err := buildSite(dir, *out, *pretty); err != nil {
 		die(1, "Failed to build site: ", err)
 	}
 }
 
 // buildSite builds the site rooted at dir into the directory named by out.
 // If out is empty, the site is built into outSubdir under the site directory.
-func buildSite(dir, out string, pprint bool) error {
+func buildSite(dir, out string, pretty bool) error {
 	si, err := render.NewSiteInfo(filepath.Join(dir, siteFile))
 	if err != nil {
 		return fmt.Errorf("failed to load site info: %v", err)
@@ -78,10 +78,10 @@ func buildSite(dir, out string, pprint bool) error {
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
-	if err := buildPages(si, out, pprint); err != nil {
+	if err := buildPages(si, out, pretty); err != nil {
 		return err
 	}
-	if err := buildIframes(si, out, pprint); err != nil {
+	if err := buildIframes(si, out, pretty); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func buildSite(dir, out string, pprint bool) error {
 
 // buildPages renders non-AMP and AMP versions of all normal pages and writes them
 // to the appropriate subdirectory under out.
-func buildPages(si *render.SiteInfo, out string, pprint bool) error {
+func buildPages(si *render.SiteInfo, out string, pretty bool) error {
 	ps, err := filepath.Glob(filepath.Join(si.PageDir(), "*.md"))
 	if err != nil {
 		return fmt.Errorf("failed to enumerate pages: %v", err)
@@ -126,7 +126,7 @@ func buildPages(si *render.SiteInfo, out string, pprint bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to render %s: %v", filepath.Base(dest), err)
 			}
-			if pprint {
+			if pretty {
 				if b, err = prettyPrint(bytes.NewReader(b)); err != nil {
 					return fmt.Errorf("failed to pretty-print %s: %v", filepath.Base(dest), err)
 				}
@@ -145,7 +145,7 @@ func buildPages(si *render.SiteInfo, out string, pprint bool) error {
 }
 
 // buildIframe renders all iframe pages and writes them to the appropriate subdirectory under out.
-func buildIframes(si *render.SiteInfo, out string, pprint bool) error {
+func buildIframes(si *render.SiteInfo, out string, pretty bool) error {
 	ps, err := filepath.Glob(filepath.Join(si.IframeDir(), "*.json"))
 	if err != nil {
 		return fmt.Errorf("failed to enumerate iframe data: %v", err)
@@ -167,7 +167,7 @@ func buildIframes(si *render.SiteInfo, out string, pprint bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to render iframe %q: %v", base, err)
 		}
-		if pprint {
+		if pretty {
 			if b, err = prettyPrint(bytes.NewReader(b)); err != nil {
 				return fmt.Errorf("failed to pretty-print iframe %s: %v", filepath.Base(dest), err)
 			}
@@ -187,7 +187,7 @@ func prettyPrint(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	var b bytes.Buffer
-	if err := pretty.Print(&b, node, indent, wrapWidth); err != nil {
+	if err := htmlpretty.Print(&b, node, indent, wrapWidth); err != nil {
 		return nil, err
 	}
 	return b.Bytes(), nil
