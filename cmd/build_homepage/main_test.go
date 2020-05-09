@@ -90,7 +90,7 @@ func TestBuildSite(t *testing.T) {
 		`Last modified Dec. 31, 1999.`, // from page_info
 	}, nil)
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
-		"^<!DOCTYPE html>\n<html amp>\n",
+		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
 		`<link rel="canonical" href="https://www.example.org/">`,
 	}, nil)
 

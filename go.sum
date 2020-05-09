@@ -1,5 +1,5 @@
-github.com/derat/htmlpretty v0.0.0-20200508162042-06b608474f28 h1:1Xe6ysQ7+mPvSWZt3kDUx2SNmY1benYfXEKk2YjOMPk=
-github.com/derat/htmlpretty v0.0.0-20200508162042-06b608474f28/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
+github.com/derat/htmlpretty v0.0.0-20200509164015-a10e8251a554 h1:CVQjPY96CGatWzizbgiekDxCvtosMNYRcY590sqPhYc=
+github.com/derat/htmlpretty v0.0.0-20200509164015-a10e8251a554/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
 github.com/otiai10/copy v1.1.1 h1:PH7IFlRQ6Fv9vYmuXbDRLdgTHoP1w483kPNUP2bskpo=
 github.com/otiai10/copy v1.1.1/go.mod h1:rrF5dJ5F0t/EWSYODDu4j9/vEeYHMkc8jt0zJChqQWw=
 github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
