@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"golang.org/x/net/html"
@@ -19,10 +20,13 @@ import (
 
 const (
 	iframeSubdir = "iframes" // subdir under output dir for generated iframe pages
-	fileMode     = 0644      // mode for creating files
-	dirMode      = 0755      // mode for creating dirs
-	indent       = "  "
-	wrapWidth    = 120
+	minSuffix    = ".min"    // suffix for minified CSS and JS files
+
+	fileMode = 0644 // mode for creating files
+	dirMode  = 0755 // mode for creating dirs
+
+	indent    = "  "
+	wrapWidth = 120
 )
 
 // generatePages renders non-AMP and AMP versions of all normal pages and writes them
@@ -111,4 +115,40 @@ func prettyPrint(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
+}
+
+// minifyInline updates the minified versions of CSS or JS files within dir if needed.
+// It seems like it'd be cleaner to write the minified files into a temporary dir instead
+// of alongside the source files, but yui-compressor is slow (1 second for a 9 KB JS file!)
+// so it seems better to skip unnecessary calls.
+func minifyInline(dir string) error {
+	// filepath.Glob doesn't appear to support globs like "*.{css,js}".
+	ps, err := filepath.Glob(filepath.Join(dir, "*.css"))
+	if err != nil {
+		return err
+	} else if js, err := filepath.Glob(filepath.Join(dir, "*.js")); err != nil {
+		return err
+	} else {
+		ps = append(ps, js...)
+	}
+
+	for _, p := range ps {
+		pi, err := os.Stat(p)
+		if err != nil {
+			return err
+		}
+		mp := p + minSuffix
+		mi, err := os.Stat(mp)
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		// Minify if the minimized version doesn't exist or has an mtime before the original file's.
+		if err != nil || mi.ModTime().Before(pi.ModTime()) {
+			if err := exec.Command("yui-compressor", "-o", mp, p).Run(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

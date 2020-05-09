@@ -70,6 +70,11 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
+	// Minify inline files before they get included in pages and iframes.
+	if err := minifyInline(si.InlineDir()); err != nil {
+		return err
+	}
+
 	if err := generatePages(si, out, pretty); err != nil {
 		return err
 	}
@@ -82,7 +87,13 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		}
 	}
 
+	// TODO: Copy static dir.
+	// TODO: Generate sitemap.
+	// TODO: Compress .css, .html, .js, .json, .xml.
+
 	// If we built into the site dir, rename the temp dir that we used.
+	// TODO: Maybe copy over mtimes from unchanged original files? Check whether
+	// it'd help rsync when copying to server.
 	if buildToSiteDir {
 		dest := filepath.Join(dir, outSubdir)
 		// Rename the existing out dir after deleting the old backup if present.

@@ -16,17 +16,12 @@ import (
 	"github.com/derat/validate"
 )
 
-// validateDir validates all files within dir.
+// validateDir validates all files within dir (including in subdirs).
 func validateDir(ctx context.Context, dir string) error {
-	ps, err := filepath.Glob(filepath.Join(dir, "*"))
-	if err != nil {
-		return err
-	}
-
 	// AMP files are rejected by validate.HTML with e.g. "Attribute amp not allowed on
 	// element html at this point.", so build up separate lists of files.
 	var htmlPaths, ampPaths, cssPaths []string
-	for _, p := range ps {
+	if err := filepath.Walk(dir, func(p string, _ os.FileInfo, err error) error {
 		if strings.HasSuffix(p, render.AMPExt) {
 			ampPaths = append(ampPaths, p)
 			cssPaths = append(cssPaths, p)
@@ -34,6 +29,9 @@ func validateDir(ctx context.Context, dir string) error {
 			htmlPaths = append(htmlPaths, p)
 			cssPaths = append(cssPaths, p)
 		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	// Perform validation tasks in parallel.
@@ -42,17 +40,16 @@ func validateDir(ctx context.Context, dir string) error {
 	cssCh := startValidation(ctx, cssPaths, validateCSS)
 
 	results := make(map[string]bool)
-	results["HTML"] = printValidateResults("HTML", htmlCh, []*regexp.Regexp{
+	results["HTML"] = printValidateResults("HTML", dir, htmlCh, []*regexp.Regexp{
 		// Blackfriday uses align attributes on generated tables.
 		regexp.MustCompile(`^The align attribute on the (td|th) element is obsolete. Use CSS instead\.$`),
 	})
-	results["AMP"] = printValidateResults("AMP", ampCh, nil)
-	results["CSS"] = printValidateResults("CSS", cssCh, []*regexp.Regexp{
-		// TODO: Some of these are from AMP, but I think that the -transform and -transition
-		// exceptions can be removed after updating mobile.css.
+	results["AMP"] = printValidateResults("AMP", dir, ampCh, nil)
+	results["CSS"] = printValidateResults("CSS", dir, cssCh, []*regexp.Regexp{
+		// AMP's inlined styles use these.
 		regexp.MustCompile(`-amp-start.* is an unknown vendor extension`),
 		regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
-		regexp.MustCompile(`^-[a-z]+-(animation|transform|transition) is an unknown vendor extension$`),
+		regexp.MustCompile(`^-[a-z]+-animation is an unknown vendor extension$`),
 	})
 
 	var failed []string
@@ -70,10 +67,10 @@ func validateDir(ctx context.Context, dir string) error {
 // printValidateResults reads all results from ch and prints errors to stdout.
 // Issues are printed if they are not excluded by a regexp in ignore.
 // vname describes the type of validation being performed, e.g. "HTML".
+// dir should be the output directory passed to validateDir.
 // Returns true if all documents validated successfully.
-func printValidateResults(vname string, ch <-chan validateResult, ignore []*regexp.Regexp) bool {
+func printValidateResults(vname, dir string, ch <-chan validateResult, ignore []*regexp.Regexp) bool {
 	succeeded := true
-
 	for res := range ch {
 		// Filter out ignored issues.
 		var issues []validate.Issue
@@ -89,7 +86,7 @@ func printValidateResults(vname string, ch <-chan validateResult, ignore []*rege
 				issues = append(issues, is)
 			}
 		}
-		fn := filepath.Base(res.p)
+		fn := res.p[len(dir)+1:] // strip off dir but keep subdir(s)
 		if res.err != nil {
 			fmt.Printf("%s: %s validator failed: %v\n", fn, vname, res.err)
 			succeeded = false
@@ -99,7 +96,6 @@ func printValidateResults(vname string, ch <-chan validateResult, ignore []*rege
 			succeeded = false
 		}
 	}
-
 	return succeeded
 }
 

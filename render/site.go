@@ -70,13 +70,16 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 // ReadInline reads and returns the contents of the named file in the "inline" dir.
 // It panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
-	b, err := ioutil.ReadFile(filepath.Join(si.dir, "inline", fn))
+	b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
 	if err != nil {
 		panic(fmt.Sprint("Failed reading file: ", err))
 	}
 	return string(b)
 }
 
+func (si *SiteInfo) InlineDir() string {
+	return filepath.Join(si.dir, "inline")
+}
 func (si *SiteInfo) IframeDir() string {
 	return filepath.Join(si.dir, "iframes")
 }
