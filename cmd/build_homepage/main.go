@@ -87,13 +87,16 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		}
 	}
 
-	// TODO: Copy static dir.
+	// TODO: Copy static dir plus extra dirs.
 	// TODO: Generate sitemap.
-	// TODO: Compress .css, .html, .js, .json, .xml.
+
+	if err := compressDir(out); err != nil {
+		return err
+	}
+
+	// TODO: Copy over mtimes from unchanged original files?
 
 	// If we built into the site dir, rename the temp dir that we used.
-	// TODO: Maybe copy over mtimes from unchanged original files? Check whether
-	// it'd help rsync when copying to server.
 	if buildToSiteDir {
 		dest := filepath.Join(dir, outSubdir)
 		// Rename the existing out dir after deleting the old backup if present.

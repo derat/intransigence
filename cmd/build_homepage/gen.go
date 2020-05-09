@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -151,4 +152,38 @@ func minifyInline(dir string) error {
 	}
 
 	return nil
+}
+
+// compressDir writes compressed versions of textual files within dir (including in subdirs).
+func compressDir(dir string) error {
+	return filepath.Walk(dir, func(p string, _ os.FileInfo, err error) error {
+		switch filepath.Ext(p) {
+		case ".css", ".htm", ".html", "js", ".json", ".txt", ".xml":
+			return compressFile(p)
+		default:
+			return nil
+		}
+	})
+}
+
+// compressFile writes a gzipped version of p alongside the normal file.
+func compressFile(p string) error {
+	sf, err := os.Open(p)
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+
+	df, err := os.Create(p + ".gz")
+	if err != nil {
+		return err
+	}
+	defer df.Close()
+
+	w := gzip.NewWriter(df)
+	// TODO: Necessary to set w.Header with filename and mtime?
+	if _, err := io.Copy(w, sf); err != nil {
+		return err
+	}
+	return w.Close()
 }
