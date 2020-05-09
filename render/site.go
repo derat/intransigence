@@ -37,6 +37,9 @@ type SiteInfo struct {
 	GoogleMapsAPIKey string `yaml:"google_maps_api_key"`
 	// D3ScriptURL is the URL of the minified d3.js to use for graphs.
 	D3ScriptURL string `yaml:"d3_script_url"`
+	// ExtraStaticDirs contains extra dirs to copy into the output dir.
+	// Keys are absolute paths and values are paths relative to the output dir.
+	ExtraStaticDirs map[string]string `yaml:"extra_static_dirs"`
 
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`

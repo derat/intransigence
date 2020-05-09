@@ -71,10 +71,15 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
+	// Copy over static content.
 	if err := copy.Copy(si.StaticDir(), out); err != nil {
 		return err
 	}
-	// TODO: Copy extra dirs.
+	for src, dst := range si.ExtraStaticDirs {
+		if err := copy.Copy(src, filepath.Join(out, dst)); err != nil {
+			return err
+		}
+	}
 
 	// Minify inline files before they get included in pages and iframes.
 	if err := minifyInline(si.InlineDir()); err != nil {
