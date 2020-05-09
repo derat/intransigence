@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"golang.org/x/net/html"
 
@@ -156,25 +158,33 @@ func minifyInline(dir string) error {
 
 // compressDir writes compressed versions of textual files within dir (including in subdirs).
 func compressDir(dir string) error {
-	return filepath.Walk(dir, func(p string, _ os.FileInfo, err error) error {
+	return filepath.Walk(dir, func(p string, fi os.FileInfo, err error) error {
 		switch filepath.Ext(p) {
 		case ".css", ".htm", ".html", "js", ".json", ".txt", ".xml":
-			return compressFile(p)
+			dp := p + ".gz"
+			if err := compressFile(p, dp); err != nil {
+				return err
+			}
+			// Give the .gz file the same mtime and atime as the original file so
+			// rsync can skip it: https://stackoverflow.com/a/20877193
+			stat := fi.Sys().(*syscall.Stat_t)
+			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+			return os.Chtimes(dp, atime, fi.ModTime())
 		default:
 			return nil
 		}
 	})
 }
 
-// compressFile writes a gzipped version of p alongside the normal file.
-func compressFile(p string) error {
-	sf, err := os.Open(p)
+// compressFile writes a gzipped version of sp at dp.
+func compressFile(sp, dp string) error {
+	sf, err := os.Open(sp)
 	if err != nil {
 		return err
 	}
 	defer sf.Close()
 
-	df, err := os.Create(p + ".gz")
+	df, err := os.Create(dp)
 	if err != nil {
 		return err
 	}

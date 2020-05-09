@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/derat/homepage/render"
+	"github.com/otiai10/copy"
 )
 
 const (
@@ -70,11 +71,15 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
+	if err := copy.Copy(si.StaticDir(), out); err != nil {
+		return err
+	}
+	// TODO: Copy extra dirs.
+
 	// Minify inline files before they get included in pages and iframes.
 	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
 	}
-
 	if err := generatePages(si, out, pretty); err != nil {
 		return err
 	}
@@ -87,14 +92,12 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		}
 	}
 
-	// TODO: Copy static dir plus extra dirs.
 	// TODO: Generate sitemap.
+	// TODO: Copy over mtimes from static files and unchanged original files?
 
 	if err := compressDir(out); err != nil {
 		return err
 	}
-
-	// TODO: Copy over mtimes from unchanged original files?
 
 	// If we built into the site dir, rename the temp dir that we used.
 	if buildToSiteDir {
