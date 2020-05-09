@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/derat/homepage/render"
 	"github.com/otiai10/copy"
@@ -71,16 +72,6 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
-	// Copy over static content.
-	if err := copy.Copy(si.StaticDir(), out); err != nil {
-		return err
-	}
-	for src, dst := range si.ExtraStaticDirs {
-		if err := copy.Copy(src, filepath.Join(out, dst)); err != nil {
-			return err
-		}
-	}
-
 	// Minify inline files before they get included in pages and iframes.
 	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
@@ -93,6 +84,20 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 	}
 	if validate {
 		if err := validateDir(ctx, out); err != nil {
+			return err
+		}
+	}
+
+	// Copy over static content after finishing with validation.
+	if err := copy.Copy(si.StaticDir(), out); err != nil {
+		return err
+	}
+	for src, dst := range si.ExtraStaticDirs {
+		dp := filepath.Clean(filepath.Join(out, dst))
+		if !strings.HasPrefix(dp, out+"/") {
+			return fmt.Errorf("dest path %v escapes out dir", dp)
+		}
+		if err := copy.Copy(filepath.Join(dir, src), dp); err != nil {
 			return err
 		}
 	}

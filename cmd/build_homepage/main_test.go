@@ -4,12 +4,17 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/otiai10/copy"
 )
@@ -45,6 +50,8 @@ func newTestSiteDir() (string, error) {
 	return dir, nil
 }
 
+// checkPageContents reads the page at p and checks that its contents are
+// matched by all the regular expressions in pats and by none of the ones in negPats.
 func checkPageContents(t *testing.T, p string, pats, negPats []string) {
 	b, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -65,12 +72,75 @@ func checkPageContents(t *testing.T, p string, pats, negPats []string) {
 	}
 }
 
+// getFileTimes returns p's mtime and atime.
+func getFileTimes(p string) (mtime, atime time.Time, err error) {
+	fi, err := os.Stat(p)
+	if err != nil {
+		return mtime, atime, err
+	}
+	stat := fi.Sys().(*syscall.Stat_t)
+	return fi.ModTime(), time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)), nil
+}
+
+// getFileContents reads and returns p's contents.
+// If p ends in ".gz", the contents are uncompressed before being returned.
+func getFileContents(p string) ([]byte, error) {
+	b, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+	if filepath.Ext(p) == ".gz" {
+		r, err := gzip.NewReader(bytes.NewReader(b))
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+		b, err = ioutil.ReadAll(r)
+	}
+	return b, err
+}
+
+// checkTypes describes checks that should be performed by checkFile.
+type checkTypes int
+
+const (
+	checkTimes    checkTypes = 1 << iota // compare mtime and atime
+	checkContents                        // compare file contents
+)
+
+// checkFile compares p against ref.
+func checkFile(t *testing.T, p, ref string, ct checkTypes) {
+	if ct&checkTimes != 0 {
+		if pm, pa, err := getFileTimes(p); err != nil {
+			t.Errorf("Couldn't stat out file: %v", err)
+		} else if rm, ra, err := getFileTimes(ref); err != nil {
+			t.Errorf("Couldn't stat ref file: %v", err)
+		} else {
+			if !pm.Equal(rm) {
+				t.Errorf("%v mtime (%v) doesn't match %v (%v)", p, pm, ref, rm)
+			}
+			if !pa.Equal(ra) {
+				t.Errorf("%v atime (%v) doesn't match %v (%v)", p, pa, ref, ra)
+			}
+		}
+	}
+	if ct&checkContents != 0 {
+		if pb, err := getFileContents(p); err != nil {
+			t.Errorf("Couldn't read out file: %v", err)
+		} else if rb, err := getFileContents(ref); err != nil {
+			t.Errorf("Couldn't read ref file: %v", err)
+		} else if !bytes.Equal(pb, rb) {
+			t.Errorf("%v contents don't match %v (%q vs %q)", p, ref, pb, rb)
+		}
+	}
+}
+
 func TestBuildSite(t *testing.T) {
 	dir, err := newTestSiteDir()
 	if err != nil {
 		t.Fatal("Failed creating site dir: ", err)
 	}
-	if err := buildSite(dir, "", true /* pprint */); err != nil {
+	if err := buildSite(context.Background(), dir, "", true /* pretty */, true /* validate */); err != nil {
 		os.RemoveAll(dir)
 		t.Fatal("Failed building site: ", err)
 	}
@@ -134,6 +204,20 @@ func TestBuildSite(t *testing.T) {
 	}, []string{
 		`only for non-AMP`,
 	})
+
+	// TODO: Also pass checkTimes for these after mtimes and atimes are preserved.
+	checkFile(t, filepath.Join(out, "images/test.png"), filepath.Join(dir, "static/images/test.png"), checkContents)
+	checkFile(t, filepath.Join(out, "other/test.css"), filepath.Join(dir, "static/other/test.css"), checkContents)
+	checkFile(t, filepath.Join(out, "more/file.txt"), filepath.Join(dir, "extra/file.txt"), checkContents)
+
+	checkFile(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), checkTimes&checkContents)
+	// Image files shouldn't be compressed.
+	p := filepath.Join(out, "images/test.png.gz")
+	if _, err := os.Stat(p); err == nil {
+		t.Errorf("%v unexpectedly exists", p)
+	} else if !os.IsNotExist(err) {
+		t.Errorf("Unable to check %v: %v", p, err)
+	}
 
 	if t.Failed() {
 		fmt.Println("Output is in", out)
