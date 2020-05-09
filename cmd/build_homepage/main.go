@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -42,11 +43,12 @@ func dief(code int, format string, args ...interface{}) {
 func main() {
 	dir, err := os.Getwd()
 	if err != nil {
-		die(1, "Failed to get working dir: ", err)
+		die(1, "Failed to get working dir:", err)
 	}
 	flag.StringVar(&dir, "dir", dir, "Site directory (defaults to working dir)")
 	out := flag.String("out", "", "Destination directory (site is built under -dir if empty)")
 	pretty := flag.Bool("pretty", true, "Pretty-print HTML")
+	validate := flag.Bool("validate", true, "Validate generated files")
 	flag.Parse()
 
 	// TODO: Permit this once everything works.
@@ -54,14 +56,14 @@ func main() {
 		die(2, "-out must be explicitly specified")
 	}
 
-	if err := buildSite(dir, *out, *pretty); err != nil {
-		die(1, "Failed to build site: ", err)
+	if err := buildSite(context.Background(), dir, *out, *pretty, *validate); err != nil {
+		die(1, "Failed to build site:", err)
 	}
 }
 
 // buildSite builds the site rooted at dir into the directory named by out.
 // If out is empty, the site is built into outSubdir under the site directory.
-func buildSite(dir, out string, pretty bool) error {
+func buildSite(ctx context.Context, dir, out string, pretty, validate bool) error {
 	si, err := render.NewSiteInfo(filepath.Join(dir, siteFile))
 	if err != nil {
 		return fmt.Errorf("failed to load site info: %v", err)
@@ -83,6 +85,11 @@ func buildSite(dir, out string, pretty bool) error {
 	}
 	if err := buildIframes(si, out, pretty); err != nil {
 		return err
+	}
+	if validate {
+		if err := validateDir(ctx, out); err != nil {
+			return err
+		}
 	}
 
 	// If we built into the site dir, rename the temp dir that we used.

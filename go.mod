@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/derat/htmlpretty v0.0.0-20200509164015-a10e8251a554
+	github.com/derat/validate v0.0.0-20200509163335-a899a49aff4d
 	github.com/otiai10/copy v1.1.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
