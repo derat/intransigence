@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"io"
 	"net/url"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -29,11 +28,6 @@ import (
 const (
 	mobileMaxWidth  = 640
 	desktopMinWidth = 641
-
-	// Dates in resource filenames.
-	// TODO: This is terrible; delete it.
-	logoImgDate     = "20160914"
-	collapseImgDate = "20160915"
 )
 
 // Page renders and returns the page described by the supplied Markdown data.
@@ -68,12 +62,10 @@ type pageInfo struct {
 	TopNavItems []*NavItem `yaml:"-"` // top-level nav items
 	NavItem     *NavItem   `yaml:"-"` // nav item corresponding to current page
 
-	LogoImgDate         string `yaml:"-"`
-	CollapseImgDate     string `yaml:"-"`
 	GoogleAnalyticsCode string `yaml:"-"`
 
-	LinkRel  string `yaml:"-"`
-	LinkHref string `yaml:"-"`
+	LinkRel  string `yaml:"-"` // rel attribute for <link>, e.g. "canonical"
+	LinkHref string `yaml:"-"` // href attribute for <link>
 
 	HTMLStyle        template.CSS  `yaml:"-"`
 	HTMLScripts      []template.JS `yaml:"-"`
@@ -81,10 +73,7 @@ type pageInfo struct {
 	AMPNoscriptStyle template.CSS  `yaml:"-"`
 	AMPCustomStyle   template.CSS  `yaml:"-"`
 	CSPMeta          template.HTML `yaml:"-"`
-
-	StructData          structData    `yaml:"-"`
-	BeginContentComment template.HTML `yaml:"-"`
-	EndContentComment   template.HTML `yaml:"-"`
+	StructData       structData    `yaml:"-"`
 }
 
 // imageTagInfo holds information needed by the image_tag template.
@@ -146,11 +135,7 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 		pi: pageInfo{
 			Desc:                si.DefaultDesc,
 			TopNavItems:         si.NavItems,
-			LogoImgDate:         logoImgDate,
-			CollapseImgDate:     collapseImgDate,
 			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
-			BeginContentComment: template.HTML("<!-- begin content -->"),
-			EndContentComment:   template.HTML("<!-- end content -->"),
 		},
 		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
 		amp: amp,
@@ -165,7 +150,7 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 		"formatDate": func(date, layout string) string {
 			t, err := time.Parse("2006-01-02", date)
 			if err != nil {
-				r.err = fmt.Errorf("failed to parse date %q: %v", date, err)
+				r.setErrorf("failed to parse date %q: %v", date, err)
 				return ""
 			}
 			return t.Format(layout)
@@ -174,7 +159,11 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 			glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
 			ps, err := filepath.Glob(glob)
 			if err != nil {
-				r.err = fmt.Errorf("failed to list image files %q: %v", glob, err)
+				r.setErrorf("failed to list image files with %q: %v", glob, err)
+				return ""
+			}
+			if len(ps) == 0 {
+				r.setErrorf("no image files matched by %q: %v", glob, err)
 				return ""
 			}
 			// Ascending order by embedded image width.
@@ -186,11 +175,6 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 				}
 				return ps[i] < ps[j]
 			})
-			// TODO: Remove this; it's just here to match Ruby's Dir.glob.
-			if ps, err = dirOrder(ps); err != nil {
-				r.err = fmt.Errorf("srcset failed to sort images: %v", err)
-				return ""
-			}
 			var srcs []string
 			for _, p := range ps {
 				width := p[len(filepath.Join(r.si.StaticDir(), pre)) : len(p)-len(suf)]
@@ -203,9 +187,23 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 	return &r
 }
 
-func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
-	//log.Printf("RenderNode: %s %v %q", node.Type, entering, node.Literal)
+// setErrors saves err to r.err if it isn't already set.
+// Use this instead of setting r.err directly to avoid overwriting an earlier error.
+func (r *renderer) setError(err error) {
+	if r.err == nil {
+		r.err = err
+	}
+}
 
+// setErrors constructs a new error and saves it to r.err if it isn't already set.
+// Use this instead of setting r.err directly to avoid overwriting an earlier error.
+func (r *renderer) setErrorf(format string, args ...interface{}) {
+	if r.err == nil {
+		r.err = fmt.Errorf(format, args...)
+	}
+}
+
+func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
 	// Bail if we already set an error in RenderHeader.
 	if r.err != nil {
 		return md.Terminate
@@ -236,7 +234,9 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 		return r.renderHTMLSpan(w, node, entering)
 	case md.Link:
 		var link string
-		if link, r.err = r.rewriteLink(string(node.LinkData.Destination)); r.err != nil {
+		var err error
+		if link, err = r.rewriteLink(string(node.LinkData.Destination)); err != nil {
+			r.setError(err)
 			return md.Terminate
 		}
 		node.LinkData.Destination = []byte(link)
@@ -261,11 +261,11 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	fc := ast.FirstChild
 	if fc == nil || fc.Type != md.CodeBlock || string(fc.CodeBlockData.Info) != "page_info" {
-		r.err = errors.New("page doesn't start with page info code block")
+		r.setErrorf("page doesn't start with page info code block")
 		return
 	}
 	if err := yaml.Unmarshal(fc.Literal, &r.pi); err != nil {
-		r.err = fmt.Errorf("failed to parse page info from %q: %v", fc.Literal, err)
+		r.setErrorf("failed to parse page info from %q: %v", fc.Literal, err)
 		return
 	}
 
@@ -280,7 +280,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			}
 		}
 		if r.pi.NavItem == nil {
-			r.err = fmt.Errorf("no page with ID %q", r.pi.ID)
+			r.setErrorf("no page with ID %q", r.pi.ID)
 			return
 		}
 	}
@@ -310,7 +310,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			},
 		},
 	}
-	if r.pi.StructData.MainEntityOfPage, r.err = r.si.AbsURL(r.pi.NavItem.URL); r.err != nil {
+	var err error
+	if r.pi.StructData.MainEntityOfPage, err = r.si.AbsURL(r.pi.NavItem.URL); err != nil {
+		r.setError(err)
 		return
 	}
 	if r.pi.Desc != "" && r.pi.Desc != r.si.DefaultDesc {
@@ -325,7 +327,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			Width:  r.pi.ImgWidth,
 			Height: r.pi.ImgHeight,
 		}
-		if r.pi.StructData.Image.URL, r.err = r.si.AbsURL(r.pi.ImgURL); r.err != nil {
+		if r.pi.StructData.Image.URL, err = r.si.AbsURL(r.pi.ImgURL); err != nil {
+			r.setError(err)
 			return
 		}
 	}
@@ -337,7 +340,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	if r.amp {
 		r.pi.LinkRel = "canonical"
-		if r.pi.LinkHref, r.err = r.si.AbsURL(r.pi.NavItem.URL); r.err != nil {
+		if r.pi.LinkHref, err = r.si.AbsURL(r.pi.NavItem.URL); err != nil {
+			r.setError(err)
 			return
 		}
 
@@ -360,7 +364,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		// https://amp.dev/documentation/guides-and-tutorials/optimize-and-measure/secure-pages/
 	} else {
 		r.pi.LinkRel = "amphtml"
-		if r.pi.LinkHref, r.err = r.si.AbsURL(r.pi.NavItem.AMPURL()); r.err != nil {
+		if r.pi.LinkHref, err = r.si.AbsURL(r.pi.NavItem.AMPURL()); err != nil {
+			r.setError(err)
 			return
 		}
 
@@ -384,7 +389,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
 
-	r.err = r.tmpl.run(w, []string{"page_header.tmpl"}, &r.pi, nil)
+	r.setError(r.tmpl.run(w, []string{"page_header.tmpl"}, &r.pi, nil))
 }
 
 func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
@@ -393,7 +398,8 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 		return
 	}
 	if r.inBox {
-		if r.err = r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
+		if err := r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); err != nil {
+			r.setError(err)
 			return
 		}
 	}
@@ -689,7 +695,6 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		return r.si.BaseURL + link, nil
 	}
 
-	// TODO: Support forcing non-AMP.
 	// Use the AMP version of the page instead.
 	return ampPage(link), nil
 }
@@ -737,14 +742,12 @@ type structData struct {
 	Type             string `json:"@type"`
 	MainEntityOfPage string `json:"mainEntityOfPage"`
 	Headline         string `json:"headline"`
+	Description      string `json:"description,omitempty"`
+	DateModified     string `json:"dateModified,omitempty"`
 	DatePublished    string `json:"datePublished"`
 
 	Author    structDataAuthor    `json:"author"`
 	Publisher structDataPublisher `json:"publisher"`
-
-	// TODO: Move these up. They're down here to match the order in template_lib.rb.
-	Description  string `json:"description,omitempty"`
-	DateModified string `json:"dateModified,omitempty"`
 
 	Image *structDataImage `json:"image,omitempty"`
 }
@@ -767,39 +770,4 @@ type structDataImage struct {
 	URL    string `json:"url"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
-}
-
-func dirOrder(ps []string) ([]string, error) {
-	var dp string
-	var fm = map[string]struct{}{}
-	for _, p := range ps {
-		if fd := filepath.Dir(p); dp == "" {
-			dp = fd
-		} else if fd != dp {
-			return nil, fmt.Errorf("file %v not in dir %v", p, dp)
-		}
-		fm[filepath.Base(p)] = struct{}{}
-	}
-	if len(ps) == 0 {
-		return ps, nil
-	}
-
-	d, err := os.Open(dp)
-	if err != nil {
-		return nil, err
-	}
-	defer d.Close()
-
-	fns, err := d.Readdirnames(0)
-	if err != nil {
-		return nil, err
-	}
-
-	var ordered []string
-	for _, fn := range fns {
-		if _, ok := fm[fn]; ok {
-			ordered = append(ordered, filepath.Join(dp, fn))
-		}
-	}
-	return ordered, nil
 }

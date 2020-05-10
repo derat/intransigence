@@ -24,7 +24,7 @@ const repoPath = "../.." // path from package to the main repo dir
 // newTestSiteDir creates a new temporary directory and copies test data
 // and inlined files and templates into it.
 func newTestSiteDir() (string, error) {
-	dir, err := ioutil.TempDir("", "homepage_test.")
+	dir, err := ioutil.TempDir("", "build_homepage_test.")
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +38,7 @@ func newTestSiteDir() (string, error) {
 	if err := copy.Copy("testdata", dir); err != nil {
 		return "", fmt.Errorf("failed copying test data: %v", err)
 	}
-	for _, subdir := range []string{"inline", "templates"} {
+	for _, subdir := range []string{"inline", "static/resources", "templates"} {
 		src := filepath.Join(repoPath, subdir)
 		dst := filepath.Join(dir, subdir)
 		if err := copy.Copy(src, dst); err != nil {
@@ -138,11 +138,11 @@ func checkFile(t *testing.T, p, ref string, ct checkTypes) {
 func TestBuildSite(t *testing.T) {
 	dir, err := newTestSiteDir()
 	if err != nil {
-		t.Fatal("Failed creating site dir: ", err)
+		t.Fatal("Failed creating site dir:", err)
 	}
 	if err := buildSite(context.Background(), dir, "", true /* pretty */, true /* validate */); err != nil {
 		os.RemoveAll(dir)
-		t.Fatal("Failed building site: ", err)
+		t.Fatal("Failed building site:", err)
 	}
 
 	out := filepath.Join(dir, outSubdir)
