@@ -1,7 +1,7 @@
 // Copyright 2020 Daniel Erat <dan@erat.org>.
 // All rights reserved.
 
-package main
+package build
 
 import (
 	"bytes"
@@ -18,16 +18,16 @@ import (
 	"github.com/otiai10/copy"
 )
 
-const repoPath = "../.." // path from package to the main repo dir
+const repoPath = ".." // path from package to the main repo dir
 
-func TestBuildSite_Full(t *testing.T) {
+func TestBuild_Full(t *testing.T) {
 	dir, err := newTestSiteDir()
 	if err != nil {
 		t.Fatal("Failed creating site dir:", err)
 	}
-	if err := buildSite(context.Background(), dir, "", prettyPrint|validatePages); err != nil {
+	if err := Build(context.Background(), dir, "", PrettyPrint|Validate); err != nil {
 		os.RemoveAll(dir)
-		t.Fatal("Failed building site:", err)
+		t.Fatal("Build failed:", err)
 	}
 
 	out := filepath.Join(dir, outSubdir)
@@ -104,15 +104,15 @@ func TestBuildSite_Full(t *testing.T) {
 	}
 }
 
-func TestBuildSite_Rebuild(t *testing.T) {
+func TestBuild_Rebuild(t *testing.T) {
 	// Generate the site within the site dir.
 	dir, err := newTestSiteDir()
 	if err != nil {
 		t.Fatal("Failed creating site dir:", err)
 	}
-	if err := buildSite(context.Background(), dir, "", prettyPrint); err != nil {
+	if err := Build(context.Background(), dir, "", PrettyPrint); err != nil {
 		os.RemoveAll(dir)
-		t.Fatal("Failed building site:", err)
+		t.Fatal("Build failed:", err)
 	}
 
 	// Add some content to the index page and regenerate the site.
@@ -121,9 +121,9 @@ func TestBuildSite_Rebuild(t *testing.T) {
 		os.RemoveAll(dir)
 		t.Fatal("Failed appending content:", err)
 	}
-	if err := buildSite(context.Background(), dir, "", prettyPrint); err != nil {
+	if err := Build(context.Background(), dir, "", PrettyPrint); err != nil {
 		os.RemoveAll(dir)
-		t.Fatal("Failed rebuilding site:", err)
+		t.Fatal("Build failed on rebuild:", err)
 	}
 
 	// Unchanged files' mtimes should be copied over from the first build.
@@ -149,7 +149,7 @@ func TestBuildSite_Rebuild(t *testing.T) {
 // newTestSiteDir creates a new temporary directory and copies test data
 // and inlined files and templates into it.
 func newTestSiteDir() (string, error) {
-	dir, err := ioutil.TempDir("", "build_homepage_test.")
+	dir, err := ioutil.TempDir("", "build_test.")
 	if err != nil {
 		return "", err
 	}
