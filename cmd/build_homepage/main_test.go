@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"syscall"
 	"testing"
 	"time"
 
@@ -73,13 +72,12 @@ func checkPageContents(t *testing.T, p string, pats, negPats []string) {
 }
 
 // getFileTimes returns p's mtime and atime.
-func getFileTimes(p string) (mtime, atime time.Time, err error) {
+func getFileTimes(p string) (atime, mtime time.Time, err error) {
 	fi, err := os.Stat(p)
 	if err != nil {
 		return mtime, atime, err
 	}
-	stat := fi.Sys().(*syscall.Stat_t)
-	return fi.ModTime(), time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)), nil
+	return getAtime(fi), fi.ModTime(), nil
 }
 
 // getFileContents reads and returns p's contents.
@@ -111,9 +109,9 @@ const (
 // checkFile compares p against ref.
 func checkFile(t *testing.T, p, ref string, ct checkTypes) {
 	if ct&checkTimes != 0 {
-		if pm, pa, err := getFileTimes(p); err != nil {
+		if pa, pm, err := getFileTimes(p); err != nil {
 			t.Errorf("Couldn't stat out file: %v", err)
-		} else if rm, ra, err := getFileTimes(ref); err != nil {
+		} else if ra, rm, err := getFileTimes(ref); err != nil {
 			t.Errorf("Couldn't stat ref file: %v", err)
 		} else {
 			if !pm.Equal(rm) {
