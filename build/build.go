@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	siteFile     = "site.yaml" // YAML file containing render.SiteInfo data
-	outSubdir    = "out"       // subdir under site dir for generated site
-	tmpOutPrefix = ".out."     // prefix passed to ioutil.TempDir for temp output dir
-	oldOutSubdir = ".out.old"  // subdir under site dir containing previous generated site
+	siteFile     = "site.yaml"   // YAML file containing render.SiteInfo data
+	outSubdir    = "out"         // subdir under site dir for generated site
+	tmpOutPrefix = ".out."       // prefix passed to ioutil.TempDir for temp output dir
+	oldOutSubdir = ".out.old"    // subdir under site dir containing previous generated site
+	sitemapFile  = "sitemap.xml" // generated XML file containing sitemap data
 )
 
 // Flags specifies details of how the site should be built.
@@ -81,7 +82,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		}
 	}
 
-	// TODO: Generate sitemap.
+	if err := writeSitemap(filepath.Join(out, sitemapFile), si); err != nil {
+		return fmt.Errorf("sitemap failed: %v", err)
+	}
 
 	// Create gzipped versions of text-based files for the HTTP server to use.
 	if err := compressDir(out); err != nil {

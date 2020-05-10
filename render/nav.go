@@ -16,6 +16,7 @@ const (
 	// Used by a synthetic NavItem created when the index page is active.
 	indexID       = "index"
 	indexFileBase = "index"
+	IndexPage     = indexFileBase + HTMLExt
 )
 
 // pageRegexp matches regular page filenames with an optional fragment.
@@ -26,7 +27,7 @@ type NavItem struct {
 	// Name contains the short, human-readable name for the item that is displayed in the menu.
 	Name string `yaml:"name"`
 	// URL contains the non-root-relative URL for the item, e.g. "page.html" or "page.html#frag".
-	// It may also be e.g. a "mailto:" link.
+	// It may also be e.g. a "mailto:" link, or an empty string for the site's index page.
 	URL string `yaml:"url"`
 	// ID corresponds to the ID specified in the page linked to by the item.
 	// It may be empty if the item doesn't correspond to the top of a page
@@ -36,8 +37,15 @@ type NavItem struct {
 	Children []*NavItem `yaml:"children"`
 }
 
-// AMPURL returns the the AMP version of n.URL.
-// If n does not represent a page, n.URL is returned.
+// IsBarePage returns true if n.URL represents a bare page without a fragment, e.g. "foo.html".
+// If n does not represent a bare page, an empty string is returned.
+func (n *NavItem) IsBarePage() bool {
+	p, h := splitPage(n.URL)
+	return p != "" && h == ""
+}
+
+// AMPURL returns the the AMP version of n.URL, e.g. "page.html#frag" becomes "page.amp.html#frag".
+// If n does not represent a page, n.URL is returned unchanged.
 func (n *NavItem) AMPURL() string {
 	if isPage(n.URL) {
 		return ampPage(n.URL)
@@ -45,7 +53,7 @@ func (n *NavItem) AMPURL() string {
 	// Special case: URL is empty for the synthetic item corresponding to the index,
 	// but we need to use a real filename to link to the AMP version.
 	if n.ID == indexID {
-		return ampPage(indexFileBase + HTMLExt)
+		return ampPage(IndexPage)
 	}
 	return n.URL
 }

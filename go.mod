@@ -6,7 +6,7 @@ require (
 	github.com/derat/htmlpretty v0.0.0-20200509164015-a10e8251a554
 	github.com/derat/validate v0.0.0-20200509163335-a899a49aff4d
 	github.com/otiai10/copy v1.1.1
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f

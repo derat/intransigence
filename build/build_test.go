@@ -12,10 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/otiai10/copy"
+	"github.com/pmezard/go-difflib/difflib"
 )
 
 const repoPath = ".." // path from package to the main repo dir
@@ -94,8 +96,27 @@ func TestBuild_Full(t *testing.T) {
 	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(dir, "static/images/test.png"), contentsEqual)
 	compareFiles(t, filepath.Join(out, "other/test.css"), filepath.Join(dir, "static/other/test.css"), contentsEqual)
 	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(dir, "extra/file.txt"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), contentsEqual|mtimesEqual)
+
+	// Textual files should be gzipped, and the .gz file should have the same mtime as the original file.
+	compareFiles(t, filepath.Join(out, "index.html.gz"), filepath.Join(out, "index.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(out, "features.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), contentsEqual|mtimeEqual)
 	checkFileNotExist(t, filepath.Join(out, "images/test.png.gz")) // image files shouldn't be compressed
+
+	// The generated sitemap should list all pages.
+	checkFileContents(t, filepath.Join(out, sitemapFile), strings.TrimLeft(`
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.example.org/index.html</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://www.example.org/features.html</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+</urlset>
+`, "\n"))
 
 	if t.Failed() {
 		fmt.Println("Output is in", out)
@@ -126,18 +147,19 @@ func TestBuild_Rebuild(t *testing.T) {
 		t.Fatal("Build failed on rebuild:", err)
 	}
 
-	// Unchanged files' mtimes should be copied over from the first build.
 	out := filepath.Join(dir, outSubdir)
 	oldOut := filepath.Join(dir, oldOutSubdir)
-	compareFiles(t, filepath.Join(out, "features.html"), filepath.Join(oldOut, "features.html"), contentsEqual|mtimesEqual)
-	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(oldOut, "features.html.gz"), contentsEqual|mtimesEqual)
-	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(oldOut, "images/test.png"), contentsEqual|mtimesEqual)
-	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(oldOut, "more/file.txt"), contentsEqual|mtimesEqual)
 
-	// The new index file should have the newly-added content and should have a new mtime.
+	// Unchanged files' mtimes should be copied over from the first build.
+	compareFiles(t, filepath.Join(out, "features.html"), filepath.Join(oldOut, "features.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(oldOut, "features.html.gz"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(oldOut, "images/test.png"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(oldOut, "more/file.txt"), contentsEqual|mtimeEqual)
+
+	// The new index file should have the newly-added content and an updated mtime.
 	checkPageContents(t, filepath.Join(out, "index.html"), []string{regexp.QuoteMeta(newContent)}, nil)
-	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(oldOut, "index.html"), mtimesDifferent)
-	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(out, "index.html.gz"), contentsEqual|mtimesEqual)
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(oldOut, "index.html"), mtimeAfter)
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(out, "index.html.gz"), contentsEqual|mtimeEqual)
 
 	if t.Failed() {
 		fmt.Println("Output is in", out)
@@ -224,27 +246,47 @@ func getFileContents(p string) ([]byte, error) {
 	return b, err
 }
 
+// checkFileContents checks that the contents of the file at path p exactly match want.
+// If the file doesn't match, a failure containing a diff is reported.
+func checkFileContents(t *testing.T, p, want string) {
+	b, err := getFileContents(p)
+	if err != nil {
+		t.Error("Failed to get file contents:", err)
+		return
+	}
+	got := string(b)
+	if got != want {
+		diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+			A:        difflib.SplitLines(want),
+			FromFile: "want",
+			B:        difflib.SplitLines(got),
+			ToFile:   "got",
+		})
+		t.Errorf("%v doesn't have expected contents:\n%s", p, diff)
+	}
+}
+
 // compareTypes describes checks that should be performed by compareFiles.
 type compareTypes int
 
 const (
-	mtimesEqual     compareTypes = 1 << iota // mtimes are equal
-	mtimesDifferent                          // mtimes are different
-	contentsEqual                            // file contents are equal
+	mtimeEqual    compareTypes = 1 << iota // mtimes are equal
+	mtimeAfter                             // p's mtime is later than ref
+	contentsEqual                          // file contents are equal
 )
 
 // compareFiles compares p against ref.
 func compareFiles(t *testing.T, p, ref string, ct compareTypes) {
-	if ct&(mtimesEqual|mtimesDifferent) != 0 {
+	if ct&(mtimeEqual|mtimeAfter) != 0 {
 		// Don't compare atime, since it gets updated when the file is read and isn't used by rsync.
 		if _, pm, err := getFileTimes(p); err != nil {
 			t.Errorf("Couldn't stat out file: %v", err)
 		} else if _, rm, err := getFileTimes(ref); err != nil {
 			t.Errorf("Couldn't stat ref file: %v", err)
-		} else if ct&mtimesEqual != 0 && !pm.Equal(rm) {
+		} else if ct&mtimeEqual != 0 && !pm.Equal(rm) {
 			t.Errorf("%v mtime (%v) doesn't match %v (%v)", p, pm, ref, rm)
-		} else if ct&mtimesDifferent != 0 && pm.Equal(rm) {
-			t.Errorf("%v mtime (%v) unexpectedly matches %v (%v)", p, pm, ref, rm)
+		} else if ct&mtimeAfter != 0 && !pm.After(rm) {
+			t.Errorf("%v mtime (%v) not after %v (%v)", p, pm, ref, rm)
 		}
 	}
 	if ct&contentsEqual != 0 {
