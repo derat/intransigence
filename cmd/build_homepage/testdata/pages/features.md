@@ -12,7 +12,7 @@ This page exercises various features.
 ### Custom code blocks
 
 ```image
-path: block_img.png
+path: images/test.png
 width: 300
 height: 200
 alt: Alt text
@@ -24,7 +24,7 @@ href: img_link.html
 
 ### Custom tags
 
-<img-inline path="inline_img.jpg" width="48" height="24" alt="Alt text"></img-inline>
+<img-inline path="images/test.png" width="48" height="24" alt="Alt text"></img-inline>
 
 <code-url>https://code.example.org/</code-url>
 

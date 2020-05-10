@@ -70,7 +70,7 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	return &si, nil
 }
 
-// ReadInline reads and returns the contents of the named file in the "inline" dir.
+// ReadInline reads and returns the contents of the named file in the inline dir.
 // It panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
 	b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
@@ -78,6 +78,12 @@ func (si *SiteInfo) ReadInline(fn string) string {
 		panic(fmt.Sprint("Failed reading file: ", err))
 	}
 	return string(b)
+}
+
+// StaticExists returns an error if fn doesn't exist in the static dir.
+func (si *SiteInfo) CheckStatic(fn string) error {
+	_, err := os.Stat(filepath.Join(si.StaticDir(), fn))
+	return err
 }
 
 func (si *SiteInfo) InlineDir() string {

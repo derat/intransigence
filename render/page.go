@@ -90,21 +90,6 @@ type imageTagInfo struct {
 	Attr   []string // additional attributes to include
 }
 
-// check validates the stored information.
-func (it *imageTagInfo) check() error {
-	if it.Path != "" && (it.Prefix != "" || it.Suffix != "") ||
-		it.Path == "" && (it.Prefix == "" || it.Suffix == "") {
-		return errors.New("either path or prefix/suffix must be supplied")
-	}
-	if it.Width <= 0 || it.Height <= 0 {
-		return errors.New("height and width must be set")
-	}
-	if it.Alt == "" {
-		return errors.New("alt must be set")
-	}
-	return nil
-}
-
 // imageboxInfo holds information needed by the imagebox template.
 type imageboxInfo struct {
 	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right, desktop_alt
@@ -464,14 +449,17 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			r.err = fmt.Errorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		if err := info.imageTagInfo.check(); err != nil {
+		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
 			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
 		if len(info.Href) == 0 && len(info.Prefix) > 0 {
 			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
-			// TODO: check_static_file
+			if err := r.si.CheckStatic(info.Href); err != nil {
+				r.setError(err)
+				return md.Terminate
+			}
 		}
 		if len(info.Href) > 0 {
 			if info.Href, r.err = r.rewriteLink(info.Href); r.err != nil {
@@ -494,7 +482,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		info.imageTagInfo.Layout = "fill"
 		info.imageTagInfo.Attr = []string{"placeholder"}
 		info.imageTagInfo.Alt = "[map placeholder]"
-		if err := info.imageTagInfo.check(); err != nil {
+		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
 			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
@@ -600,7 +588,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := info.check(); err != nil {
+				if err := r.checkImageTagInfo(info); err != nil {
 					return 0, err
 				}
 				if err := r.tmpl.run(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
@@ -735,6 +723,26 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 		return md.Terminate
 	}
 	return ret
+}
+
+// checkImageTagInfo validates image information.
+func (r *renderer) checkImageTagInfo(it imageTagInfo) error {
+	if it.Path != "" && (it.Prefix != "" || it.Suffix != "") ||
+		it.Path == "" && (it.Prefix == "" || it.Suffix == "") {
+		return errors.New("either path or prefix/suffix must be supplied")
+	}
+	if it.Width <= 0 || it.Height <= 0 {
+		return errors.New("height and width must be set")
+	}
+	if it.Alt == "" {
+		return errors.New("alt must be set")
+	}
+
+	p := it.Path
+	if p == "" {
+		p = fmt.Sprintf("%s%d%s", it.Prefix, it.Width, it.Suffix)
+	}
+	return r.si.CheckStatic(p)
 }
 
 type structData struct {

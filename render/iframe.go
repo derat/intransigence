@@ -61,7 +61,9 @@ func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 			return nil, err
 		}
 	case "map":
-		// TODO: Replicate check_static_file placeholder check.
+		if err := si.CheckStatic(data.Placeholder); err != nil {
+			return nil, err
+		}
 		var td = struct {
 			ScriptURLs    []string
 			InlineScripts []template.JS

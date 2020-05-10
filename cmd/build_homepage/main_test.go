@@ -169,14 +169,15 @@ func TestBuildSite(t *testing.T) {
 		`(?s)<div class="boxtitle">\s*Features\s*</div>`, // level-1 heading
 		`(?s)<title>\s*Features\s*</title>`,              // hide_title_suffix
 		// "image" code blocks
+		// TODO: Also test prefix/suffix.
 		`<figure class="imagebox desktop-right mobile-center custom-class">\s*` +
 			`<a href="img_link.html">\s*` +
-			`<img src="block_img.png" width="300" height="200" alt="Alt text">\s*` +
+			`<img src="images/test.png" width="300" height="200" alt="Alt text">\s*` +
 			`</a>\s*` +
 			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
 			`</figure>`,
 		// <img-inline>
-		`<img class="inline" src="inline_img.jpg" width="48" height="24" alt="Alt text">`,
+		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`,
 		`<code class="url">https://code.example.org/</code>`, // <code-url>
 		`<span class="clear"></span>`,                        // <clear-floats>
 		`<span class="small">small text</span>`,              // <text-size small>
