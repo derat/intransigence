@@ -172,20 +172,24 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 	return &r
 }
 
-// setErrors saves err to r.err if it isn't already set.
+// setError saves err to r.err if it isn't already set. err is returned.
 // Use this instead of setting r.err directly to avoid overwriting an earlier error.
-func (r *renderer) setError(err error) {
+func (r *renderer) setError(err error) error {
 	if r.err == nil {
 		r.err = err
 	}
+	return err
 }
 
-// setErrors constructs a new error and saves it to r.err if it isn't already set.
+// setErrorf constructs a new error and saves it to r.err if it isn't already set.
+// The new error is returned.
 // Use this instead of setting r.err directly to avoid overwriting an earlier error.
-func (r *renderer) setErrorf(format string, args ...interface{}) {
+func (r *renderer) setErrorf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
 	if r.err == nil {
-		r.err = fmt.Errorf(format, args...)
+		r.err = err
 	}
+	return err
 }
 
 func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
@@ -244,6 +248,10 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 }
 
 func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
+	if r.err != nil {
+		return
+	}
+
 	fc := ast.FirstChild
 	if fc == nil || fc.Type != md.CodeBlock || string(fc.CodeBlockData.Info) != "page_info" {
 		r.setErrorf("page doesn't start with page info code block")
@@ -383,12 +391,11 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 		return
 	}
 	if r.inBox {
-		if err := r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); err != nil {
-			r.setError(err)
+		if r.setError(r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil)) != nil {
 			return
 		}
 	}
-	r.err = r.tmpl.run(w, []string{"page_footer.tmpl"}, &r.pi, nil)
+	r.setError(r.tmpl.run(w, []string{"page_footer.tmpl"}, &r.pi, nil))
 }
 
 // Renders a node of type md.CodeBlock and returns the appropriate walk status.
@@ -430,12 +437,12 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			Height       int    `yaml:"height"` // graph height (without border)
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
-			r.err = fmt.Errorf("failed to parse graph info from %q: %v", node.Literal, err)
+			r.setErrorf("failed to parse graph info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
 		info.Href = iframeHref(info.Href)
-		if r.err = r.tmpl.run(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil); r.err != nil {
+		if r.setError(r.tmpl.run(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -446,27 +453,28 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			Href         string `yaml:"href"`
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
-			r.err = fmt.Errorf("failed to parse image info from %q: %v", node.Literal, err)
+			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
-			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
+			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
 		if len(info.Href) == 0 && len(info.Prefix) > 0 {
 			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
-			if err := r.si.CheckStatic(info.Href); err != nil {
-				r.setError(err)
+			if r.setError(r.si.CheckStatic(info.Href)) != nil {
 				return md.Terminate
 			}
 		}
 		if len(info.Href) > 0 {
-			if info.Href, r.err = r.rewriteLink(info.Href); r.err != nil {
+			var err error
+			if info.Href, err = r.rewriteLink(info.Href); err != nil {
+				r.setError(err)
 				return md.Terminate
 			}
 		}
-		if r.err = r.tmpl.run(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
+		if r.setError(r.tmpl.run(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -476,18 +484,18 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			Href         string           `yaml:"href"` // relative path to map iframe page
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
-			r.err = fmt.Errorf("failed to parse map info from %q: %v", node.Literal, err)
+			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.imageTagInfo.Layout = "fill"
 		info.imageTagInfo.Attr = []string{"placeholder"}
 		info.imageTagInfo.Alt = "[map placeholder]"
 		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
-			r.err = fmt.Errorf("bad data in %q: %v", node.Literal, err)
+			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.Href = iframeHref(info.Href)
-		if r.err = r.tmpl.run(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil); r.err != nil {
+		if r.setError(r.tmpl.run(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -512,7 +520,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	// template. The box is rendered when we leave the heading node.
 	if entering {
 		if r.inBox {
-			if r.err = r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil); r.err != nil {
+			if r.setError(r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil)) != nil {
 				return md.Terminate
 			}
 			r.inBox = false
@@ -550,7 +558,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 
 	r.startingBox = false
 	r.inBox = true
-	if r.err = r.tmpl.run(w, []string{"box_header.tmpl"}, &info, nil); r.err != nil {
+	if r.setError(r.tmpl.run(w, []string{"box_header.tmpl"}, &info, nil)) != nil {
 		return md.Terminate
 	}
 	return md.GoToNext
@@ -629,7 +637,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				} else if info.Tiny {
 					class = "real-small"
 				} else {
-					return 0, fmt.Errorf("missing attribute in %q", node.Literal)
+					return 0, errors.New("missing attribute")
 				}
 				fmt.Fprintf(w, `<span class="%s">`, class)
 			} else if token.Type == html.EndTagToken {
@@ -641,7 +649,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 		}
 	}()
 	if err != nil {
-		r.err = fmt.Errorf("Rendering HTML span %q failed: %v", node.Literal, err)
+		r.setErrorf("rendering HTML span %q failed: %v", node.Literal, err)
 		return md.Terminate
 	}
 	return ws
@@ -719,7 +727,7 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 		}
 	}
 	if _, err := io.WriteString(w, s); err != nil {
-		r.err = fmt.Errorf("failed writing mangled %v node: %v", node.Type, err)
+		r.setErrorf("failed writing mangled %v node: %v", node.Type, err)
 		return md.Terminate
 	}
 	return ret
