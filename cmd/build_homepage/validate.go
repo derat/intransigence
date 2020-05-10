@@ -22,6 +22,9 @@ func validateDir(ctx context.Context, dir string) error {
 	// element html at this point.", so build up separate lists of files.
 	var htmlPaths, ampPaths, cssPaths []string
 	if err := filepath.Walk(dir, func(p string, _ os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if strings.HasSuffix(p, render.AMPExt) {
 			ampPaths = append(ampPaths, p)
 			cssPaths = append(cssPaths, p)

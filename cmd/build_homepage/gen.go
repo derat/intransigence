@@ -50,7 +50,7 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) error {
 				return fmt.Errorf("failed to render %s: %v", filepath.Base(dest), err)
 			}
 			if pretty {
-				if b, err = prettyPrint(bytes.NewReader(b)); err != nil {
+				if b, err = prettyPrintDoc(bytes.NewReader(b)); err != nil {
 					return fmt.Errorf("failed to pretty-print %s: %v", filepath.Base(dest), err)
 				}
 			}
@@ -91,7 +91,7 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) error {
 			return fmt.Errorf("failed to render iframe %q: %v", base, err)
 		}
 		if pretty {
-			if b, err = prettyPrint(bytes.NewReader(b)); err != nil {
+			if b, err = prettyPrintDoc(bytes.NewReader(b)); err != nil {
 				return fmt.Errorf("failed to pretty-print iframe %s: %v", filepath.Base(dest), err)
 			}
 		}
@@ -102,9 +102,9 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) error {
 	return nil
 }
 
-// prettyPrint reads an HTML5 document from r and returns a buffer containing a pretty-printed
+// prettyPrintDoc reads an HTML5 document from r and returns a buffer containing a pretty-printed
 // copy of it.
-func prettyPrint(r io.Reader) ([]byte, error) {
+func prettyPrintDoc(r io.Reader) ([]byte, error) {
 	node, err := html.Parse(r)
 	if err != nil {
 		return nil, err

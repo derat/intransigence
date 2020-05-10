@@ -48,14 +48,28 @@ func main() {
 		die(2, "-out must be explicitly specified")
 	}
 
-	if err := buildSite(context.Background(), dir, *out, *pretty, *validate); err != nil {
+	var flags buildFlags
+	if *pretty {
+		flags |= prettyPrint
+	}
+	if *validate {
+		flags |= validatePages
+	}
+	if err := buildSite(context.Background(), dir, *out, flags); err != nil {
 		die(1, "Failed to build site:", err)
 	}
 }
 
+type buildFlags int
+
+const (
+	prettyPrint buildFlags = 1 << iota
+	validatePages
+)
+
 // buildSite builds the site rooted at dir into the directory named by out.
 // If out is empty, the site is built into outSubdir under the site directory.
-func buildSite(ctx context.Context, dir, out string, pretty, validate bool) error {
+func buildSite(ctx context.Context, dir, out string, flags buildFlags) error {
 	si, err := render.NewSiteInfo(filepath.Join(dir, siteFile))
 	if err != nil {
 		return fmt.Errorf("failed to load site info: %v", err)
@@ -76,13 +90,13 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
 	}
-	if err := generatePages(si, out, pretty); err != nil {
+	if err := generatePages(si, out, flags&prettyPrint != 0); err != nil {
 		return err
 	}
-	if err := generateIframes(si, out, pretty); err != nil {
+	if err := generateIframes(si, out, flags&prettyPrint != 0); err != nil {
 		return err
 	}
-	if validate {
+	if flags&validatePages != 0 {
 		if err := validateDir(ctx, out); err != nil {
 			return err
 		}
@@ -103,8 +117,8 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 	}
 
 	// TODO: Generate sitemap.
-	// TODO: Copy over mtimes from static files and unchanged original files?
 
+	// Create gzipped versions of text-based files for the HTTP server to use.
 	if err := compressDir(out); err != nil {
 		return err
 	}
@@ -112,8 +126,12 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 	// If we built into the site dir, rename the temp dir that we used.
 	if buildToSiteDir {
 		dest := filepath.Join(dir, outSubdir)
-		// Rename the existing out dir after deleting the old backup if present.
 		if _, err := os.Stat(dest); err == nil {
+			// Copy the existing output dir's atimes and mtimes for files that didn't change.
+			if err := copyFileTimes(dest, out); err != nil {
+				return err
+			}
+			// Delete the old backup if present and back up the existing output dir.
 			old := filepath.Join(dir, oldOutSubdir)
 			if err := os.RemoveAll(old); err != nil {
 				return err
@@ -121,6 +139,8 @@ func buildSite(ctx context.Context, dir, out string, pretty, validate bool) erro
 			if err := os.Rename(dest, old); err != nil {
 				return err
 			}
+		} else if !os.IsNotExist(err) {
+			return err
 		}
 		if err := os.Rename(out, dest); err != nil {
 			return err

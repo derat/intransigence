@@ -20,6 +20,132 @@ import (
 
 const repoPath = "../.." // path from package to the main repo dir
 
+func TestBuildSite_Full(t *testing.T) {
+	dir, err := newTestSiteDir()
+	if err != nil {
+		t.Fatal("Failed creating site dir:", err)
+	}
+	if err := buildSite(context.Background(), dir, "", prettyPrint|validatePages); err != nil {
+		os.RemoveAll(dir)
+		t.Fatal("Failed building site:", err)
+	}
+
+	out := filepath.Join(dir, outSubdir)
+
+	// Perform high-level checks on the index pages.
+	checkPageContents(t, filepath.Join(out, "index.html"), []string{
+		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
+		`<meta charset="utf-8">`,
+		`<link rel="amphtml" href="https://www.example.org/index.amp.html">`,
+		`"datePublished":\s*"1995-01-01"`,              // struct data from page_info
+		`(?s)<title>\s*Index - example.org\s*</title>`, // suffix added
+		`Hello`, // from heading
+		`This is the index page\.`,
+		`Back to top`,
+		`Last modified Dec. 31, 1999.`, // from page_info
+	}, nil)
+	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
+		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
+		`<link rel="canonical" href="https://www.example.org/">`,
+	}, nil)
+
+	// Check that custom features work.
+	checkPageContents(t, filepath.Join(out, "features.html"), []string{
+		`(?s)<div class="boxtitle">\s*Features\s*</div>`, // level-1 heading
+		`(?s)<title>\s*Features\s*</title>`,              // hide_title_suffix
+		// "image" code blocks
+		// TODO: Also test prefix/suffix.
+		`<figure class="imagebox desktop-right mobile-center custom-class">\s*` +
+			`<a href="img_link.html">\s*` +
+			`<img src="images/test.png" width="300" height="200" alt="Alt text">\s*` +
+			`</a>\s*` +
+			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
+			`</figure>`,
+		// <img-inline>
+		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`,
+		`<code class="url">https://code.example.org/</code>`, // <code-url>
+		`<span class="clear"></span>`,                        // <clear-floats>
+		`<span class="small">small text</span>`,              // <text-size small>
+		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
+		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>
+		// !force_amp and !force_nonamp link flags
+		`<a href="https://www.google.com/">absolute link</a>`,
+		`<a href="bare.html#frag">bare link</a>`,
+		`<a href="files/file.txt">text link</a>`,
+		`<a href="forced_amp.amp.html#frag">forced AMP link</a>`,
+		`<a href="forced_nonamp.html#frag">forced non-AMP link</a>`,
+	}, []string{
+		`only for amp`,  // <only-amp>
+		`Back to top`,   // hide_back_to_top
+		`Last modified`, // no modified in page_info
+	})
+	checkPageContents(t, filepath.Join(out, "features.amp.html"), []string{
+		`(?)<p>\s*only for AMP\s*</p>`, // <only-amp>
+		// !force_amp and !force_nonamp link flags
+		`<a href="https://www.google.com/">absolute link</a>`,
+		`<a href="bare.amp.html#frag">bare link</a>`,
+		`<a href="https://www.example.org/files/file.txt">text link</a>`,
+		`(?s)<a href="forced_amp.amp.html#frag">forced\s+AMP\s+link</a>`,
+		`(?s)<a href="forced_nonamp.html#frag">forced\s+non-AMP\s+link</a>`,
+	}, []string{
+		`only for non-AMP`,
+	})
+
+	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(dir, "static/images/test.png"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "other/test.css"), filepath.Join(dir, "static/other/test.css"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(dir, "extra/file.txt"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), contentsEqual|mtimesEqual)
+	checkFileNotExist(t, filepath.Join(out, "images/test.png.gz")) // image files shouldn't be compressed
+
+	if t.Failed() {
+		fmt.Println("Output is in", out)
+	} else {
+		os.RemoveAll(dir)
+	}
+}
+
+func TestBuildSite_Rebuild(t *testing.T) {
+	// Generate the site within the site dir.
+	dir, err := newTestSiteDir()
+	if err != nil {
+		t.Fatal("Failed creating site dir:", err)
+	}
+	if err := buildSite(context.Background(), dir, "", prettyPrint); err != nil {
+		os.RemoveAll(dir)
+		t.Fatal("Failed building site:", err)
+	}
+
+	// Add some content to the index page and regenerate the site.
+	const newContent = "Here's a newly-added sentence."
+	if err := appendToFile(filepath.Join(dir, "pages/index.md"), "\n"+newContent+"\n"); err != nil {
+		os.RemoveAll(dir)
+		t.Fatal("Failed appending content:", err)
+	}
+	if err := buildSite(context.Background(), dir, "", prettyPrint); err != nil {
+		os.RemoveAll(dir)
+		t.Fatal("Failed rebuilding site:", err)
+	}
+
+	// Unchanged files' mtimes should be copied over from the first build.
+	out := filepath.Join(dir, outSubdir)
+	oldOut := filepath.Join(dir, oldOutSubdir)
+	compareFiles(t, filepath.Join(out, "features.html"), filepath.Join(oldOut, "features.html"), contentsEqual|mtimesEqual)
+	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(oldOut, "features.html.gz"), contentsEqual|mtimesEqual)
+	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(oldOut, "images/test.png"), contentsEqual|mtimesEqual)
+	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(oldOut, "more/file.txt"), contentsEqual|mtimesEqual)
+
+	// The new index file should have the newly-added content and should have a new mtime.
+	checkPageContents(t, filepath.Join(out, "index.html"), []string{regexp.QuoteMeta(newContent)}, nil)
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(oldOut, "index.html"), mtimesDifferent)
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(out, "index.html.gz"), contentsEqual|mtimesEqual)
+
+	if t.Failed() {
+		fmt.Println("Output is in", out)
+	} else {
+		os.RemoveAll(dir)
+	}
+}
+
 // newTestSiteDir creates a new temporary directory and copies test data
 // and inlined files and templates into it.
 func newTestSiteDir() (string, error) {
@@ -98,31 +224,30 @@ func getFileContents(p string) ([]byte, error) {
 	return b, err
 }
 
-// checkTypes describes checks that should be performed by checkFile.
-type checkTypes int
+// compareTypes describes checks that should be performed by compareFiles.
+type compareTypes int
 
 const (
-	checkTimes    checkTypes = 1 << iota // compare mtime and atime
-	checkContents                        // compare file contents
+	mtimesEqual     compareTypes = 1 << iota // mtimes are equal
+	mtimesDifferent                          // mtimes are different
+	contentsEqual                            // file contents are equal
 )
 
-// checkFile compares p against ref.
-func checkFile(t *testing.T, p, ref string, ct checkTypes) {
-	if ct&checkTimes != 0 {
-		if pa, pm, err := getFileTimes(p); err != nil {
+// compareFiles compares p against ref.
+func compareFiles(t *testing.T, p, ref string, ct compareTypes) {
+	if ct&(mtimesEqual|mtimesDifferent) != 0 {
+		// Don't compare atime, since it gets updated when the file is read and isn't used by rsync.
+		if _, pm, err := getFileTimes(p); err != nil {
 			t.Errorf("Couldn't stat out file: %v", err)
-		} else if ra, rm, err := getFileTimes(ref); err != nil {
+		} else if _, rm, err := getFileTimes(ref); err != nil {
 			t.Errorf("Couldn't stat ref file: %v", err)
-		} else {
-			if !pm.Equal(rm) {
-				t.Errorf("%v mtime (%v) doesn't match %v (%v)", p, pm, ref, rm)
-			}
-			if !pa.Equal(ra) {
-				t.Errorf("%v atime (%v) doesn't match %v (%v)", p, pa, ref, ra)
-			}
+		} else if ct&mtimesEqual != 0 && !pm.Equal(rm) {
+			t.Errorf("%v mtime (%v) doesn't match %v (%v)", p, pm, ref, rm)
+		} else if ct&mtimesDifferent != 0 && pm.Equal(rm) {
+			t.Errorf("%v mtime (%v) unexpectedly matches %v (%v)", p, pm, ref, rm)
 		}
 	}
-	if ct&checkContents != 0 {
+	if ct&contentsEqual != 0 {
 		if pb, err := getFileContents(p); err != nil {
 			t.Errorf("Couldn't read out file: %v", err)
 		} else if rb, err := getFileContents(ref); err != nil {
@@ -133,94 +258,27 @@ func checkFile(t *testing.T, p, ref string, ct checkTypes) {
 	}
 }
 
-func TestBuildSite(t *testing.T) {
-	dir, err := newTestSiteDir()
-	if err != nil {
-		t.Fatal("Failed creating site dir:", err)
-	}
-	if err := buildSite(context.Background(), dir, "", true /* pretty */, true /* validate */); err != nil {
-		os.RemoveAll(dir)
-		t.Fatal("Failed building site:", err)
-	}
-
-	out := filepath.Join(dir, outSubdir)
-
-	// Perform high-level checks on the index pages.
-	checkPageContents(t, filepath.Join(out, "index.html"), []string{
-		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
-		`<meta charset="utf-8">`,
-		`<link rel="amphtml" href="https://www.example.org/index.amp.html">`,
-		`"datePublished":\s*"1995-01-01"`,              // struct data from page_info
-		`(?s)<title>\s*Index - example.org\s*</title>`, // suffix added
-		`Hello`, // from heading
-		`This is the index page\.`,
-		`Back to top`,
-		`Last modified Dec. 31, 1999.`, // from page_info
-	}, nil)
-	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
-		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
-		`<link rel="canonical" href="https://www.example.org/">`,
-	}, nil)
-
-	// Check that custom features work.
-	checkPageContents(t, filepath.Join(out, "features.html"), []string{
-		`(?s)<div class="boxtitle">\s*Features\s*</div>`, // level-1 heading
-		`(?s)<title>\s*Features\s*</title>`,              // hide_title_suffix
-		// "image" code blocks
-		// TODO: Also test prefix/suffix.
-		`<figure class="imagebox desktop-right mobile-center custom-class">\s*` +
-			`<a href="img_link.html">\s*` +
-			`<img src="images/test.png" width="300" height="200" alt="Alt text">\s*` +
-			`</a>\s*` +
-			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
-			`</figure>`,
-		// <img-inline>
-		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`,
-		`<code class="url">https://code.example.org/</code>`, // <code-url>
-		`<span class="clear"></span>`,                        // <clear-floats>
-		`<span class="small">small text</span>`,              // <text-size small>
-		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
-		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>
-		// !force_amp and !force_nonamp link flags
-		`<a href="https://www.google.com/">absolute link</a>`,
-		`<a href="bare.html#frag">bare link</a>`,
-		`<a href="files/file.txt">text link</a>`,
-		`<a href="forced_amp.amp.html#frag">forced AMP link</a>`,
-		`<a href="forced_nonamp.html#frag">forced non-AMP link</a>`,
-	}, []string{
-		`only for amp`,  // <only-amp>
-		`Back to top`,   // hide_back_to_top
-		`Last modified`, // no modified in page_info
-	})
-	checkPageContents(t, filepath.Join(out, "features.amp.html"), []string{
-		`(?)<p>\s*only for AMP\s*</p>`, // <only-amp>
-		// !force_amp and !force_nonamp link flags
-		`<a href="https://www.google.com/">absolute link</a>`,
-		`<a href="bare.amp.html#frag">bare link</a>`,
-		`<a href="https://www.example.org/files/file.txt">text link</a>`,
-		`(?s)<a href="forced_amp.amp.html#frag">forced\s+AMP\s+link</a>`,
-		`(?s)<a href="forced_nonamp.html#frag">forced\s+non-AMP\s+link</a>`,
-	}, []string{
-		`only for non-AMP`,
-	})
-
-	// TODO: Also pass checkTimes for these after mtimes and atimes are preserved.
-	checkFile(t, filepath.Join(out, "images/test.png"), filepath.Join(dir, "static/images/test.png"), checkContents)
-	checkFile(t, filepath.Join(out, "other/test.css"), filepath.Join(dir, "static/other/test.css"), checkContents)
-	checkFile(t, filepath.Join(out, "more/file.txt"), filepath.Join(dir, "extra/file.txt"), checkContents)
-
-	checkFile(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), checkTimes&checkContents)
-	// Image files shouldn't be compressed.
-	p := filepath.Join(out, "images/test.png.gz")
-	if _, err := os.Stat(p); err == nil {
-		t.Errorf("%v unexpectedly exists", p)
-	} else if !os.IsNotExist(err) {
-		t.Errorf("Unable to check %v: %v", p, err)
-	}
-
-	if t.Failed() {
-		fmt.Println("Output is in", out)
+// checkFileNotExist checks that the file at path p doesn't exist.
+func checkFileNotExist(t *testing.T, p string) {
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		return
+	} else if err != nil {
+		t.Error("Couldn't stat file: ", err)
 	} else {
-		os.RemoveAll(dir)
+		t.Error(p, " unexpectedly exists")
 	}
+}
+
+// appendToFile appends data to the file at path p.
+func appendToFile(p, data string) error {
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write([]byte(data))
+	if err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
