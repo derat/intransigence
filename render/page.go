@@ -560,9 +560,9 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 		switch token.Data {
 		case "clear-floats":
 			if token.Type == html.StartTagToken {
-				io.WriteString(w, `<span class="clear">`)
+				io.WriteString(w, `<div class="clear">`)
 			} else if token.Type == html.EndTagToken {
-				io.WriteString(w, "</span>")
+				io.WriteString(w, "</div>")
 			}
 			return md.SkipChildren, nil
 		case "code-url":
