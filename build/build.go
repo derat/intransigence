@@ -114,8 +114,8 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 					return errors.New("diff rejected")
 				}
 			}
-			// Copy the existing output dir's atimes and mtimes for files that didn't change.
-			if err := copyFileTimes(dest, out); err != nil {
+			// Copy the existing output dir's atimes and mtimes for dirs and files that didn't change.
+			if err := copyTimes(dest, out); err != nil {
 				return err
 			}
 			// Delete the old backup if present and back up the existing output dir.

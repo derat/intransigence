@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"syscall"
 	"time"
 )
@@ -102,37 +104,74 @@ func getAtime(fi os.FileInfo) time.Time {
 	return time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
 }
 
-// copyFileTimes examines each file in src. If a file with the same contents exists
+// copyTimes examines each file in src. If a file with the same contents exists
 // at the same path relative to dst, the source atime and mtime are copied over.
-func copyFileTimes(src, dst string) error {
+func copyTimes(src, dst string) error {
 	return filepath.Walk(src, func(sp string, si os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if si.Mode()&os.ModeDir != 0 {
-			return nil
-		}
 
-		// If the dest file doesn't exist or has a different size or is a directory, skip it.
-		dp := filepath.Join(dst, sp[len(src)+1:])
+		dp := filepath.Join(dst, sp[len(src):])
 		di, err := os.Stat(dp)
 		if os.IsNotExist(err) {
 			return nil
 		} else if err != nil {
 			return err
-		} else if si.Size() != di.Size() || di.Mode()&os.ModeDir != 0 {
+		}
+
+		if si.Mode() != di.Mode() || si.Size() != di.Size() {
+			return nil
+		}
+		switch {
+		case di.Mode()&os.ModeDir != 0: // directory
+			if match, err := dirsMatch(sp, dp); err != nil {
+				return err
+			} else if !match {
+				return nil
+			}
+		case di.Mode()&os.ModeType == 0: // regular file
+			if match, err := filesMatch(sp, dp); err != nil {
+				return err
+			} else if !match {
+				return nil
+			}
+		default:
+			// TODO: Handle symlinks?
 			return nil
 		}
 
-		// Also skip the dest file if it doesn't have the same contents as the source file.
-		if match, err := filesMatch(sp, dp); err != nil {
-			return err
-		} else if !match {
-			return nil
-		}
-
+		// If we didn't bail out, update the times to match.
 		return os.Chtimes(dp, getAtime(si), si.ModTime())
 	})
+}
+
+// dirsMatch returns true if the directories at paths a and b have the same contents (i.e. filenames).
+func dirsMatch(a, b string) (bool, error) {
+	getNames := func(p string) ([]string, error) {
+		f, err := os.Open(p)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		names, err := f.Readdirnames(0)
+		if err != nil {
+			return nil, err
+		}
+		sort.Strings(names)
+		return names, nil
+	}
+
+	an, err := getNames(a)
+	if err != nil {
+		return false, err
+	}
+	bn, err := getNames(b)
+	if err != nil {
+		return false, err
+	}
+	return reflect.DeepEqual(an, bn), nil
 }
 
 // filesMatch reads the files at paths a and b and returns true if they have the same contents.

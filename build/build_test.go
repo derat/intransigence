@@ -150,11 +150,14 @@ func TestBuild_Rebuild(t *testing.T) {
 	out := filepath.Join(dir, outSubdir)
 	oldOut := filepath.Join(dir, oldOutSubdir)
 
-	// Unchanged files' mtimes should be copied over from the first build.
+	// Unchanged files' and directories' mtimes should be copied over from the first build.
 	compareFiles(t, filepath.Join(out, "features.html"), filepath.Join(oldOut, "features.html"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(oldOut, "features.html.gz"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "images"), filepath.Join(oldOut, "images"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(oldOut, "images/test.png"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "more"), filepath.Join(oldOut, "more"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(oldOut, "more/file.txt"), contentsEqual|mtimeEqual)
+	compareFiles(t, out, oldOut, mtimeEqual)
 
 	// The new index file should have the newly-added content and an updated mtime.
 	checkPageContents(t, filepath.Join(out, "index.html"), []string{regexp.QuoteMeta(newContent)}, nil)
