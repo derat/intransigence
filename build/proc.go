@@ -61,7 +61,7 @@ func compressDir(dir string) error {
 			return nil
 		}
 		switch filepath.Ext(p) {
-		case ".css", ".htm", ".html", "js", ".json", ".txt", ".xml":
+		case ".css", ".htm", ".html", ".js", ".json", ".txt", ".xml":
 			dp := p + ".gz"
 			if err := compressFile(p, dp); err != nil {
 				return err
