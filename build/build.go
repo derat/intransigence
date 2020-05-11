@@ -57,22 +57,29 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	}
 
 	// Minify inline files before they get included in pages and iframes.
+	var genPaths []string
 	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
 	}
-	if err := generatePages(si, out, flags&PrettyPrint != 0); err != nil {
+	if ps, err := generatePages(si, out, flags&PrettyPrint != 0); err != nil {
 		return err
+	} else {
+		genPaths = append(genPaths, ps...)
 	}
-	if err := generateIframes(si, out, flags&PrettyPrint != 0); err != nil {
+	if ps, err := generateIframes(si, out, flags&PrettyPrint != 0); err != nil {
 		return err
+	} else {
+		genPaths = append(genPaths, ps...)
 	}
+
+	// Only validate generated files -- we don't want to fail on issues in static files.
 	if flags&Validate != 0 {
-		if err := validateDir(ctx, out); err != nil {
+		if err := validateFiles(ctx, genPaths); err != nil {
 			return err
 		}
 	}
 
-	// Copy over static content after finishing with validation.
+	// Copy over static content.
 	if err := copy.Copy(si.StaticDir(), out); err != nil {
 		return err
 	}

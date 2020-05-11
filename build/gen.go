@@ -29,22 +29,24 @@ const (
 )
 
 // generatePages renders non-AMP and AMP versions of all normal pages and writes them
-// to the appropriate subdirectory under out.
-func generatePages(si *render.SiteInfo, out string, pretty bool) error {
+// to the appropriate subdirectory under out. The generated files' paths are returned.
+func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, error) {
 	ps, err := filepath.Glob(filepath.Join(si.PageDir(), "*.md"))
 	if err != nil {
-		return fmt.Errorf("failed to enumerate pages: %v", err)
+		return nil, fmt.Errorf("failed to enumerate pages: %v", err)
 	}
+	var outPaths []string
 	for _, p := range ps {
 		md, err := ioutil.ReadFile(p)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		base := filepath.Base(p)
 		base = base[:len(base)-len(".md")]
 
 		build := func(dest string, amp bool) error {
+			outPaths = append(outPaths, dest)
 			b, err := render.Page(*si, md, amp)
 			if err != nil {
 				return fmt.Errorf("failed to render %s: %v", filepath.Base(dest), err)
@@ -58,48 +60,51 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) error {
 		}
 
 		if err := build(filepath.Join(out, base+render.HTMLExt), false /* amp */); err != nil {
-			return err
+			return nil, err
 		}
 		if err := build(filepath.Join(out, base+render.AMPExt), true /* amp */); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return outPaths, nil
 }
 
 // generateIframes renders all iframe pages and writes them to the appropriate subdirectory under out.
-func generateIframes(si *render.SiteInfo, out string, pretty bool) error {
+// The generated files' paths are returned.
+func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, error) {
 	ps, err := filepath.Glob(filepath.Join(si.IframeDir(), "*.json"))
 	if err != nil {
-		return fmt.Errorf("failed to enumerate iframe data: %v", err)
+		return nil, fmt.Errorf("failed to enumerate iframe data: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(out, iframeSubdir), dirMode); err != nil {
-		return err
+		return nil, err
 	}
+	var outPaths []string
 	for _, p := range ps {
 		data, err := ioutil.ReadFile(p)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		base := filepath.Base(p)
 		base = base[:len(base)-len(".json")]
 		dest := filepath.Join(out, iframeSubdir, base+render.HTMLExt)
+		outPaths = append(outPaths, dest)
 
 		b, err := render.Iframe(*si, data)
 		if err != nil {
-			return fmt.Errorf("failed to render iframe %q: %v", base, err)
+			return nil, fmt.Errorf("failed to render iframe %q: %v", base, err)
 		}
 		if pretty {
 			if b, err = prettyPrintDoc(bytes.NewReader(b)); err != nil {
-				return fmt.Errorf("failed to pretty-print iframe %s: %v", filepath.Base(dest), err)
+				return nil, fmt.Errorf("failed to pretty-print iframe %s: %v", filepath.Base(dest), err)
 			}
 		}
 		if err := ioutil.WriteFile(dest, b, fileMode); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return outPaths, nil
 }
 
 // prettyPrintDoc reads an HTML5 document from r and returns a buffer containing a pretty-printed
