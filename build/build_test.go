@@ -63,10 +63,10 @@ func TestBuild_Full(t *testing.T) {
 			`</a>\s*` +
 			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
 			`</figure>`,
+		`<div class="clear"></div>`, // "clear" code block
 		// <img-inline>
 		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`,
 		`<code class="url">https://code.example.org/</code>`, // <code-url>
-		`<div class="clear"></div>`,                          // <clear-floats>
 		`<span class="small">small text</span>`,              // <text-size small>
 		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
 		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>

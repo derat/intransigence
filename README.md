@@ -43,14 +43,15 @@ Block-style images are inserted using fenced code blocks of type `image`.
 Inline images are inserted using `<img-inline></img-inline>`, with details
 specified via attributes on the opening tag.
 
+## Clearing floats
+
+Left and right floats can be cleared using an empty fenced code block of type
+`clear`.
+
 ## URLs
 
 URLs can be specified within `<code-url></code-url>`. The contents are not
 escaped. Add a backslash in the scheme to prevent auto-linking.
-
-## Clearing floats
-
-`<clear-floats></clear-floats>` can be used to clear all floats.
 
 ## Text size
 

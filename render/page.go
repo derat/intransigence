@@ -410,6 +410,11 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 
 	// TODO: Prefix these by '!', or maybe just use custom HTML elements instead.
 	switch string(node.CodeBlockData.Info) {
+	case "clear":
+		if r.setError(r.tmpl.run(w, []string{"clear.tmpl"}, nil, nil)) != nil {
+			return md.Terminate
+		}
+		return md.SkipChildren
 	case "graph":
 		var info struct {
 			imageboxInfo `yaml:",inline"`
@@ -558,13 +563,6 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 		}
 
 		switch token.Data {
-		case "clear-floats":
-			if token.Type == html.StartTagToken {
-				io.WriteString(w, `<div class="clear">`)
-			} else if token.Type == html.EndTagToken {
-				io.WriteString(w, "</div>")
-			}
-			return md.SkipChildren, nil
 		case "code-url":
 			if token.Type == html.StartTagToken {
 				io.WriteString(w, `<code class="url">`)
