@@ -5,6 +5,7 @@ package build
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,6 +32,9 @@ const (
 	PrettyPrint Flags = 1 << iota
 	// Validate indicates that HTML and CSS output should be validated.
 	Validate
+	// Display a diff of changes and prompt before replacing the existing output dir.
+	// Only has an effect when Build's out argument is empty.
+	DiffPrompt
 )
 
 // Build builds the site rooted at dir into the directory named by out.
@@ -95,6 +99,14 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	if buildToSiteDir {
 		dest := filepath.Join(dir, outSubdir)
 		if _, err := os.Stat(dest); err == nil {
+			// Show a diff and confirm that we should replace the existing output dir.
+			if flags&DiffPrompt != 0 {
+				if ok, err := showDiffAndPrompt(dest, out); err != nil {
+					return fmt.Errorf("failed displaying diff: %v", err)
+				} else if !ok {
+					return errors.New("diff rejected")
+				}
+			}
 			// Copy the existing output dir's atimes and mtimes for files that didn't change.
 			if err := copyFileTimes(dest, out); err != nil {
 				return err
