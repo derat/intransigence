@@ -25,12 +25,6 @@ func main() {
 	validate := flag.Bool("validate", true, "Validate generated files")
 	flag.Parse()
 
-	// TODO: Permit this once everything works.
-	if *out == "" {
-		fmt.Fprintln(os.Stderr, "-out must be explicitly specified", err)
-		os.Exit(2)
-	}
-
 	var flags build.Flags
 	if *diff {
 		flags |= build.DiffPrompt

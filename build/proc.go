@@ -89,7 +89,6 @@ func compressFile(sp, dp string) error {
 	defer df.Close()
 
 	w := gzip.NewWriter(df)
-	// TODO: Necessary to set w.Header with filename and mtime?
 	if _, err := io.Copy(w, sf); err != nil {
 		return err
 	}
