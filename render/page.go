@@ -208,15 +208,6 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 		return r.mangleOutput(w, node, entering, unescapeQuotes)
 	case md.CodeBlock:
 		return r.renderCodeBlock(w, node, entering)
-	case md.Del:
-		// Blackfriday emits <del>. Emit <s> for now to make comparisons easier.
-		// TODO: Remove this later?
-		if entering {
-			io.WriteString(w, "<s>")
-		} else {
-			io.WriteString(w, "</s>")
-		}
-		return md.GoToNext
 	case md.Heading:
 		return r.renderHeading(w, node, entering)
 	case md.HTMLSpan:
@@ -230,15 +221,6 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 		}
 		node.LinkData.Destination = []byte(link)
 		// Fall through and let Blackfriday render the possibly-updated URL as normal.
-	case md.Strong:
-		// Blackfriday emits <strong>. Emit <b> for now to make comparisons easier.
-		// TODO: Remove this later?
-		if entering {
-			io.WriteString(w, "<b>")
-		} else {
-			io.WriteString(w, "</b>")
-		}
-		return md.GoToNext
 	case md.Text:
 		return r.mangleOutput(w, node, entering, unescapeQuotes|escapeEmdashes)
 	}
