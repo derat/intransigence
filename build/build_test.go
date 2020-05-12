@@ -44,6 +44,7 @@ func TestBuild_Full(t *testing.T) {
 		`Hello`, // from heading
 		`This is the index page\.`,
 		`Back to top`,
+		`Page created in 1995.`,        // from page_info
 		`Last modified Dec. 31, 1999.`, // from page_info
 	}, nil)
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
