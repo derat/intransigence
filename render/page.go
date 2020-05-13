@@ -56,6 +56,7 @@ type pageInfo struct {
 	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
 	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
 	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
+	HideDates       bool   `yaml:"hide_dates"`        // hide footer created andmodified dates
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
