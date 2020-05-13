@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 // showDiffAndPrompt displays differences between directories a and b and
@@ -62,11 +63,16 @@ func showDiff(a, b string) error {
 	diffErr := diffCmd.Run()
 	if diffErr == nil {
 		io.WriteString(pagerStdin, "No differences.\n")
-	} else if exitErr, ok := diffErr.(*exec.ExitError); !ok || exitErr.ExitCode() != 1 {
+	} else if exitErr, ok := diffErr.(*exec.ExitError); ok {
+		if exitErr.ExitCode() == 1 {
+			diffErr = nil // differences found
+		} else if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok && ws.Signal() == syscall.SIGPIPE {
+			diffErr = nil // pager exited before it read entire diff
+		}
+	}
+	if diffErr != nil {
 		io.WriteString(pagerStdin, diffStderr.String())
 		diffErr = fmt.Errorf("%q failed: %v", strings.Join(diffCmd.Args, " "), diffErr)
-	} else {
-		diffErr = nil // exit code 1: differences found
 	}
 
 	if err := pagerStdin.Close(); err != nil {
