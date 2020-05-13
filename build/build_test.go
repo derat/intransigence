@@ -54,8 +54,8 @@ func TestBuild_Full(t *testing.T) {
 
 	// Check that custom features work.
 	checkPageContents(t, filepath.Join(out, "features.html"), []string{
-		`(?s)<div class="boxtitle">\s*Features\s*</div>`, // level-1 heading
-		`(?s)<title>\s*Features\s*</title>`,              // hide_title_suffix
+		`(?s)<div class="title">\s*Features\s*</div>`, // level-1 heading
+		`(?s)<title>\s*Features\s*</title>`,           // hide_title_suffix
 		// "image" code blocks
 		// TODO: Also test prefix/suffix.
 		`<figure class="imagebox desktop-right mobile-center custom-class">\s*` +
