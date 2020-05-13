@@ -6,19 +6,66 @@ package build
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 )
 
+const serverAddr = ":8888"
+
+// prompt displays differences between directories a and b and
+// prompts the user to accept the changes. The user's response is returned.
+// If serveB is true, an HTTP server is started at serveAddr to serve the contents of b.
+func prompt(ctx context.Context, a, b string, serveB bool) (ok bool, err error) {
+	var msg string
+	var srv *http.Server
+	var sch <-chan error
+	if serveB {
+		msg = fmt.Sprintf("Serving %v at %v\n\n", b, serverAddr)
+		srv, sch = startServer(b, serverAddr)
+	}
+
+	ok, perr := showDiffAndPrompt(ctx, a, b, msg)
+
+	var serr error
+	if srv != nil {
+		serr = srv.Shutdown(ctx)
+		if err := <-sch; err != nil && err != http.ErrServerClosed {
+			serr = err
+		}
+	}
+
+	if perr != nil {
+		return ok, perr
+	}
+	return ok, serr
+}
+
+// startServer starts a new HTTP server at addr to serve the files in dir.
+// The return value from ListenAndServe will be written to the returned channel.
+func startServer(dir, addr string) (*http.Server, <-chan error) {
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: http.FileServer(http.Dir(dir)),
+	}
+	ch := make(chan error, 1)
+	go func() {
+		ch <- srv.ListenAndServe()
+	}()
+	return srv, ch
+}
+
 // showDiffAndPrompt displays differences between directories a and b and
 // prompts the user to accept the changes. The user's response is returned.
-func showDiffAndPrompt(a, b string) (ok bool, err error) {
+// msg is printed above the diff.
+func showDiffAndPrompt(ctx context.Context, a, b, msg string) (ok bool, err error) {
 	for {
-		if err := showDiff(a, b); err != nil {
+		if err := showDiff(ctx, a, b, msg); err != nil {
 			return false, err
 		}
 
@@ -38,12 +85,13 @@ func showDiffAndPrompt(a, b string) (ok bool, err error) {
 }
 
 // showDiff displays differences between directories a and b.
-func showDiff(a, b string) error {
+// header is written above the diff.
+func showDiff(ctx context.Context, a, b, header string) error {
 	pager := os.Getenv("PAGER")
 	if pager == "" {
 		pager = "less"
 	}
-	pagerCmd := exec.Command(pager)
+	pagerCmd := exec.CommandContext(ctx, pager)
 	pagerStdin, err := pagerCmd.StdinPipe()
 	if err != nil {
 		return err
@@ -54,7 +102,9 @@ func showDiff(a, b string) error {
 		return fmt.Errorf("failed starting %q: %v", strings.Join(pagerCmd.Args, " "), err)
 	}
 
-	diffCmd := exec.Command("diff", "-r", "-u", "--color=always", a, b)
+	io.WriteString(pagerStdin, header)
+
+	diffCmd := exec.CommandContext(ctx, "diff", "-r", "-u", "--color=always", a, b)
 	diffCmd.Stdout = pagerStdin
 	var diffStderr bytes.Buffer
 	diffCmd.Stderr = &diffStderr

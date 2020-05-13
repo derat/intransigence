@@ -30,11 +30,14 @@ type Flags int
 const (
 	// PrettyPrint indicates that HTML output should be pretty-printed.
 	PrettyPrint Flags = 1 << iota
-	// Validate indicates that HTML and CSS output should be validated.
-	Validate
 	// Display a diff of changes and prompt before replacing the existing output dir.
 	// Only has an effect when Build's out argument is empty.
-	DiffPrompt
+	Prompt
+	// Serve indicates that the new output dir should be served over HTTP while the diff is displayed.
+	// Only has an effect when Prompt is true and Build's out argument is empty.
+	Serve
+	// Validate indicates that HTML and CSS output should be validated.
+	Validate
 )
 
 // Build builds the site rooted at dir into the directory named by out.
@@ -107,8 +110,8 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		dest := filepath.Join(dir, outSubdir)
 		if _, err := os.Stat(dest); err == nil {
 			// Show a diff and confirm that we should replace the existing output dir.
-			if flags&DiffPrompt != 0 {
-				if ok, err := showDiffAndPrompt(dest, out); err != nil {
+			if flags&Prompt != 0 {
+				if ok, err := prompt(ctx, dest, out, flags&Serve != 0); err != nil {
 					return fmt.Errorf("failed displaying diff: %v", err)
 				} else if !ok {
 					return errors.New("diff rejected")

@@ -18,19 +18,23 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Failed to get working dir:", err)
 		os.Exit(1)
 	}
-	diff := flag.Bool("diff", true, "Prompt with a diff before replacing dest dir (only if -out is empty)")
 	flag.StringVar(&dir, "dir", dir, "Site directory (defaults to working dir)")
 	out := flag.String("out", "", "Destination directory (site is built under -dir if empty)")
 	pretty := flag.Bool("pretty", true, "Pretty-print HTML")
+	prompt := flag.Bool("prompt", true, "Prompt with a diff before replacing dest dir (only if -out is empty)")
+	serve := flag.Bool("serve", true, "Serve output over HTTP while displaying diff")
 	validate := flag.Bool("validate", true, "Validate generated files")
 	flag.Parse()
 
 	var flags build.Flags
-	if *diff {
-		flags |= build.DiffPrompt
-	}
 	if *pretty {
 		flags |= build.PrettyPrint
+	}
+	if *prompt {
+		flags |= build.Prompt
+	}
+	if *serve {
+		flags |= build.Serve
 	}
 	if *validate {
 		flags |= build.Validate
