@@ -17,6 +17,20 @@ import (
 	"time"
 )
 
+// generateCSS runs sassc to generate CSS files from all .scss files within dir.
+func generateCSS(dir string) error {
+	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
+	if err != nil {
+		return err
+	}
+	for _, p := range ps {
+		if err := exec.Command("sassc", "--style", "expanded", p, p+".css").Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // minifyInline updates the minified versions of CSS or JS files within dir if needed.
 // It seems like it'd be cleaner to write the minified files into a temporary dir instead
 // of alongside the source files, but yui-compressor is slow (1 second for a 9 KB JS file!)

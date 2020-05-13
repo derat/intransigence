@@ -59,11 +59,15 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
-	// Minify inline files before they get included in pages and iframes.
-	var genPaths []string
+	// Generate and minify inline files before they get included in pages and iframes.
+	if err := generateCSS(si.InlineDir()); err != nil {
+		return err
+	}
 	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
 	}
+
+	var genPaths []string
 	if ps, err := generatePages(si, out, flags&PrettyPrint != 0); err != nil {
 		return err
 	} else {
