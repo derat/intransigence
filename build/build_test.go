@@ -39,13 +39,13 @@ func TestBuild_Full(t *testing.T) {
 		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
 		`<meta charset="utf-8">`,
 		`<link rel="amphtml" href="https://www.example.org/index.amp.html">`,
-		`"datePublished":\s*"1995-01-01"`,              // struct data from page_info
+		`"datePublished":\s*"1995-01-01"`,              // struct data
 		`(?s)<title>\s*Index - example.org\s*</title>`, // suffix added
 		`Hello`, // from heading
 		`This is the index page\.`,
 		`Back to top`,
-		`Page created in 1995.`,        // from page_info
-		`Last modified Dec. 31, 1999.`, // from page_info
+		`Page created in 1995.`,        // from page block
+		`Last modified Dec. 31, 1999.`, // from page block
 	}, nil)
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
 		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
@@ -78,7 +78,7 @@ func TestBuild_Full(t *testing.T) {
 	}, []string{
 		`only for amp`,  // <only-amp>
 		`Back to top`,   // hide_back_to_top
-		`Last modified`, // no modified in page_info
+		`Last modified`, // no modified in page block
 	})
 	checkPageContents(t, filepath.Join(out, "features.amp.html"), []string{
 		`(?)<p>\s*only for AMP\s*</p>`, // <only-amp>

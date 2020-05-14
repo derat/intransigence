@@ -15,8 +15,8 @@ See the `renderCodeBlock`, `renderHeading`, and `renderHTMLSpan` functions in
 
 ## Page info
 
-Every page starts with a fenced code block of type `page_info` that contains a
-single YAML dictionary with high-level information about the page.
+Every page starts with a fenced code block of type `page` that contains a single
+YAML dictionary with high-level information about the page.
 
 ## Boxes
 

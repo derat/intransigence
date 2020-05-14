@@ -42,8 +42,6 @@ func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 }
 
 // pageInfo holds information about the current page that is used by page.tmpl.
-// TODO: This is a huge mess. It's used heavily by this class, rather than just by templates,
-// and TopNavItems is duplicated from renderer.NavItems.
 type pageInfo struct {
 	Title           string `yaml:"title"`             // used in <title> element
 	ID              string `yaml:"id"`                // ID to highlight in navbox
@@ -59,8 +57,7 @@ type pageInfo struct {
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
-	TopNavItems []*NavItem `yaml:"-"` // top-level nav items
-	NavItem     *NavItem   `yaml:"-"` // nav item corresponding to current page
+	NavItem *NavItem `yaml:"-"` // nav item corresponding to current page
 
 	GoogleAnalyticsCode string `yaml:"-"`
 
@@ -116,10 +113,8 @@ type renderer struct {
 func newRenderer(si SiteInfo, amp bool) *renderer {
 	r := renderer{
 		si: si,
-		// TODO: Avoid copying SiteInfo fields here?
 		pi: pageInfo{
 			Desc:                si.DefaultDesc,
-			TopNavItems:         si.NavItems,
 			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
 		},
 		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
@@ -166,6 +161,9 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 				srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
 			}
 			return strings.Join(srcs, ", ")
+		},
+		"topNavItems": func() []*NavItem {
+			return r.si.NavItems
 		},
 	})
 
@@ -235,8 +233,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	}
 
 	fc := ast.FirstChild
-	if fc == nil || fc.Type != md.CodeBlock || string(fc.CodeBlockData.Info) != "page_info" {
-		r.setErrorf("page doesn't start with page info code block")
+	if fc == nil || fc.Type != md.CodeBlock || string(fc.CodeBlockData.Info) != "page" {
+		r.setErrorf(`page doesn't start with "page" code block`)
 		return
 	}
 	if err := yaml.Unmarshal(fc.Literal, &r.pi); err != nil {
@@ -247,9 +245,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	// Add a fake nav item for the index page if it's current.
 	// The Name and URL fields don't need to be set since this item is never rendered.
 	if r.pi.ID == indexID {
-		r.pi.NavItem = &NavItem{ID: indexID, Children: r.pi.TopNavItems}
+		r.pi.NavItem = &NavItem{ID: indexID, Children: r.si.NavItems}
 	} else {
-		for _, n := range r.pi.TopNavItems {
+		for _, n := range r.si.NavItems {
 			if r.pi.NavItem = n.FindID(r.pi.ID); r.pi.NavItem != nil {
 				break
 			}
@@ -487,7 +485,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			return md.Terminate
 		}
 		return md.SkipChildren
-	case "page_info":
+	case "page":
 		return md.SkipChildren // handled in RenderHeader
 	default:
 		node.CodeBlockData.Info = nil // prevent Blackfriday from adding e.g. "language-html" CSS class
@@ -688,10 +686,7 @@ const (
 // mangleOutput is a helper function that uses Blackfriday's standard
 // HTMLRenderer to render the supplied node, and then performs the requested
 // operations on the output before writing it to w.
-// TODO: Consider removing this after the port from Ruby to Go is done -- this
-// just helps cut down on differences in the new output.
 func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops mangleOps) md.WalkStatus {
-	// TODO: Consider using bufio to stream the output instead of storing it in a buffer.
 	var b bytes.Buffer
 	ret := r.hr.RenderNode(&b, node, entering)
 	s := b.String()
