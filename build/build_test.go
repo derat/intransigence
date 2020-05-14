@@ -56,21 +56,19 @@ func TestBuild_Full(t *testing.T) {
 	checkPageContents(t, filepath.Join(out, "features.html"), []string{
 		`(?s)<div class="title">\s*Features\s*</div>`, // level-1 heading
 		`(?s)<title>\s*Features\s*</title>`,           // hide_title_suffix
-		// "image" code blocks
 		// TODO: Also test prefix/suffix.
-		`<figure class="imagebox desktop-right mobile-center custom-class">\s*` +
+		`<figure class="desktop-right mobile-center custom-class">\s*` + // "image" code block
 			`<a href="img_link.html">\s*` +
 			`<img src="images/test.png" width="300" height="200" alt="Alt text">\s*` +
 			`</a>\s*` +
 			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
 			`</figure>`,
-		`<div class="clear"></div>`, // "clear" code block
-		// <img-inline>
-		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`,
-		`<code class="url">https://code.example.org/</code>`, // <code-url>
-		`<span class="small">small text</span>`,              // <text-size small>
-		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
-		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>
+		`<div class="clear"></div>`,                                                        // "clear" code block
+		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`, // <image>
+		`<code class="url">https://code.example.org/</code>`,                               // <code-url>
+		`<span class="small">small text</span>`,                                            // <text-size small>
+		`<span class="real-small">tiny text</span>`,                                        // <text-size tiny>
+		`(?s)<p>\s*only for non-AMP\s*</p>`,                                                // </only-nonamp>
 		// !force_amp and !force_nonamp link flags
 		`<a href="https://www.google.com/">absolute link</a>`,
 		`<a href="bare.html#frag">bare link</a>`,

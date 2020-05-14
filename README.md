@@ -40,8 +40,8 @@ Graph and map iframes are inserted using fenced code blocks of type `graph` and
 
 Block-style images are inserted using fenced code blocks of type `image`.
 
-Inline images are inserted using `<img-inline></img-inline>`, with details
-specified via attributes on the opening tag.
+Inline images are inserted using `<image></image>`, with details specified via
+attributes on the opening tag.
 
 ## Clearing floats
 

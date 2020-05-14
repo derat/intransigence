@@ -41,8 +41,7 @@ func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	return b, nil
 }
 
-// pageInfo holds information about the current page that is used by the page_header
-// and page_footer templates.
+// pageInfo holds information about the current page that is used by page.tmpl.
 // TODO: This is a huge mess. It's used heavily by this class, rather than just by templates,
 // and TopNavItems is duplicated from renderer.NavItems.
 type pageInfo struct {
@@ -77,8 +76,8 @@ type pageInfo struct {
 	StructData       structData    `yaml:"-"`
 }
 
-// imageTagInfo holds information needed by the image_tag template.
-type imageTagInfo struct {
+// imgInfo holds information used by img.tmpl.
+type imgInfo struct {
 	Path   string `html:"path" yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
 	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width)
 	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width)
@@ -91,8 +90,8 @@ type imageTagInfo struct {
 	Attr   []string // additional attributes to include
 }
 
-// imageboxInfo holds information needed by the imagebox template.
-type imageboxInfo struct {
+// figureInfo holds information used by figure.tmpl.
+type figureInfo struct {
 	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right, desktop_alt
 	Caption template.HTML `yaml:"caption"` // <figcaption> text; template.HTML to permit links and not escape quotes
 	Class   string        `yaml:"class"`   // CSS class
@@ -110,8 +109,8 @@ type renderer struct {
 	boxTitle    bytes.Buffer // text seen while startingBox is true
 	inBox       bool         // rendering a box
 
-	lastImageboxAlign string // last "align" value used for an imagebox
-	numMapMarkers     int    // number of boxes with "map_marker"
+	lastFigureAlign string // last "align" value used for a figure
+	numMapMarkers   int    // number of boxes with "map_marker"
 }
 
 func newRenderer(si SiteInfo, amp bool) *renderer {
@@ -367,7 +366,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
 
-	r.setError(r.tmpl.run(w, []string{"page_header.tmpl"}, &r.pi, nil))
+	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "start", &r.pi, nil))
 }
 
 func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
@@ -376,11 +375,11 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 		return
 	}
 	if r.inBox {
-		if r.setError(r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil)) != nil {
+		if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", nil, nil)) != nil {
 			return
 		}
 	}
-	r.setError(r.tmpl.run(w, []string{"page_footer.tmpl"}, &r.pi, nil))
+	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "end", &r.pi, nil))
 }
 
 // Renders a node of type md.CodeBlock and returns the appropriate walk status.
@@ -396,22 +395,21 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		return "/" + s
 	}
 
-	// Rewrites the supplied imagebox "align" value to handle "desktop_alt". Also updates lastImageboxAlign.
-	imageboxAlign := func(s string) string {
+	// Rewrites the supplied figure "align" value to handle "desktop_alt". Also updates lastFigureAlign.
+	figureAlign := func(s string) string {
 		v := func() string {
 			if s != "desktop_alt" {
 				return s
 			}
-			if r.lastImageboxAlign != "desktop_left" {
+			if r.lastFigureAlign != "desktop_left" {
 				return "desktop_left"
 			}
 			return "desktop_right"
 		}()
-		r.lastImageboxAlign = v
+		r.lastFigureAlign = v
 		return v
 	}
 
-	// TODO: Prefix these by '!', or maybe just use custom HTML elements instead.
 	switch string(node.CodeBlockData.Info) {
 	case "clear":
 		if r.setError(r.tmpl.run(w, []string{"clear.tmpl"}, nil, nil)) != nil {
@@ -420,37 +418,37 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		return md.SkipChildren
 	case "graph":
 		var info struct {
-			imageboxInfo `yaml:",inline"`
-			Href         string `yaml:"href"`   // relative path to graph iframe page
-			Name         string `yaml:"name"`   // graph data name
-			Width        int    `yaml:"width"`  // graph width (without border)
-			Height       int    `yaml:"height"` // graph height (without border)
+			figureInfo `yaml:",inline"`
+			Href       string `yaml:"href"`   // relative path to graph iframe page
+			Name       string `yaml:"name"`   // graph data name
+			Width      int    `yaml:"width"`  // graph width (without border)
+			Height     int    `yaml:"height"` // graph height (without border)
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse graph info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
+		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
 		info.Href = iframeHref(info.Href)
-		if r.setError(r.tmpl.run(w, []string{"graph.tmpl", "imagebox.tmpl"}, info, nil)) != nil {
+		if r.setError(r.tmpl.run(w, []string{"graph.tmpl", "figure.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
 	case "image":
 		var info struct {
-			imageboxInfo `yaml:",inline"`
-			imageTagInfo `yaml:",inline"`
-			Href         string `yaml:"href"`
+			figureInfo `yaml:",inline"`
+			imgInfo    `yaml:",inline"`
+			Href       string `yaml:"href"`
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
+		if err := r.checkImgInfo(info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		info.imageboxInfo.Align = imageboxAlign(info.imageboxInfo.Align)
+		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
 		if len(info.Href) == 0 && len(info.Prefix) > 0 {
 			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
 			if r.setError(r.si.CheckStatic(info.Href)) != nil {
@@ -464,28 +462,28 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 				return md.Terminate
 			}
 		}
-		if r.setError(r.tmpl.run(w, []string{"block_image.tmpl", "imagebox.tmpl", "image_tag.tmpl"}, info, nil)) != nil {
+		if r.setError(r.tmpl.run(w, []string{"image_block.tmpl", "figure.tmpl", "img.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
 	case "map":
 		var info struct {
-			imageTagInfo `yaml:",inline"` // placeholder image
-			Href         string           `yaml:"href"` // relative path to map iframe page
+			imgInfo `yaml:",inline"` // placeholder image
+			Href    string           `yaml:"href"` // relative path to map iframe page
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		info.imageTagInfo.Layout = "fill"
-		info.imageTagInfo.Attr = []string{"placeholder"}
-		info.imageTagInfo.Alt = "[map placeholder]"
-		if err := r.checkImageTagInfo(info.imageTagInfo); err != nil {
+		info.imgInfo.Layout = "fill"
+		info.imgInfo.Attr = []string{"placeholder"}
+		info.imgInfo.Alt = "[map placeholder]"
+		if err := r.checkImgInfo(info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
 		info.Href = iframeHref(info.Href)
-		if r.setError(r.tmpl.run(w, []string{"map.tmpl", "image_tag.tmpl"}, info, nil)) != nil {
+		if r.setError(r.tmpl.run(w, []string{"map.tmpl", "img.tmpl"}, info, nil)) != nil {
 			return md.Terminate
 		}
 		return md.SkipChildren
@@ -510,7 +508,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	// template. The box is rendered when we leave the heading node.
 	if entering {
 		if r.inBox {
-			if r.setError(r.tmpl.run(w, []string{"box_footer.tmpl"}, nil, nil)) != nil {
+			if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", nil, nil)) != nil {
 				return md.Terminate
 			}
 			r.inBox = false
@@ -548,7 +546,7 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 
 	r.startingBox = false
 	r.inBox = true
-	if r.setError(r.tmpl.run(w, []string{"box_header.tmpl"}, &info, nil)) != nil {
+	if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "start", &info, nil)) != nil {
 		return md.Terminate
 	}
 	return md.GoToNext
@@ -573,16 +571,16 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				io.WriteString(w, "</code>")
 			}
 			return md.SkipChildren, nil
-		case "img-inline":
+		case "image":
 			if token.Type == html.StartTagToken {
-				var info = imageTagInfo{Inline: true, Layout: "fixed"}
+				var info = imgInfo{Inline: true, Layout: "fixed"}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := r.checkImageTagInfo(info); err != nil {
+				if err := r.checkImgInfo(info); err != nil {
 					return 0, err
 				}
-				if err := r.tmpl.run(w, []string{"inline_image.tmpl", "image_tag.tmpl"}, info, nil); err != nil {
+				if err := r.tmpl.runNamed(w, []string{"img.tmpl"}, "img", info, nil); err != nil {
 					return 0, err
 				}
 			}
@@ -716,8 +714,8 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 	return ret
 }
 
-// checkImageTagInfo validates image information.
-func (r *renderer) checkImageTagInfo(it imageTagInfo) error {
+// checkImgInfo validates an imgInfo struct.
+func (r *renderer) checkImgInfo(it imgInfo) error {
 	if it.Path != "" && (it.Prefix != "" || it.Suffix != "") ||
 		it.Path == "" && (it.Prefix == "" || it.Suffix == "") {
 		return errors.New("either path or prefix/suffix must be supplied")

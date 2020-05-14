@@ -22,34 +22,54 @@ func newTemplater(dir string, commonFuncs template.FuncMap) *templater {
 	return &templater{dir, commonFuncs, make(map[string]*template.Template)}
 }
 
-// run runs a template consisting of the named files using the supplied
-// data and functions, plus any functions passed to newTemplater.
-// The template is cached after it's loaded for the first time.
-func (t *templater) run(w io.Writer, files []string, data interface{}, funcs template.FuncMap) error {
+// load loads and caches a template consisting of the supplied files and functions.
+func (t *templater) load(files []string, funcs template.FuncMap) (*template.Template, error) {
 	if len(files) == 0 {
-		return errors.New("no files supplied")
+		return nil, errors.New("no files supplied")
 	}
+
 	name := files[0]
-	tmpl, ok := t.tmpls[name]
-	if !ok {
-		var paths []string
-		for _, fn := range files {
-			paths = append(paths, filepath.Join(t.dir, fn))
-		}
+	if tmpl, ok := t.tmpls[name]; ok {
+		return tmpl, nil
+	}
 
-		fm := template.FuncMap{}
-		for n, f := range t.commonFuncs {
-			fm[n] = f
-		}
-		for n, f := range funcs {
-			fm[n] = f
-		}
+	var paths []string
+	for _, fn := range files {
+		paths = append(paths, filepath.Join(t.dir, fn))
+	}
 
-		var err error
-		if tmpl, err = template.New(name).Funcs(fm).ParseFiles(paths...); err != nil {
-			return err
-		}
-		t.tmpls[name] = tmpl
+	fm := template.FuncMap{}
+	for n, f := range t.commonFuncs {
+		fm[n] = f
+	}
+	for n, f := range funcs {
+		fm[n] = f
+	}
+
+	tmpl, err := template.New(name).Funcs(fm).ParseFiles(paths...)
+	if err != nil {
+		return nil, err
+	}
+	t.tmpls[name] = tmpl
+	return tmpl, nil
+}
+
+// run runs a template consisting of the named files using the supplied data and functions,
+// plus any functions passed to newTemplater.
+func (t *templater) run(w io.Writer, files []string, data interface{}, funcs template.FuncMap) error {
+	tmpl, err := t.load(files, funcs)
+	if err != nil {
+		return err
 	}
 	return tmpl.Execute(w, data)
+}
+
+// runNamed is similar to run but runs the named template.
+// See Template.ExecuteTemplate() vs. Template.Execute().
+func (t *templater) runNamed(w io.Writer, files []string, name string, data interface{}, funcs template.FuncMap) error {
+	tmpl, err := t.load(files, funcs)
+	if err != nil {
+		return err
+	}
+	return tmpl.ExecuteTemplate(w, name, data)
 }
