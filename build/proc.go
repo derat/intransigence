@@ -23,7 +23,10 @@ func generateCSS(dir string) error {
 	if err != nil {
 		return err
 	}
-	for _, p := range ps {
+
+	defer clearStatus()
+	for i, p := range ps {
+		statusf("Generating CSS: [%d/%d]", i, len(ps))
 		if err := exec.Command("sassc", "--style", "expanded", p, p+".css").Run(); err != nil {
 			return err
 		}
@@ -46,7 +49,9 @@ func minifyInline(dir string) error {
 		ps = append(ps, js...)
 	}
 
-	for _, p := range ps {
+	defer clearStatus()
+	for i, p := range ps {
+		statusf("Minifying files: [%d/%d]", i, len(ps))
 		pi, err := os.Stat(p)
 		if err != nil {
 			return err

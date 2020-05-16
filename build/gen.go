@@ -35,8 +35,11 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to enumerate pages: %v", err)
 	}
+
+	defer clearStatus()
 	var outPaths []string
-	for _, p := range ps {
+	for i, p := range ps {
+		statusf("Generating pages: [%d/%d]", i, len(ps))
 		md, err := ioutil.ReadFile(p)
 		if err != nil {
 			return nil, err

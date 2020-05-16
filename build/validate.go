@@ -5,7 +5,7 @@ package build
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +15,20 @@ import (
 	"github.com/derat/homepage/render"
 	"github.com/derat/validate"
 )
+
+var htmlIgnore = []*regexp.Regexp{
+	// Blackfriday uses align attributes on generated tables.
+	regexp.MustCompile(`^The align attribute on the (td|th) element is obsolete. Use CSS instead\.$`),
+}
+
+var ampIgnore []*regexp.Regexp
+
+var cssIgnore = []*regexp.Regexp{
+	// AMP's inlined styles use these.
+	regexp.MustCompile(`-amp-start.* is an unknown vendor extension`),
+	regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
+	regexp.MustCompile(`^-[a-z]+-animation is an unknown vendor extension$`),
+}
 
 // validateFiles validates files at the supplied paths.
 func validateFiles(ctx context.Context, paths []string) error {
@@ -47,64 +61,60 @@ func validateFiles(ctx context.Context, paths []string) error {
 	ampCh := startValidation(ctx, ampPaths, validate.AMP)
 	cssCh := startValidation(ctx, cssPaths, validateCSS)
 
-	results := make(map[string]bool)
-	results["HTML"] = printValidateResults("HTML", baseDir, htmlCh, []*regexp.Regexp{
-		// Blackfriday uses align attributes on generated tables.
-		regexp.MustCompile(`^The align attribute on the (td|th) element is obsolete. Use CSS instead\.$`),
-	})
-	results["AMP"] = printValidateResults("AMP", baseDir, ampCh, nil)
-	results["CSS"] = printValidateResults("CSS", baseDir, cssCh, []*regexp.Regexp{
-		// AMP's inlined styles use these.
-		regexp.MustCompile(`-amp-start.* is an unknown vendor extension`),
-		regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
-		regexp.MustCompile(`^-[a-z]+-animation is an unknown vendor extension$`),
-	})
-
-	var failed []string
-	for name, res := range results {
-		if !res {
-			failed = append(failed, name)
+	var failed bool
+	var htmlRes, ampRes, cssRes int
+	defer clearStatus()
+	for htmlRes < len(htmlPaths) || ampRes < len(ampPaths) || cssRes < len(cssPaths) {
+		statusf("Validating pages: HTML [%d/%d], AMP [%d/%d], CSS [%d/%d]",
+			htmlRes, len(htmlPaths), ampRes, len(ampPaths), cssRes, len(cssPaths))
+		select {
+		case res := <-htmlCh:
+			failed = !printValidateResult("HTML", baseDir, res, htmlIgnore) || failed
+			htmlRes++
+		case res := <-ampCh:
+			failed = !printValidateResult("AMP", baseDir, res, ampIgnore) || failed
+			ampRes++
+		case res := <-cssCh:
+			failed = !printValidateResult("CSS", baseDir, res, cssIgnore) || failed
+			cssRes++
 		}
 	}
-	if len(failed) != 0 {
-		return fmt.Errorf("validation failed (%v)", strings.Join(failed, ", "))
+	if failed {
+		return errors.New("validation failed")
 	}
 	return nil
 }
 
-// printValidateResults reads all results from ch and prints errors to stdout.
-// Issues are printed if they are not excluded by a regexp in ignore.
+// printValidateResult prints issues from res if they are not excluded by a regexp in ignore.
 // vname describes the type of validation being performed, e.g. "HTML".
 // baseDir contains a common prefix that is removed from file paths.
-// Returns true if all documents validated successfully.
-func printValidateResults(vname, baseDir string, ch <-chan validateResult, ignore []*regexp.Regexp) bool {
-	succeeded := true
-	for res := range ch {
-		// Filter out ignored issues.
-		var issues []validate.Issue
-		for _, is := range res.issues {
-			ignored := false
-			for _, ig := range ignore {
-				if ig.MatchString(is.Message) {
-					ignored = true
-					break
-				}
-			}
-			if !ignored {
-				issues = append(issues, is)
+// Returns true if no problems were found.
+func printValidateResult(vname, baseDir string, res validateResult, ignore []*regexp.Regexp) bool {
+	good := true
+	// Filter out ignored issues.
+	var issues []validate.Issue
+	for _, is := range res.issues {
+		ignored := false
+		for _, ig := range ignore {
+			if ig.MatchString(is.Message) {
+				ignored = true
+				break
 			}
 		}
-		fn := res.p[len(baseDir)+1:] // strip off common dir plus slash
-		if res.err != nil {
-			fmt.Printf("%s: %s validator failed: %v\n", fn, vname, res.err)
-			succeeded = false
-		}
-		for _, is := range issues {
-			fmt.Printf("%s: %s %d:%d %s\n", fn, vname, is.Line, is.Col, is.Message)
-			succeeded = false
+		if !ignored {
+			issues = append(issues, is)
 		}
 	}
-	return succeeded
+	fn := res.p[len(baseDir)+1:] // strip off common dir plus slash
+	if res.err != nil {
+		logf("%s: %s validator failed: %v\n", fn, vname, res.err)
+		good = false
+	}
+	for _, is := range issues {
+		logf("%s: %s %d:%d %s\n", fn, vname, is.Line, is.Col, is.Message)
+		good = false
+	}
+	return good
 }
 
 // validateFunc validates the supplied data and returns a list of issues.
@@ -142,7 +152,7 @@ func startValidation(ctx context.Context, paths []string, vf validateFunc) <-cha
 			issues, err := validateFile(ctx, p, vf)
 			ch <- validateResult{p, issues, err}
 		}
-		close(ch)
+		// Avoid closing the channel so the select in validateFiles won't get zero values.
 	}()
 	return ch
 }
