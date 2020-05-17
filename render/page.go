@@ -76,12 +76,18 @@ type pageInfo struct {
 // imgInfo holds information used by img.tmpl.
 type imgInfo struct {
 	Path   string `html:"path" yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
-	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width)
-	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width)
-	Width  int    `html:"width" yaml:"width"`   // 100% width
-	Height int    `html:"height" yaml:"height"` // 100% height
+	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width), e.g. "files/img-"
+	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width), e.g. ".png"
+	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels
+	Height int    `html:"height" yaml:"height"` // 100% height in pixels
 	Alt    string `html:"alt" yaml:"alt"`       // alt text
 
+	// These fields are set by finishImgInfo.
+	Src        string // <img> src attribute
+	Srcset     string // <img> and <source> srcset attribute for original images
+	WebPSrcset string // <source> srcset attribute for WebP images
+
+	// These fields are set programatically.
 	Layout string   // AMP layout ("responsive" used if empty)
 	Inline bool     // add "inline" class
 	Attr   []string // additional attributes to include
@@ -135,32 +141,15 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 			}
 			return t.Format(layout)
 		},
+		// TODO: Avoid exposing this?
 		"srcset": func(pre, suf string) string {
-			glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
-			ps, err := filepath.Glob(glob)
+			srcset, err := r.makeSrcset(pre, suf)
 			if err != nil {
-				r.setErrorf("failed to list image files with %q: %v", glob, err)
-				return ""
+				r.setErrorf("failed make srcset for prefix %q and suffix %q: %v", pre, suf, err)
+			} else if srcset == "" {
+				r.setErrorf("no image files matched by prefix %q and suffix %q", pre, suf)
 			}
-			if len(ps) == 0 {
-				r.setErrorf("no image files matched by %q: %v", glob, err)
-				return ""
-			}
-			// Ascending order by embedded image width.
-			sort.Slice(ps, func(i, j int) bool {
-				if len(ps[i]) < len(ps[j]) {
-					return true
-				} else if len(ps[i]) > len(ps[j]) {
-					return false
-				}
-				return ps[i] < ps[j]
-			})
-			var srcs []string
-			for _, p := range ps {
-				width := p[len(filepath.Join(r.si.StaticDir(), pre)) : len(p)-len(suf)]
-				srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
-			}
-			return strings.Join(srcs, ", ")
+			return srcset
 		},
 		"topNavItems": func() []*NavItem {
 			return r.si.NavItems
@@ -442,7 +431,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		if err := r.checkImgInfo(info.imgInfo); err != nil {
+		if err := r.finishImgInfo(&info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
@@ -476,7 +465,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		info.imgInfo.Layout = "fill"
 		info.imgInfo.Attr = []string{"placeholder"}
 		info.imgInfo.Alt = "[map placeholder]"
-		if err := r.checkImgInfo(info.imgInfo); err != nil {
+		if err := r.finishImgInfo(&info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return md.Terminate
 		}
@@ -575,7 +564,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := r.checkImgInfo(info); err != nil {
+				if err := r.finishImgInfo(&info); err != nil {
 					return 0, err
 				}
 				if err := r.tmpl.runNamed(w, []string{"img.tmpl"}, "img", info, nil); err != nil {
@@ -709,24 +698,68 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 	return ret
 }
 
-// checkImgInfo validates an imgInfo struct.
-func (r *renderer) checkImgInfo(it imgInfo) error {
-	if it.Path != "" && (it.Prefix != "" || it.Suffix != "") ||
-		it.Path == "" && (it.Prefix == "" || it.Suffix == "") {
+// finishImgInfo validates an imgInfo struct and fills additional fields.
+func (r *renderer) finishImgInfo(info *imgInfo) error {
+	if info.Path != "" && (info.Prefix != "" || info.Suffix != "") ||
+		info.Path == "" && (info.Prefix == "" || info.Suffix == "") {
 		return errors.New("either path or prefix/suffix must be supplied")
 	}
-	if it.Width <= 0 || it.Height <= 0 {
+	if info.Width <= 0 || info.Height <= 0 {
 		return errors.New("height and width must be set")
 	}
-	if it.Alt == "" {
+	if info.Alt == "" {
 		return errors.New("alt must be set")
 	}
 
-	p := it.Path
-	if p == "" {
-		p = fmt.Sprintf("%s%d%s", it.Prefix, it.Width, it.Suffix)
+	info.Src = info.Path
+	if info.Src == "" {
+		info.Src = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
 	}
-	return r.si.CheckStatic(p)
+	if err := r.si.CheckStatic(info.Src); err != nil {
+		return err
+	}
+
+	if info.Prefix != "" {
+		var err error
+		info.Srcset, err = r.makeSrcset(info.Prefix, info.Suffix)
+		if err != nil {
+			return err
+		} else if info.Srcset == "" {
+			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, info.Suffix)
+		}
+
+		// TODO: Set WebPSrcset.
+	}
+
+	return nil
+}
+
+// makeSrcset returns a srcset attribute value corresponding to the images matched by
+// pre and suf (corresponding to imgInfo.Prefix and imgInfo.Suffix).
+func (r *renderer) makeSrcset(pre, suf string) (string, error) {
+	glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
+	ps, err := filepath.Glob(glob)
+	if err != nil {
+		return "", err
+	}
+
+	// Ascending order by embedded image width.
+	sort.Slice(ps, func(i, j int) bool {
+		if len(ps[i]) < len(ps[j]) {
+			return true
+		} else if len(ps[i]) > len(ps[j]) {
+			return false
+		}
+		return ps[i] < ps[j]
+	})
+
+	var srcs []string
+	preLen := len(filepath.Join(r.si.StaticDir(), pre))
+	for _, p := range ps {
+		width := p[preLen : len(p)-len(suf)]
+		srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
+	}
+	return strings.Join(srcs, ", "), nil
 }
 
 type structData struct {
