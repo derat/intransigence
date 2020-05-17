@@ -200,13 +200,15 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 	case md.HTMLSpan:
 		return r.renderHTMLSpan(w, node, entering)
 	case md.Link:
-		var link string
-		var err error
-		if link, err = r.rewriteLink(string(node.LinkData.Destination)); err != nil {
-			r.setError(err)
-			return md.Terminate
+		// Make sure that we don't rewrite the link a second time when exiting.
+		if entering {
+			link, err := r.rewriteLink(string(node.LinkData.Destination))
+			if err != nil {
+				r.setError(err)
+				return md.Terminate
+			}
+			node.LinkData.Destination = []byte(link)
 		}
-		node.LinkData.Destination = []byte(link)
 		// Fall through and let Blackfriday render the possibly-updated URL as normal.
 	case md.Text:
 		return r.mangleOutput(w, node, entering, unescapeQuotes|escapeEmdashes)
@@ -645,15 +647,23 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		link = tl
 	}
 
+	// TODO: Revisit this decision.
+	if link[0] == '/' {
+		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
+	}
+
+	// Make sure that links to static resources work.
+	if !isPage(link) {
+		if err := r.si.CheckStatic(link); err != nil {
+			return "", err
+		}
+	}
+
 	// Non-AMP links don't need to be rewritten.
 	if (!r.amp && !forceAMP) || forceNonAMP {
 		return link, nil
 	}
 
-	// TODO: Revisit this decision.
-	if link[0] == '/' {
-		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
-	}
 	// If this isn't a regular page, it may not be served by the AMP CDN. Use an absolute URL.
 	if !isPage(link) {
 		return r.si.BaseURL + link, nil

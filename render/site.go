@@ -80,9 +80,16 @@ func (si *SiteInfo) ReadInline(fn string) string {
 	return strings.TrimSpace(string(b)) // sassc doesn't remove trailing newline
 }
 
-// StaticExists returns an error if fn doesn't exist in the static dir.
-func (si *SiteInfo) CheckStatic(fn string) error {
-	_, err := os.Stat(filepath.Join(si.StaticDir(), fn))
+// CheckStatic returns an error if p (e.g. "foo/bar.png") doesn't exist
+// in si.StaticDir or in the matching si.ExtraStaticDirs source dir.
+func (si *SiteInfo) CheckStatic(p string) error {
+	for src, dst := range si.ExtraStaticDirs {
+		if p == dst || strings.HasPrefix(dst+"/", p) {
+			_, err := os.Stat(filepath.Join(si.dir, src, p[len(dst):]))
+			return err
+		}
+	}
+	_, err := os.Stat(filepath.Join(si.StaticDir(), p))
 	return err
 }
 
