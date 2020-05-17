@@ -17,36 +17,14 @@ import (
 	"time"
 )
 
-// generateCSS runs sassc to generate CSS files from all .scss files within dir.
-func generateCSS(dir string) error {
-	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
-	if err != nil {
-		return err
-	}
-
-	defer clearStatus()
-	for i, p := range ps {
-		statusf("Generating CSS: [%d/%d]", i, len(ps))
-		if err := exec.Command("sassc", "--style", "expanded", p, p+".css").Run(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// minifyInline updates the minified versions of CSS or JS files within dir if needed.
+// minifyInline updates the minified versions of JS files within dir if needed.
 // It seems like it'd be cleaner to write the minified files into a temporary dir instead
 // of alongside the source files, but yui-compressor is slow (1 second for a 9 KB JS file!)
 // so it seems better to skip unnecessary calls.
 func minifyInline(dir string) error {
-	// filepath.Glob doesn't appear to support globs like "*.{css,js}".
-	ps, err := filepath.Glob(filepath.Join(dir, "*.css"))
+	ps, err := filepath.Glob(filepath.Join(dir, "*.js"))
 	if err != nil {
 		return err
-	} else if js, err := filepath.Glob(filepath.Join(dir, "*.js")); err != nil {
-		return err
-	} else {
-		ps = append(ps, js...)
 	}
 
 	defer clearStatus()
@@ -68,7 +46,6 @@ func minifyInline(dir string) error {
 			}
 		}
 	}
-
 	return nil
 }
 

@@ -77,7 +77,7 @@ func (si *SiteInfo) ReadInline(fn string) string {
 	if err != nil {
 		panic(fmt.Sprint("Failed reading file: ", err))
 	}
-	return string(b)
+	return strings.TrimSpace(string(b)) // sassc doesn't remove trailing newline
 }
 
 // StaticExists returns an error if fn doesn't exist in the static dir.

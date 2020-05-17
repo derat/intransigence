@@ -321,9 +321,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.AMPStyle = template.CSS(r.si.ReadInline("amp-boilerplate.css"))
 		r.pi.AMPNoscriptStyle = template.CSS(r.si.ReadInline("amp-boilerplate-noscript.css"))
 		r.pi.AMPCustomStyle = template.CSS(
-			r.si.ReadInline("base.scss.css.min") +
-				r.si.ReadInline("mobile.scss.css.min") +
-				r.si.ReadInline("mobile-amp.scss.css.min"))
+			r.si.ReadInline("base.css.min") +
+				r.si.ReadInline("mobile.css.min") +
+				r.si.ReadInline("mobile-amp.css.min"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -344,9 +344,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			return
 		}
 
-		r.pi.HTMLStyle = template.CSS(r.si.ReadInline("base.scss.css.min") + r.si.ReadInline("base-nonamp.scss.css.min") +
-			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.si.ReadInline("desktop.scss.css.min")) +
-			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.si.ReadInline("mobile.scss.css.min")))
+		r.pi.HTMLStyle = template.CSS(r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
+			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.si.ReadInline("desktop.css.min")) +
+			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.si.ReadInline("mobile.css.min")))
 		r.pi.HTMLScripts = []template.JS{template.JS(r.si.ReadInline("base.js.min"))}
 		if r.pi.HasMap {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.si.ReadInline("map.js.min")))

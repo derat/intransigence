@@ -22,6 +22,7 @@ const (
 	tmpOutPrefix = ".out."       // prefix passed to ioutil.TempDir for temp output dir
 	oldOutSubdir = ".out.old"    // subdir under site dir containing previous generated site
 	sitemapFile  = "sitemap.xml" // generated XML file containing sitemap data
+	minSuffix    = ".min"        // suffix for minified CSS and JS files
 )
 
 // Flags specifies details of how the site should be built.

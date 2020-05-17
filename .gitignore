@@ -1,6 +1,5 @@
 # Generated inlined files.
 inline/*.min
-inline/*.scss.css
 
 # Current and past/temp generated site.
 out/

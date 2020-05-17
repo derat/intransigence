@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"golang.org/x/net/html"
@@ -19,7 +20,6 @@ import (
 
 const (
 	iframeSubdir = "iframes" // subdir under output dir for generated iframe pages
-	minSuffix    = ".min"    // suffix for minified CSS and JS files
 
 	fileMode = 0644 // mode for creating files
 	dirMode  = 0755 // mode for creating dirs
@@ -122,4 +122,23 @@ func prettyPrintDoc(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
+}
+
+// generateCSS runs sassc to generate minified CSS files from all .scss files within dir.
+// The .scss extension is replaced with .css.min.
+func generateCSS(dir string) error {
+	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
+	if err != nil {
+		return err
+	}
+
+	defer clearStatus()
+	for i, p := range ps {
+		statusf("Generating CSS: [%d/%d]", i, len(ps))
+		dp := p[:len(p)-4] + "css" + minSuffix
+		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
