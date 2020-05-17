@@ -291,6 +291,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			Width:  r.pi.ImgWidth,
 			Height: r.pi.ImgHeight,
 		}
+		if err := r.si.CheckStatic(r.pi.ImgURL); err != nil {
+			r.setError(err)
+			return
+		}
 		if r.pi.StructData.Image.URL, err = r.si.AbsURL(r.pi.ImgURL); err != nil {
 			r.setError(err)
 			return
