@@ -8,11 +8,15 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/url"
-	"path"
+	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,10 +44,6 @@ const (
 	mobileLogoWidth   = 250
 	ampLogoWidth      = 125
 	ampLogoHeight     = 45
-	navToggleWidth    = 40
-	navToggleHeight   = 30
-	menuButtonWidth   = 19
-	menuButtonHeight  = 17
 
 	// WebPExt is the extension for generated WebP image files.
 	WebPExt = ".webp"
@@ -103,8 +103,8 @@ type imgInfo struct {
 	Path   string `html:"path" yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
 	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width), e.g. "files/img-"
 	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width), e.g. ".png"
-	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels
-	Height int    `html:"height" yaml:"height"` // 100% height in pixels
+	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels; inferred if empty
+	Height int    `html:"height" yaml:"height"` // 100% height in pixels; inferred if empty
 	Alt    string `html:"alt" yaml:"alt"`       // alt text
 
 	// These fields are set by finishImgInfo.
@@ -268,9 +268,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	}
 
 	r.pi.Logo = imgInfo{
+		Path:   r.si.LogoPath,
 		Prefix: r.si.LogoPrefix,
 		Suffix: r.si.LogoSuffix,
-		Path:   r.si.LogoPath,
 		Width:  desktopLogoWidth,
 		Height: desktopLogoHeight,
 		Alt:    r.si.LogoAlt,
@@ -296,8 +296,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	// On mobile, collapse the navbox if the page doesn't have subpages.
 	r.pi.NavToggle = imgInfo{
 		Path:   r.si.NavTogglePath,
-		Width:  navToggleWidth,
-		Height: navToggleHeight,
+		Prefix: r.si.NavTogglePrefix,
+		Suffix: r.si.NavToggleSuffix,
 		Alt:    "[toggle navigation]",
 		Attr:   []template.HTMLAttr{template.HTMLAttr(`id="nav-toggle-img"`)},
 	}
@@ -311,8 +311,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	r.pi.MenuButton = imgInfo{
 		Path:   r.si.MenuButtonPath,
-		Width:  menuButtonWidth,
-		Height: menuButtonHeight,
+		Prefix: r.si.MenuButtonPrefix,
+		Suffix: r.si.MenuButtonSuffix,
 		Alt:    "[toggle menu]",
 		Attr: []template.HTMLAttr{
 			template.HTMLAttr(`id="menu-button"`),
@@ -798,67 +798,81 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		info.Path == "" && (info.Prefix == "" || info.Suffix == "") {
 		return errors.New("either path or prefix/suffix must be supplied")
 	}
-	if info.Width <= 0 || info.Height <= 0 {
-		return errors.New("height and width must be set")
-	}
 	if info.Alt == "" {
 		return errors.New("alt must be set")
 	}
-
 	if info.Layout == "" {
 		info.Layout = "responsive"
 	}
 
-	info.Src = info.Path
-	if info.Src == "" {
-		info.Src = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
-	}
-	if err := r.si.CheckStatic(info.Src); err != nil {
-		return err
-	}
+	if info.Path != "" {
+		info.Src = info.Path
+		info.WebPSrc = removeExt(info.Src) + WebPExt
 
-	if ext := path.Ext(info.Src); ext != ".png" && ext != ".jpg" {
-		return fmt.Errorf("unknown extension on %q", info.Src)
-	} else {
-		info.WebPSrc = info.Src[:len(info.Src)-len(ext)] + WebPExt
-		if err := r.si.CheckStatic(info.WebPSrc); err != nil {
-			return err
+		// If the image's display dimensions weren't supplied, get them from the file.
+		if info.Width <= 0 || info.Height <= 0 {
+			var err error
+			if info.Width, info.Height, err = imageSize(filepath.Join(r.si.StaticDir(), info.Src)); err != nil {
+				return fmt.Errorf("failed getting %v size: %v", info.Src, err)
+			}
 		}
-	}
-
-	if info.Prefix != "" {
+		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
+		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+	} else {
+		var widths []int
 		var err error
-		if info.Srcset, err = r.makeSrcset(info.Prefix, info.Suffix); err != nil {
+		if info.Srcset, widths, err = r.makeSrcset(info.Prefix, info.Suffix); err != nil {
 			return err
 		} else if info.Srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, info.Suffix)
 		}
-
-		suf := info.Suffix[:len(info.Suffix)-len(filepath.Ext(info.Suffix))] + WebPExt
-		if info.WebPSrcset, err = r.makeSrcset(info.Prefix, suf); err != nil {
+		suf := removeExt(info.Suffix) + WebPExt
+		if info.WebPSrcset, _, err = r.makeSrcset(info.Prefix, suf); err != nil {
 			return err
 		} else if info.WebPSrcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, suf)
 		}
-	} else {
-		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
-		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+
+		if info.Width <= 0 || info.Height <= 0 {
+			var p string
+			if info.Width <= 0 && len(widths) == 2 && 2*widths[0] == widths[1] {
+				// If there are 1x and 2x images, use the dimensions of the smaller one.
+				p = fmt.Sprintf("%s%d%s", info.Prefix, widths[0], info.Suffix)
+			} else if info.Width > 0 {
+				// If the width was supplied, use that file's height.
+				p = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
+			} else {
+				return errors.New("dimensions could not be determined")
+			}
+			if info.Width, info.Height, err = imageSize(filepath.Join(r.si.StaticDir(), p)); err != nil {
+				return fmt.Errorf("failed getting %v dimensions: %v", p, err)
+			}
+		}
+		info.Src = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
+		info.WebPSrc = removeExt(info.Src) + WebPExt
 	}
 
 	if info.Sizes == "" {
 		info.Sizes = fmt.Sprintf("%dpx", info.Width)
 	}
 
+	if err := r.si.CheckStatic(info.Src); err != nil {
+		return err
+	}
+	if err := r.si.CheckStatic(info.WebPSrc); err != nil {
+		return err
+	}
 	return nil
 }
 
 // makeSrcset returns a srcset attribute value corresponding to the images matched by
-// pre and suf (corresponding to imgInfo.Prefix and imgInfo.Suffix).
-func (r *renderer) makeSrcset(pre, suf string) (string, error) {
+// pre and suf (corresponding to imgInfo.Prefix and imgInfo.Suffix). The returned
+// slice contains image widths in ascending order.
+func (r *renderer) makeSrcset(pre, suf string) (string, []int, error) {
 	glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
 	ps, err := filepath.Glob(glob)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Ascending order by embedded image width.
@@ -872,45 +886,32 @@ func (r *renderer) makeSrcset(pre, suf string) (string, error) {
 	})
 
 	var srcs []string
+	var widths []int
 	preLen := len(filepath.Join(r.si.StaticDir(), pre))
 	for _, p := range ps {
-		width := p[preLen : len(p)-len(suf)]
-		srcs = append(srcs, fmt.Sprintf("%s%s%s %sw", pre, width, suf, width))
+		width, err := strconv.Atoi(p[preLen : len(p)-len(suf)])
+		if err != nil {
+			return "", nil, err
+		}
+		widths = append(widths, width)
+		srcs = append(srcs, fmt.Sprintf("%s%d%s %dw", pre, width, suf, width))
 	}
-	return strings.Join(srcs, ", "), nil
+	return strings.Join(srcs, ", "), widths, nil
 }
 
-type structData struct {
-	Context          string `json:"@context"`
-	Type             string `json:"@type"`
-	MainEntityOfPage string `json:"mainEntityOfPage"`
-	Headline         string `json:"headline"`
-	Description      string `json:"description,omitempty"`
-	DateModified     string `json:"dateModified,omitempty"`
-	DatePublished    string `json:"datePublished"`
-
-	Author    structDataAuthor    `json:"author"`
-	Publisher structDataPublisher `json:"publisher"`
-
-	Image *structDataImage `json:"image,omitempty"`
+// removeExt removes the extension (e.g. ".txt") from p.
+func removeExt(p string) string {
+	return p[:len(p)-len(filepath.Ext(p))]
 }
 
-type structDataAuthor struct {
-	Type  string `json:"@type"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
+// imageSize returns the dimensions of the image at p.
+func imageSize(p string) (w, h int, err error) {
+	f, err := os.Open(p)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer f.Close()
 
-type structDataPublisher struct {
-	Type string          `json:"@type"`
-	Name string          `json:"name"`
-	URL  string          `json:"url"`
-	Logo structDataImage `json:"logo"`
-}
-
-type structDataImage struct {
-	Type   string `json:"@type"`
-	URL    string `json:"url"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
+	cfg, _, err := image.DecodeConfig(f)
+	return cfg.Width, cfg.Height, err
 }
