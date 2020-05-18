@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/net/html"
 
@@ -139,6 +140,55 @@ func generateCSS(dir string) error {
 		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// generateWebP runs cwebp to generate WebP versions of all JPEG and PNG images under dir.
+// Existing files are regenerated if needed.
+func generateWebP(dir string) error {
+	// Get mtimes for orig images and WebP files.
+	imgTimes := make(map[string]time.Time)
+	webPTimes := make(map[string]time.Time)
+	if err := filepath.Walk(dir, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Mode()&os.ModeType != 0 {
+			return nil
+		}
+		switch filepath.Ext(p) {
+		case ".jpg", ".jpeg", ".png":
+			imgTimes[p] = fi.ModTime()
+		case render.WebPExt:
+			webPTimes[p] = fi.ModTime()
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	todo := make(map[string]string) // orig image path -> WebP path
+	for ip, it := range imgTimes {
+		wp := ip[:len(ip)-len(filepath.Ext(ip))] + render.WebPExt
+		if wt, ok := webPTimes[wp]; !ok || wt.Before(it) {
+			todo[ip] = wp
+		}
+	}
+
+	num := 0
+	defer clearStatus()
+	for ip, wp := range todo {
+		statusf("Generating WebP images: [%d/%d]", num, len(todo))
+		// https://chromium.googlesource.com/webm/libwebp/+/refs/heads/0.4.1/src/enc/config.c#52
+		preset := "text"
+		if ext := filepath.Ext(ip); ext == ".jpg" || ext == ".jpeg" {
+			preset = "photo"
+		}
+		if err := exec.Command("cwebp", "-preset", preset, ip, "-o", wp).Run(); err != nil {
+			return err
+		}
+		num++
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -28,6 +29,9 @@ import (
 const (
 	mobileMaxWidth  = 640
 	desktopMinWidth = 641
+
+	// WebPExt is the extension for generated WebP image files.
+	WebPExt = ".webp"
 )
 
 // Page renders and returns the page described by the supplied Markdown data.
@@ -85,6 +89,7 @@ type imgInfo struct {
 	// These fields are set by finishImgInfo.
 	Src        string // <img> src attribute
 	Srcset     string // <img> and <source> srcset attribute for original images
+	WebPSrc    string // src attribute for preferred WebP image
 	WebPSrcset string // <source> srcset attribute for WebP images
 
 	// These fields are set programatically.
@@ -725,12 +730,25 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		return errors.New("alt must be set")
 	}
 
+	if info.Layout == "" {
+		info.Layout = "responsive"
+	}
+
 	info.Src = info.Path
 	if info.Src == "" {
 		info.Src = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
 	}
 	if err := r.si.CheckStatic(info.Src); err != nil {
 		return err
+	}
+
+	if ext := path.Ext(info.Src); ext != ".png" && ext != ".jpg" {
+		return fmt.Errorf("unknown extension on %q", info.Src)
+	} else {
+		info.WebPSrc = info.Src[:len(info.Src)-len(ext)] + WebPExt
+		if err := r.si.CheckStatic(info.WebPSrc); err != nil {
+			return err
+		}
 	}
 
 	if info.Prefix != "" {
@@ -742,7 +760,14 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, info.Suffix)
 		}
 
-		// TODO: Set WebPSrcset.
+		if info.WebPSrcset, err = r.makeSrcset(info.Prefix, WebPExt); err != nil {
+			return err
+		} else if info.WebPSrcset == "" {
+			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, WebPExt)
+		}
+	} else {
+		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
+		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
 	}
 
 	return nil

@@ -3,7 +3,7 @@ module github.com/derat/homepage
 go 1.14
 
 require (
-	github.com/derat/htmlpretty v0.0.0-20200511175829-1fd6c08af420
+	github.com/derat/htmlpretty v0.0.0-20200518152644-af94426e9fe1
 	github.com/derat/validate v0.0.0-20200509163335-a899a49aff4d
 	github.com/otiai10/copy v1.1.1
 	github.com/pmezard/go-difflib v1.0.0

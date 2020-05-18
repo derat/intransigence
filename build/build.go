@@ -61,10 +61,14 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	}
 
 	// Generate and minify inline files before they get included in pages and iframes.
+	// Also create WebP images so that their existence can be checked when generating pages.
 	if err := generateCSS(si.InlineDir()); err != nil {
 		return err
 	}
 	if err := minifyInline(si.InlineDir()); err != nil {
+		return err
+	}
+	if err := generateWebP(si.StaticDir()); err != nil {
 		return err
 	}
 

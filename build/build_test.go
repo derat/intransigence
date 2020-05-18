@@ -58,17 +58,25 @@ func TestBuild_Full(t *testing.T) {
 		`(?s)<title>\s*Features\s*</title>`,           // hide_title_suffix
 		// TODO: Also test prefix/suffix.
 		`<figure class="desktop-right mobile-center custom-class">\s*` + // "image" code block
-			`<a href="img_link.html">\s*` +
-			`<img src="images/test.png" width="300" height="200" alt="Alt text">\s*` +
+			`<a href="img_link.html">` +
+			`<picture>` +
+			`<source\s+type="image/webp"\s+sizes="300px"\s+srcset="images/test.webp 300w">` +
+			`<img\s+src="images/test.png"\s+sizes="300px"\s+srcset="images/test.png 300w"\s+` +
+			`width="300"\s+height="200"\s+alt="Alt text">` +
+			`</picture>` +
 			`</a>\s*` +
 			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
 			`</figure>`,
-		`<div class="clear"></div>`,                                                        // "clear" code block
-		`<img class="inline" src="images/test.png" width="48" height="24" alt="Alt text">`, // <image>
-		`<code class="url">https://code.example.org/</code>`,                               // <code-url>
-		`<span class="small">small text</span>`,                                            // <text-size small>
-		`<span class="real-small">tiny text</span>`,                                        // <text-size tiny>
-		`(?s)<p>\s*only for non-AMP\s*</p>`,                                                // </only-nonamp>
+		`<div class="clear"></div>`, // "clear" code block
+		`<picture>` + // <image>
+			`<source\s+type="image/webp"\s+sizes="48px"\s+srcset="images/test.webp 48w">` +
+			`<img class="inline"\s+src="images/test.png"\s+sizes="48px"\s+` +
+			`srcset="images/test.png 48w"\s+width="48"\s+height="24"\s+alt="Alt text">` +
+			`</picture>`,
+		`<code class="url">https://code.example.org/</code>`, // <code-url>
+		`<span class="small">small text</span>`,              // <text-size small>
+		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
+		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>
 		// !force_amp and !force_nonamp link flags
 		`<a href="https://www.google.com/">absolute link</a>`,
 		`<a href="bare.html#frag">bare link</a>`,

@@ -1,6 +1,9 @@
 # Generated inlined files.
 inline/*.min
 
+# Generated WebP versions of images.
+*.webp
+
 # Current and past/temp generated site.
 out/
 /.out.*
