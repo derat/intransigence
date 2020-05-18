@@ -835,8 +835,8 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 
 		if info.Width <= 0 || info.Height <= 0 {
 			var p string
-			if info.Width <= 0 && len(widths) == 2 && 2*widths[0] == widths[1] {
-				// If there are 1x and 2x images, use the dimensions of the smaller one.
+			if info.Width <= 0 && len(widths) >= 2 && 2*widths[0] == widths[1] {
+				// If there are 1x and 2x images, use the dimensions of the smallest one.
 				p = fmt.Sprintf("%s%d%s", info.Prefix, widths[0], info.Suffix)
 			} else if info.Width > 0 {
 				// If the width was supplied, use that file's height.
