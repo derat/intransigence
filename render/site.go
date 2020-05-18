@@ -22,6 +22,19 @@ type SiteInfo struct {
 	TitleSuffix string `yaml:"title_suffix"`
 	// DefaultDesc is used as the default meta description for pages.
 	DefaultDesc string `yaml:"default_desc"`
+	// NavText is displayed near the logo in the navigation area.
+	NavText string `yaml:"nav_text"`
+
+	// LogoPrefix, LogoSuffix, and LogoPath specify the image displayed near the top of the page.
+	LogoPrefix string `yaml:"logo_prefix"`
+	LogoSuffix string `yaml:"logo_suffix"`
+	LogoPath   string `yaml:"logo_path"`
+	// LogoAlt contains the alt text for the logo.
+	LogoAlt string `yaml:"logo_alt"`
+	// NavTogglePath is the path to the image used to expand or collapse the navbox on non-AMP mobile.
+	NavTogglePath string `yaml:"nav_toggle_path"`
+	// MenuButtonPath is the path to the image used to show the menu on AMP.
+	MenuButtonPath string `yaml:"menu_button_path"`
 
 	// The following fields are used in structured data.
 	AuthorName          string `yaml:"author_name"`

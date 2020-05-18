@@ -28,7 +28,22 @@ import (
 
 const (
 	mobileMaxWidth  = 640
-	desktopMinWidth = 641
+	desktopMinWidth = mobileMaxWidth + 1
+
+	// Duplicating these sizes here and in CSS is unfortunate.
+	// We need to know them here in order to set them when invoking templates, though.
+	// TODO: Figure out if there's some way to determine these at runtime by reading
+	// the images. We'll still need to know which size to favor when there are multiple
+	// sizes, though.
+	desktopLogoWidth  = 180
+	desktopLogoHeight = 65
+	mobileLogoWidth   = 250
+	ampLogoWidth      = 125
+	ampLogoHeight     = 45
+	navToggleWidth    = 40
+	navToggleHeight   = 30
+	menuButtonWidth   = 19
+	menuButtonHeight  = 17
 
 	// WebPExt is the extension for generated WebP image files.
 	WebPExt = ".webp"
@@ -60,6 +75,12 @@ type pageInfo struct {
 	HideDates       bool   `yaml:"hide_dates"`        // hide footer created andmodified dates
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
+
+	NavText    string  `yaml:"-"` // text to display next to logo in nav area
+	Logo       imgInfo `yaml:"-"` // header logo for non-AMP
+	LogoAMP    imgInfo `yaml:"-"` // header logo for AMP
+	NavToggle  imgInfo `yaml:"-"` // nav toggle icon for non-AMP
+	MenuButton imgInfo `yaml:"-"` // menu button for AMP
 
 	NavItem *NavItem `yaml:"-"` // nav item corresponding to current page
 
@@ -93,9 +114,10 @@ type imgInfo struct {
 	WebPSrcset string // <source> srcset attribute for WebP images
 
 	// These fields are set programatically.
-	Layout string   // AMP layout ("responsive" used if empty)
-	Inline bool     // add "inline" class
-	Attr   []string // additional attributes to include
+	Layout string              // AMP layout ("responsive" used if empty)
+	Inline bool                // add "inline" class
+	Attr   []template.HTMLAttr // additional attributes to include
+	Sizes  string              // custom value for "sizes" attr
 }
 
 // figureInfo holds information used by figure.tmpl.
@@ -125,6 +147,7 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 	r := renderer{
 		si: si,
 		pi: pageInfo{
+			NavText:             si.NavText,
 			Desc:                si.DefaultDesc,
 			GoogleAnalyticsCode: si.GoogleAnalyticsCode,
 		},
@@ -145,16 +168,6 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 				return ""
 			}
 			return t.Format(layout)
-		},
-		// TODO: Avoid exposing this?
-		"srcset": func(pre, suf string) string {
-			srcset, err := r.makeSrcset(pre, suf)
-			if err != nil {
-				r.setErrorf("failed make srcset for prefix %q and suffix %q: %v", pre, suf, err)
-			} else if srcset == "" {
-				r.setErrorf("no image files matched by prefix %q and suffix %q", pre, suf)
-			}
-			return srcset
 		},
 		"topNavItems": func() []*NavItem {
 			return r.si.NavItems
@@ -252,6 +265,65 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			r.setErrorf("no page with ID %q", r.pi.ID)
 			return
 		}
+	}
+
+	r.pi.Logo = imgInfo{
+		Prefix: r.si.LogoPrefix,
+		Suffix: r.si.LogoSuffix,
+		Path:   r.si.LogoPath,
+		Width:  desktopLogoWidth,
+		Height: desktopLogoHeight,
+		Alt:    r.si.LogoAlt,
+		Attr:   []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
+		Sizes: fmt.Sprintf("(max-width: %dpx) %dpx, (min-width: %dpx) %dpx, %dpx",
+			mobileMaxWidth, mobileLogoWidth, desktopMinWidth, desktopLogoWidth, desktopLogoWidth),
+	}
+	if err := r.finishImgInfo(&r.pi.Logo); err != nil {
+		r.setErrorf("logo failed: %v", err)
+		return
+	}
+
+	r.pi.LogoAMP = r.pi.Logo
+	r.pi.LogoAMP.Width = ampLogoWidth
+	r.pi.LogoAMP.Height = ampLogoHeight
+	r.pi.LogoAMP.Attr = nil
+	r.pi.LogoAMP.Sizes = ""
+	if err := r.finishImgInfo(&r.pi.LogoAMP); err != nil {
+		r.setErrorf("AMP logo failed: %v", err)
+		return
+	}
+
+	// On mobile, collapse the navbox if the page doesn't have subpages.
+	r.pi.NavToggle = imgInfo{
+		Path:   r.si.NavTogglePath,
+		Width:  navToggleWidth,
+		Height: navToggleHeight,
+		Alt:    "[toggle navigation]",
+		Attr:   []template.HTMLAttr{template.HTMLAttr(`id="nav-toggle-img"`)},
+	}
+	if len(r.pi.NavItem.Children) == 0 {
+		r.pi.NavToggle.Attr = append(r.pi.NavToggle.Attr, template.HTMLAttr(`class="expand"`))
+	}
+	if err := r.finishImgInfo(&r.pi.NavToggle); err != nil {
+		r.setErrorf("nav toggle failed: %v", err)
+		return
+	}
+
+	r.pi.MenuButton = imgInfo{
+		Path:   r.si.MenuButtonPath,
+		Width:  menuButtonWidth,
+		Height: menuButtonHeight,
+		Alt:    "[toggle menu]",
+		Attr: []template.HTMLAttr{
+			template.HTMLAttr(`id="menu-button"`),
+			template.HTMLAttr(`tabindex="0"`),
+			template.HTMLAttr(`role="button"`),
+			template.HTMLAttr(`on="tap:sidebar.open"`),
+		},
+	}
+	if err := r.finishImgInfo(&r.pi.MenuButton); err != nil {
+		r.setErrorf("menu button failed: %v", err)
+		return
 	}
 
 	// It would be much simpler to just use a map[string]interface{} for this,
@@ -364,7 +436,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
 
-	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "start", &r.pi, nil))
+	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl", "img.tmpl"}, "start", &r.pi, nil))
 }
 
 func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
@@ -474,7 +546,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			return md.Terminate
 		}
 		info.imgInfo.Layout = "fill"
-		info.imgInfo.Attr = []string{"placeholder"}
+		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
 		if err := r.finishImgInfo(&info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
@@ -571,7 +643,10 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			return md.SkipChildren, nil
 		case "image":
 			if token.Type == html.StartTagToken {
-				var info = imgInfo{Inline: true, Layout: "fixed"}
+				var info = imgInfo{
+					Attr:   []template.HTMLAttr{template.HTMLAttr(`class="inline"`)},
+					Layout: "fixed",
+				}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
@@ -753,21 +828,25 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 
 	if info.Prefix != "" {
 		var err error
-		info.Srcset, err = r.makeSrcset(info.Prefix, info.Suffix)
-		if err != nil {
+		if info.Srcset, err = r.makeSrcset(info.Prefix, info.Suffix); err != nil {
 			return err
 		} else if info.Srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, info.Suffix)
 		}
 
-		if info.WebPSrcset, err = r.makeSrcset(info.Prefix, WebPExt); err != nil {
+		suf := info.Suffix[:len(info.Suffix)-len(filepath.Ext(info.Suffix))] + WebPExt
+		if info.WebPSrcset, err = r.makeSrcset(info.Prefix, suf); err != nil {
 			return err
 		} else if info.WebPSrcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, WebPExt)
+			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, suf)
 		}
 	} else {
 		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
 		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+	}
+
+	if info.Sizes == "" {
+		info.Sizes = fmt.Sprintf("%dpx", info.Width)
 	}
 
 	return nil
