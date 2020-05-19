@@ -25,13 +25,17 @@ type SiteInfo struct {
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
 
-	// LogoPath specifies the image at the top of the page, e.g. "resources/logo.png" or "resources/logo-*.png".
-	LogoPath string `yaml:"logo_path"`
-	// LogoAlt contains the alt text for the logo.
+	// LogoPathHTML is the image at the top of the page for non-AMP, e.g. "resources/logo-*.png".
+	// The image's intrinsic dimensions for larger displays come from the smallest image.
+	// The second-smallest image is used for mobile if it isn't a 2x version of the smallest image.
+	LogoPathHTML string `yaml:"logo_path_html"`
+	// LogoPathAMP is the AMP analogue to LogoPathHTML.
+	LogoPathAMP string `yaml:"logo_path_amp"`
+	// LogoAlt contains the alt text for the logo image.
 	LogoAlt string `yaml:"logo_alt"`
-	// NavTogglePath specifies the image used to expand or collapse the navbox on non-AMP mobile.
+	// NavTogglePath is the image used to expand or collapse the navbox on non-AMP mobile.
 	NavTogglePath string `yaml:"nav_toggle_path"`
-	// MenuButtonPath specifies the path to the image used to show the menu on AMP.
+	// MenuButtonPath is the image used to show the menu on AMP.
 	MenuButtonPath string `yaml:"menu_button_path"`
 
 	// The following fields are used in structured data.

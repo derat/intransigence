@@ -34,17 +34,6 @@ const (
 	mobileMaxWidth  = 640
 	desktopMinWidth = mobileMaxWidth + 1
 
-	// Duplicating these sizes here and in CSS is unfortunate.
-	// We need to know them here in order to set them when invoking templates, though.
-	// TODO: Figure out if there's some way to determine these at runtime by reading
-	// the images. We'll still need to know which size to favor when there are multiple
-	// sizes, though.
-	desktopLogoWidth  = 180
-	desktopLogoHeight = 65
-	mobileLogoWidth   = 250
-	ampLogoWidth      = 125
-	ampLogoHeight     = 45
-
 	// WebPExt is the extension for generated WebP image files.
 	WebPExt = ".webp"
 )
@@ -77,7 +66,7 @@ type pageInfo struct {
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
 
 	NavText    string  `yaml:"-"` // text to display next to logo in nav area
-	Logo       imgInfo `yaml:"-"` // header logo for non-AMP
+	LogoHTML   imgInfo `yaml:"-"` // header logo for non-AMP
 	LogoAMP    imgInfo `yaml:"-"` // header logo for AMP
 	NavToggle  imgInfo `yaml:"-"` // nav toggle icon for non-AMP
 	MenuButton imgInfo `yaml:"-"` // menu button for AMP
@@ -111,6 +100,7 @@ type imgInfo struct {
 	WebPSrc    string // src attribute for preferred WebP image
 	WebPSrcset string // <source> srcset attribute for WebP images
 	BiggestSrc string // highest-res version of Src
+	widths     []int  // widths in pixels of images in Srcset if multi-res
 
 	// These fields are set programatically.
 	Layout string              // AMP layout ("responsive" used if empty)
@@ -266,25 +256,28 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		}
 	}
 
-	r.pi.Logo = imgInfo{
-		Path:   r.si.LogoPath,
-		Width:  desktopLogoWidth,
-		Height: desktopLogoHeight,
-		Alt:    r.si.LogoAlt,
-		Attr:   []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
-		Sizes: fmt.Sprintf("(max-width: %dpx) %dpx, (min-width: %dpx) %dpx, %dpx",
-			mobileMaxWidth, mobileLogoWidth, desktopMinWidth, desktopLogoWidth, desktopLogoWidth),
+	r.pi.LogoHTML = imgInfo{
+		Path: r.si.LogoPathHTML,
+		Alt:  r.si.LogoAlt,
+		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
 	}
-	if err := r.finishImgInfo(&r.pi.Logo); err != nil {
+	if err := r.finishImgInfo(&r.pi.LogoHTML); err != nil {
 		r.setErrorf("logo failed: %v", err)
 		return
 	}
+	// If the second-smallest size isn't a 2x version of the smallest size, use it on mobile.
+	// This is a hack to avoid needing to hardcode image sizes in code.
+	if widths := r.pi.LogoHTML.widths; len(widths) >= 2 {
+		if widths[1] != 2*widths[0] {
+			r.pi.LogoHTML.Sizes = fmt.Sprintf("(max-width: %dpx) %dpx, %s",
+				mobileMaxWidth, widths[1], r.pi.LogoHTML.Sizes)
+		}
+	}
 
-	r.pi.LogoAMP = r.pi.Logo
-	r.pi.LogoAMP.Width = ampLogoWidth
-	r.pi.LogoAMP.Height = ampLogoHeight
-	r.pi.LogoAMP.Attr = nil
-	r.pi.LogoAMP.Sizes = ""
+	r.pi.LogoAMP = imgInfo{
+		Path: r.si.LogoPathAMP,
+		Alt:  r.si.LogoAlt,
+	}
 	if err := r.finishImgInfo(&r.pi.LogoAMP); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)
 		return
@@ -812,10 +805,8 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 	} else {
 		pre := info.Path[:wc]
 		suf := info.Path[wc+1:]
-
-		var widths []int
 		var err error
-		if info.Srcset, widths, err = r.makeSrcset(pre, suf); err != nil {
+		if info.Srcset, info.widths, err = r.makeSrcset(pre, suf); err != nil {
 			return err
 		} else if info.Srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
@@ -829,13 +820,18 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 
 		if info.Width <= 0 || info.Height <= 0 {
 			var p string
-			if info.Width <= 0 && len(widths) >= 2 && 2*widths[0] == widths[1] {
-				// If there are 1x and 2x images, use the dimensions of the smallest one.
-				p = fmt.Sprintf("%s%d%s", pre, widths[0], suf)
+			if info.Width <= 0 && len(info.widths) >= 2 {
+				// If there are 1x and 2x images, use the dimensions of the 1x image.
+				for _, w := range info.widths[1:] {
+					if w == 2*info.widths[0] {
+						p = fmt.Sprintf("%s%d%s", pre, info.widths[0], suf)
+					}
+				}
 			} else if info.Width > 0 {
 				// If the width was supplied, use that file's height.
 				p = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
-			} else {
+			}
+			if p == "" {
 				return errors.New("dimensions could not be determined")
 			}
 			if info.Width, info.Height, err = imageSize(filepath.Join(r.si.StaticDir(), p)); err != nil {
@@ -844,7 +840,7 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		}
 		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 		info.WebPSrc = removeExt(info.Src) + WebPExt
-		info.BiggestSrc = fmt.Sprintf("%s%d%s", pre, widths[len(widths)-1], suf)
+		info.BiggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
 	}
 
 	if info.Sizes == "" {
