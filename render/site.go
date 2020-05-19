@@ -25,20 +25,14 @@ type SiteInfo struct {
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
 
-	// LogoPath, LogoPrefix, and LogoSuffix specify the image displayed near the top of the page.
-	LogoPrefix string `yaml:"logo_prefix"`
-	LogoSuffix string `yaml:"logo_suffix"`
-	LogoPath   string `yaml:"logo_path"`
+	// LogoPath specifies the image at the top of the page, e.g. "resources/logo.png" or "resources/logo-*.png".
+	LogoPath string `yaml:"logo_path"`
 	// LogoAlt contains the alt text for the logo.
 	LogoAlt string `yaml:"logo_alt"`
-	// NavTogglePath, NavTogglePrefix, and NavToggleSuffix specify the image used to expand or collapse the navbox on non-AMP mobile.
-	NavTogglePath   string `yaml:"nav_toggle_path"`
-	NavTogglePrefix string `yaml:"nav_toggle_prefix"`
-	NavToggleSuffix string `yaml:"nav_toggle_suffix"`
-	// MenuButtonPath, MenuButtonPrefix, and MenuButtonSuffix specify the path to the image used to show the menu on AMP.
-	MenuButtonPath   string `yaml:"menu_button_path"`
-	MenuButtonPrefix string `yaml:"menu_button_prefix"`
-	MenuButtonSuffix string `yaml:"menu_button_suffix"`
+	// NavTogglePath specifies the image used to expand or collapse the navbox on non-AMP mobile.
+	NavTogglePath string `yaml:"nav_toggle_path"`
+	// MenuButtonPath specifies the path to the image used to show the menu on AMP.
+	MenuButtonPath string `yaml:"menu_button_path"`
 
 	// The following fields are used in structured data.
 	AuthorName          string `yaml:"author_name"`

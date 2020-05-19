@@ -100,9 +100,7 @@ type pageInfo struct {
 
 // imgInfo holds information used by img.tmpl.
 type imgInfo struct {
-	Path   string `html:"path" yaml:"path"`     // path if not multi-size, e.g. "files/img.png"
-	Prefix string `html:"prefix" yaml:"prefix"` // path prefix (before width), e.g. "files/img-"
-	Suffix string `html:"suffix" yaml:"suffix"` // path suffix (after width), e.g. ".png"
+	Path   string `html:"path" yaml:"path"`     // path, e.g. "files/img.png" or "files/img-*.png"
 	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels; inferred if empty
 	Height int    `html:"height" yaml:"height"` // 100% height in pixels; inferred if empty
 	Alt    string `html:"alt" yaml:"alt"`       // alt text
@@ -112,6 +110,7 @@ type imgInfo struct {
 	Srcset     string // <img> and <source> srcset attribute for original images
 	WebPSrc    string // src attribute for preferred WebP image
 	WebPSrcset string // <source> srcset attribute for WebP images
+	BiggestSrc string // highest-res version of Src
 
 	// These fields are set programatically.
 	Layout string              // AMP layout ("responsive" used if empty)
@@ -269,8 +268,6 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	r.pi.Logo = imgInfo{
 		Path:   r.si.LogoPath,
-		Prefix: r.si.LogoPrefix,
-		Suffix: r.si.LogoSuffix,
 		Width:  desktopLogoWidth,
 		Height: desktopLogoHeight,
 		Alt:    r.si.LogoAlt,
@@ -295,11 +292,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	// On mobile, collapse the navbox if the page doesn't have subpages.
 	r.pi.NavToggle = imgInfo{
-		Path:   r.si.NavTogglePath,
-		Prefix: r.si.NavTogglePrefix,
-		Suffix: r.si.NavToggleSuffix,
-		Alt:    "[toggle navigation]",
-		Attr:   []template.HTMLAttr{template.HTMLAttr(`id="nav-toggle-img"`)},
+		Path: r.si.NavTogglePath,
+		Alt:  "[toggle navigation]",
+		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-toggle-img"`)},
 	}
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Attr = append(r.pi.NavToggle.Attr, template.HTMLAttr(`class="expand"`))
@@ -310,10 +305,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	}
 
 	r.pi.MenuButton = imgInfo{
-		Path:   r.si.MenuButtonPath,
-		Prefix: r.si.MenuButtonPrefix,
-		Suffix: r.si.MenuButtonSuffix,
-		Alt:    "[toggle menu]",
+		Path: r.si.MenuButtonPath,
+		Alt:  "[toggle menu]",
 		Attr: []template.HTMLAttr{
 			template.HTMLAttr(`id="menu-button"`),
 			template.HTMLAttr(`tabindex="0"`),
@@ -519,11 +512,8 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			return md.Terminate
 		}
 		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
-		if len(info.Href) == 0 && len(info.Prefix) > 0 {
-			info.Href = fmt.Sprintf("%s%d%s", info.Prefix, 2*info.Width, info.Suffix)
-			if r.setError(r.si.CheckStatic(info.Href)) != nil {
-				return md.Terminate
-			}
+		if len(info.Href) == 0 && info.imgInfo.BiggestSrc != info.imgInfo.Src {
+			info.Href = info.imgInfo.BiggestSrc
 		}
 		if len(info.Href) > 0 {
 			var err error
@@ -794,9 +784,8 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 
 // finishImgInfo validates an imgInfo struct and fills additional fields.
 func (r *renderer) finishImgInfo(info *imgInfo) error {
-	if info.Path != "" && (info.Prefix != "" || info.Suffix != "") ||
-		info.Path == "" && (info.Prefix == "" || info.Suffix == "") {
-		return errors.New("either path or prefix/suffix must be supplied")
+	if info.Path == "" {
+		return errors.New("path must be set")
 	}
 	if info.Alt == "" {
 		return errors.New("alt must be set")
@@ -805,9 +794,11 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		info.Layout = "responsive"
 	}
 
-	if info.Path != "" {
+	wc := strings.IndexByte(info.Path, '*')
+	if wc == -1 {
 		info.Src = info.Path
 		info.WebPSrc = removeExt(info.Src) + WebPExt
+		info.BiggestSrc = info.Src
 
 		// If the image's display dimensions weren't supplied, get them from the file.
 		if info.Width <= 0 || info.Height <= 0 {
@@ -819,28 +810,31 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
 		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
 	} else {
+		pre := info.Path[:wc]
+		suf := info.Path[wc+1:]
+
 		var widths []int
 		var err error
-		if info.Srcset, widths, err = r.makeSrcset(info.Prefix, info.Suffix); err != nil {
+		if info.Srcset, widths, err = r.makeSrcset(pre, suf); err != nil {
 			return err
 		} else if info.Srcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, info.Suffix)
+			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
 		}
-		suf := removeExt(info.Suffix) + WebPExt
-		if info.WebPSrcset, _, err = r.makeSrcset(info.Prefix, suf); err != nil {
+		wsuf := removeExt(suf) + WebPExt
+		if info.WebPSrcset, _, err = r.makeSrcset(pre, wsuf); err != nil {
 			return err
 		} else if info.WebPSrcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", info.Prefix, suf)
+			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
 		}
 
 		if info.Width <= 0 || info.Height <= 0 {
 			var p string
 			if info.Width <= 0 && len(widths) >= 2 && 2*widths[0] == widths[1] {
 				// If there are 1x and 2x images, use the dimensions of the smallest one.
-				p = fmt.Sprintf("%s%d%s", info.Prefix, widths[0], info.Suffix)
+				p = fmt.Sprintf("%s%d%s", pre, widths[0], suf)
 			} else if info.Width > 0 {
 				// If the width was supplied, use that file's height.
-				p = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
+				p = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 			} else {
 				return errors.New("dimensions could not be determined")
 			}
@@ -848,8 +842,9 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 				return fmt.Errorf("failed getting %v dimensions: %v", p, err)
 			}
 		}
-		info.Src = fmt.Sprintf("%s%d%s", info.Prefix, info.Width, info.Suffix)
+		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 		info.WebPSrc = removeExt(info.Src) + WebPExt
+		info.BiggestSrc = fmt.Sprintf("%s%d%s", pre, widths[len(widths)-1], suf)
 	}
 
 	if info.Sizes == "" {
@@ -862,12 +857,14 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 	if err := r.si.CheckStatic(info.WebPSrc); err != nil {
 		return err
 	}
+	if err := r.si.CheckStatic(info.BiggestSrc); err != nil {
+		return err
+	}
 	return nil
 }
 
 // makeSrcset returns a srcset attribute value corresponding to the images matched by
-// pre and suf (corresponding to imgInfo.Prefix and imgInfo.Suffix). The returned
-// slice contains image widths in ascending order.
+// pre and suf. The returned slice contains image widths in ascending order.
 func (r *renderer) makeSrcset(pre, suf string) (string, []int, error) {
 	glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
 	ps, err := filepath.Glob(glob)
