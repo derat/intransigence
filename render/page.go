@@ -96,15 +96,13 @@ type imgInfo struct {
 	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
 
 	// These fields are set programatically, mostly by finishImgInfo.
-	Attr       []template.HTMLAttr // additional attributes to include (can be set before/after finishImgInfo)
-	Src        string              // <img> src attribute
-	Srcset     string              // <img> and <source> srcset attribute for original images
-	WebPSrc    string              // src attribute for preferred WebP image
-	WebPSrcset string              // <source> srcset attribute for WebP images
-	Sizes      string              // value for "sizes" attr (can be set after finishImgInfo)
-	biggestSrc string              // highest-res version of Src
-	widths     []int               // widths in pixels of images in Srcset if multi-res
-	layout     string              // AMP layout (can be set before finishImgInfo; "responsive" used if empty)
+	Attr               []template.HTMLAttr // additional attributes to include (can be modified before/after finishImgInfo)
+	Src, WebPSrc       string              // 'src' attr values for original and WebP images (set by finishImgInfo)
+	Srcset, WebPSrcset string              // 'srcset' attr values for original and WebP images (set by finishImgInfo)
+	Sizes              string              // 'sizes' attr value (set by finishImgInfo but can be modified after)
+	biggestSrc         string              // highest-res version of Src (set by finishImgInfo)
+	widths             []int               // ascending widths in pixels of images if multi-res (set by finishImgInfo)
+	layout             string              // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
 }
 
 // figureInfo holds information used by figure.tmpl.
