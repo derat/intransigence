@@ -195,7 +195,7 @@ func newTestSiteDir() (string, error) {
 	if err := copy.Copy("testdata", dir); err != nil {
 		return "", fmt.Errorf("failed copying test data: %v", err)
 	}
-	for _, subdir := range []string{"inline", "static/resources", "templates"} {
+	for _, subdir := range []string{"inline", "templates"} {
 		src := filepath.Join(repoPath, subdir)
 		dst := filepath.Join(dir, subdir)
 		if err := copy.Copy(src, dst); err != nil {
