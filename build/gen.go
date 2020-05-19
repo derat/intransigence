@@ -20,8 +20,6 @@ import (
 )
 
 const (
-	iframeSubdir = "iframes" // subdir under output dir for generated iframe pages
-
 	fileMode = 0644 // mode for creating files
 	dirMode  = 0755 // mode for creating dirs
 
@@ -80,7 +78,7 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to enumerate iframe data: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(out, iframeSubdir), dirMode); err != nil {
+	if err := os.MkdirAll(filepath.Join(out, render.IframeOutDir), dirMode); err != nil {
 		return nil, err
 	}
 	var outPaths []string
@@ -92,7 +90,7 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, er
 
 		base := filepath.Base(p)
 		base = base[:len(base)-len(".json")]
-		dest := filepath.Join(out, iframeSubdir, base+render.HTMLExt)
+		dest := filepath.Join(out, render.IframeOutDir, base+render.HTMLExt)
 		outPaths = append(outPaths, dest)
 
 		b, err := render.Iframe(*si, data)
