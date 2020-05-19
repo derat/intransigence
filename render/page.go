@@ -93,20 +93,18 @@ type imgInfo struct {
 	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels; inferred if empty
 	Height int    `html:"height" yaml:"height"` // 100% height in pixels; inferred if empty
 	Alt    string `html:"alt" yaml:"alt"`       // alt text
+	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
 
-	// These fields are set by finishImgInfo.
-	Src        string // <img> src attribute
-	Srcset     string // <img> and <source> srcset attribute for original images
-	WebPSrc    string // src attribute for preferred WebP image
-	WebPSrcset string // <source> srcset attribute for WebP images
-	BiggestSrc string // highest-res version of Src
-	widths     []int  // widths in pixels of images in Srcset if multi-res
-
-	// These fields are set programatically.
-	Layout string              // AMP layout ("responsive" used if empty)
-	Inline bool                // add "inline" class
-	Attr   []template.HTMLAttr // additional attributes to include
-	Sizes  string              // custom value for "sizes" attr
+	// These fields are set programatically, mostly by finishImgInfo.
+	Attr       []template.HTMLAttr // additional attributes to include (can be set before/after finishImgInfo)
+	Src        string              // <img> src attribute
+	Srcset     string              // <img> and <source> srcset attribute for original images
+	WebPSrc    string              // src attribute for preferred WebP image
+	WebPSrcset string              // <source> srcset attribute for WebP images
+	Sizes      string              // value for "sizes" attr (can be set after finishImgInfo)
+	biggestSrc string              // highest-res version of Src
+	widths     []int               // widths in pixels of images in Srcset if multi-res
+	layout     string              // AMP layout (can be set before finishImgInfo; "responsive" used if empty)
 }
 
 // figureInfo holds information used by figure.tmpl.
@@ -505,8 +503,8 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			return md.Terminate
 		}
 		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
-		if len(info.Href) == 0 && info.imgInfo.BiggestSrc != info.imgInfo.Src {
-			info.Href = info.imgInfo.BiggestSrc
+		if len(info.Href) == 0 && info.imgInfo.biggestSrc != info.imgInfo.Src {
+			info.Href = info.imgInfo.biggestSrc
 		}
 		if len(info.Href) > 0 {
 			var err error
@@ -521,14 +519,14 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		return md.SkipChildren
 	case "map":
 		var info struct {
-			imgInfo `yaml:",inline"` // placeholder image
+			imgInfo `yaml:",inline"` // placeholder image (also used for dimensions)
 			Href    string           `yaml:"href"` // relative path to map iframe page
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
 			return md.Terminate
 		}
-		info.imgInfo.Layout = "fill"
+		info.imgInfo.layout = "fill"
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
 		if err := r.finishImgInfo(&info.imgInfo); err != nil {
@@ -628,7 +626,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			if token.Type == html.StartTagToken {
 				var info = imgInfo{
 					Attr:   []template.HTMLAttr{template.HTMLAttr(`class="inline"`)},
-					Layout: "fixed",
+					layout: "fixed",
 				}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
@@ -783,15 +781,21 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 	if info.Alt == "" {
 		return errors.New("alt must be set")
 	}
-	if info.Layout == "" {
-		info.Layout = "responsive"
+	if r.amp {
+		if info.layout == "" {
+			info.layout = "responsive"
+		}
+		info.Attr = append(info.Attr, template.HTMLAttr(fmt.Sprintf(`layout="%s"`, info.layout)))
+	}
+	if info.Lazy && !r.amp { // <amp-img> already lazy-loads
+		info.Attr = append(info.Attr, template.HTMLAttr(`loading="lazy"`))
 	}
 
 	wc := strings.IndexByte(info.Path, '*')
 	if wc == -1 {
 		info.Src = info.Path
 		info.WebPSrc = removeExt(info.Src) + WebPExt
-		info.BiggestSrc = info.Src
+		info.biggestSrc = info.Src
 
 		// If the image's display dimensions weren't supplied, get them from the file.
 		if info.Width <= 0 || info.Height <= 0 {
@@ -840,7 +844,7 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 		}
 		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 		info.WebPSrc = removeExt(info.Src) + WebPExt
-		info.BiggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
+		info.biggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
 	}
 
 	if info.Sizes == "" {
@@ -853,7 +857,7 @@ func (r *renderer) finishImgInfo(info *imgInfo) error {
 	if err := r.si.CheckStatic(info.WebPSrc); err != nil {
 		return err
 	}
-	if err := r.si.CheckStatic(info.BiggestSrc); err != nil {
+	if err := r.si.CheckStatic(info.biggestSrc); err != nil {
 		return err
 	}
 	return nil
