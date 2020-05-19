@@ -22,6 +22,8 @@ type SiteInfo struct {
 	TitleSuffix string `yaml:"title_suffix"`
 	// DefaultDesc is used as the default meta description for pages.
 	DefaultDesc string `yaml:"default_desc"`
+	// FaviconPath is the path to the favicon image, e.g. "resources/favicon.png".
+	FaviconPath string `yaml:"favicon_path"`
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
 
