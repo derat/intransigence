@@ -96,18 +96,15 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 }
 
 // ReadInline reads and returns the contents of the named file in the inline dir.
-// It panics if the file cannot be read.
+// It returns an empty string if the file does not exist and panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
-	data, ok := stdInline[fn]
-	if !ok {
-		b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
-		if err != nil {
-			// TODO: Consider not panicking here since files are user-supplied.
-			panic(fmt.Sprint("Failed reading file: ", err))
-		}
-		data = string(b)
+	b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
+	if os.IsNotExist(err) {
+		return ""
+	} else if err != nil {
+		panic(fmt.Sprint("Failed reading file: ", err))
 	}
-	return strings.TrimSpace(data) // sassc doesn't remove trailing newline
+	return strings.TrimSpace(string(b)) // sassc doesn't remove trailing newline
 }
 
 // CheckStatic returns an error if p (e.g. "foo/bar.png") doesn't exist

@@ -371,12 +371,11 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			return
 		}
 
-		r.pi.AMPStyle = template.CSS(r.si.ReadInline("amp-boilerplate.css"))
-		r.pi.AMPNoscriptStyle = template.CSS(r.si.ReadInline("amp-boilerplate-noscript.css"))
+		r.pi.AMPStyle = template.CSS(getStdInline("amp-boilerplate.css"))
+		r.pi.AMPNoscriptStyle = template.CSS(getStdInline("amp-boilerplate-noscript.css"))
 		r.pi.AMPCustomStyle = template.CSS(
-			r.si.ReadInline("base.css.min") +
-				r.si.ReadInline("mobile.css.min") +
-				r.si.ReadInline("amp.css.min"))
+			getStdInline("base.css") + getStdInline("mobile.css") + getStdInline("amp.css") +
+				r.si.ReadInline("base.css.min") + r.si.ReadInline("mobile.css.min") + r.si.ReadInline("amp.css.min"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -397,12 +396,15 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			return
 		}
 
-		r.pi.HTMLStyle = template.CSS(r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
-			fmt.Sprintf("@media(min-width:%dpx){%s}", desktopMinWidth, r.si.ReadInline("desktop.css.min")) +
-			fmt.Sprintf("@media(max-width:%dpx){%s}", mobileMaxWidth, r.si.ReadInline("mobile.css.min")))
-		r.pi.HTMLScripts = []template.JS{template.JS(r.si.ReadInline("base.js.min"))}
+		r.pi.HTMLStyle = template.CSS(getStdInline("base.css") + getStdInline("base-nonamp.css") +
+			r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
+			fmt.Sprintf("@media(min-width:%dpx){%s%s}",
+				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css.min")) +
+			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
+				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css.min")))
+		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js.min"))}
 		if r.pi.HasMap {
-			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(r.si.ReadInline("map.js.min")))
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js.min")))
 		}
 
 		csp := cspBuilder{}
@@ -908,4 +910,14 @@ func imageSize(p string) (w, h int, err error) {
 
 	cfg, _, err := image.DecodeConfig(f)
 	return cfg.Width, cfg.Height, err
+}
+
+// getStdInline returns the contents of the named standard inline file from std_inline.go.
+// It panics if the file does not exist.
+func getStdInline(fn string) string {
+	data, ok := stdInline[fn]
+	if !ok {
+		panic(fmt.Sprintf("No standard inline file %q", fn))
+	}
+	return strings.TrimSpace(data) // sassc doesn't remove trailing newline
 }
