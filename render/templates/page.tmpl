@@ -107,6 +107,7 @@
 
 {{/* Writes the bottom of a normal page. */}}
 {{define "end" -}}
+      {{if or (not .HideBackToTop) (and (not .HideDates) (or .Created .Modified)) -}}
       <footer>
         {{/* TODO: Make text configurable. */ -}}
         {{if not .HideBackToTop}}<div class="back-to-top"><a href="#top">Back to top</a></div>{{end}}
@@ -114,8 +115,9 @@
           {{if .Created}}<div class="created">Page created in {{formatDate .Created "2006"}}.</div>{{end}}
           {{if .Modified}}<div class="modified"> Last modified {{formatDate .Modified "Jan. 2, 2006"}}.</div>{{end}}
         </div>{{end}}
-      </footer>
-    </div>
+      </footer>{{/**/ -}}
+      {{end}}
+    </div>{{/* #container */}}
   </body>
 </html>
 {{end}}
