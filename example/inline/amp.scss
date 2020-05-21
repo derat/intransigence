@@ -1,0 +1,19 @@
+#sidebar { background: transparent; }
+
+#top-container {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+#nav-logo { margin: 4px 8px; }
+
+#menu-button { margin-right: 8px; }
+
+#nav-box {
+  margin: 10px;
+  .body { background-color: white; }
+}
+
+#container { margin: 0 8px; }

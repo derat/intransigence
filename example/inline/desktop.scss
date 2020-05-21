@@ -1,0 +1,23 @@
+#nav-logo {
+  height: 64px;
+  left: 12px;
+  position: fixed;
+  top: 0;
+  width: auto;
+}
+
+#nav-box {
+  left: 8px;
+  position: fixed;
+  top: 64px;
+  width: 160px;
+}
+
+.box.content {
+  position: relative;
+  margin-left: 168px;
+  max-width: 600px;
+  &.desktop-narrow { max-width: 400px; }
+}
+
+footer { margin-left: 174px; } // based on .box-content margin-left

@@ -273,6 +273,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	r.pi.LogoAMP = imgInfo{
 		Path: r.si.LogoPathAMP,
 		Alt:  r.si.LogoAlt,
+		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
 	}
 	if err := r.finishImgInfo(&r.pi.LogoAMP); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)

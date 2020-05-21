@@ -1,0 +1,17 @@
+.box.content {
+  > .body {
+    &:after { // clear floating content before ending box
+      clear: both;
+      content: "";
+      display: block;
+    }
+
+    > *:first-child,
+    > *:first-child > h3:first-child {
+      margin-top: 0;
+    }
+    > *:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

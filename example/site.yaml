@@ -7,7 +7,7 @@ nav_text: Example site
 logo_path_html: resources/logo-html-*.png
 logo_path_amp: resources/logo-amp-*.png
 logo_alt: Example.org
-nav_toggle_path: resources/collapse.png
+nav_toggle_path: resources/collapse-*.png
 menu_button_path: resources/menu-*.png
 author_name: 
 author_email: user@example.org
