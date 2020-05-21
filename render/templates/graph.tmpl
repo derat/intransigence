@@ -1,0 +1,8 @@
+{{/* Writes <figure> and <iframe> for "graph" code block. */ -}}
+{{template "figure_start" .}}
+{{- if amp}}<amp-iframe {{else}}<iframe {{end -}}
+class="graph" width={{.Width}} height={{.Height}}
+{{- if amp}} layout="responsive" frameborder="0" {{else}} {{end -}}
+sandbox="allow-scripts" src="{{.Href}}?{{.Name}}">
+{{- if amp}}</amp-iframe>{{else}}</iframe>{{end}}
+{{template "figure_end" .}}

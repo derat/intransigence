@@ -1,0 +1,20 @@
+{{/* Writes graph iframe page. */ -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  {{.CSPMeta}}
+  <meta name="robots" content="noindex, nofollow">
+  <title>graph</title>
+{{- range .ScriptURLs}}
+  <script src="{{.}}"></script>
+{{end}}
+{{- range .InlineScripts}}
+  <script>{{.}}</script>
+{{end}}
+  <style>{{.InlineStyle}}</style>
+</head>
+<body>
+  <a id="graph-node"></a>
+</body>
+</html>

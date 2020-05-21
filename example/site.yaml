@@ -1,0 +1,33 @@
+---
+base_url: https://www.example.org/
+title_suffix: ' - example.org'
+default_desc: Example site
+favicon_path: resources/favicon.png
+nav_text: Example site
+logo_path_html: resources/logo-html-*.png
+logo_path_amp: resources/logo-amp-*.png
+logo_alt: Example.org
+nav_toggle_path: resources/collapse.png
+menu_button_path: resources/menu-*.png
+author_name: 
+author_email: user@example.org
+publisher_name: example.org
+publisher_logo_url: https://www.example.org/resources/logo.png
+publisher_logo_width: 167
+publisher_logo_height: 60
+google_analytics_code: UA-123456-1
+google_maps_api_key: 
+d3_script_url: https://d3js.org/d3.v3.min.js
+extra_static_dirs:
+nav_items:
+- name: Top
+  url: top.html
+  id: top
+  children:
+  - name: Anchor
+    url: top.html#anchor
+  - name: Nested
+    url: nested.html
+    id: nested
+- name: Email me
+  url: mailto:user@example.org

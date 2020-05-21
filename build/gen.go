@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/net/html"
 
-	"github.com/derat/homepage/render"
 	"github.com/derat/htmlpretty"
+	"github.com/derat/plaingen/render"
 )
 
 const (
@@ -126,6 +126,7 @@ func prettyPrintDoc(r io.Reader) ([]byte, error) {
 // generateCSS runs sassc to generate minified CSS files from all .scss files within dir.
 // The .scss extension is replaced with .css.min.
 func generateCSS(dir string) error {
+	// TODO: Also minify *.css?
 	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
 	if err != nil {
 		return err

@@ -178,32 +178,16 @@ func TestBuild_Rebuild(t *testing.T) {
 	}
 }
 
-// newTestSiteDir creates a new temporary directory and copies test data
-// and inlined files and templates into it.
+// newTestSiteDir creates a new temporary directory and copies test data into it.
 func newTestSiteDir() (string, error) {
 	dir, err := ioutil.TempDir("", "build_test.")
 	if err != nil {
 		return "", err
 	}
-	done := false
-	defer func() {
-		if !done {
-			os.RemoveAll(dir)
-		}
-	}()
-
 	if err := copy.Copy("testdata", dir); err != nil {
+		os.RemoveAll(dir)
 		return "", fmt.Errorf("failed copying test data: %v", err)
 	}
-	for _, subdir := range []string{"inline", "templates"} {
-		src := filepath.Join(repoPath, subdir)
-		dst := filepath.Join(dir, subdir)
-		if err := copy.Copy(src, dst); err != nil {
-			return "", fmt.Errorf("failed copying %v to %v: %v", src, dst, err)
-		}
-	}
-
-	done = true // disarm cleanup
 	return dir, nil
 }
 

@@ -46,7 +46,7 @@ func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 				template.JS(si.ReadInline("graph-iframe.js.min")),
 				template.JS("var dataSets = " + string(jsonData) + ";"),
 			},
-			InlineStyle: template.CSS(si.ReadInline("graph-iframe.css.min")),
+			InlineStyle: template.CSS(si.ReadInline("graph-iframe.css")),
 		}
 
 		csp := cspBuilder{}
@@ -79,7 +79,7 @@ func Iframe(si SiteInfo, js []byte) ([]byte, error) {
 				template.JS("var points = " + string(jsonData) + ";"),
 				template.JS(si.ReadInline("map-iframe.js.min")),
 			},
-			InlineStyle: template.CSS(si.ReadInline("map-iframe.css.min") +
+			InlineStyle: template.CSS(si.ReadInline("map-iframe.css") +
 				"body{background-image:url('" + data.Placeholder + "')}"),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.

@@ -376,7 +376,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		r.pi.AMPCustomStyle = template.CSS(
 			r.si.ReadInline("base.css.min") +
 				r.si.ReadInline("mobile.css.min") +
-				r.si.ReadInline("mobile-amp.css.min"))
+				r.si.ReadInline("amp.css.min"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,

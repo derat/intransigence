@@ -1,0 +1,19 @@
+{{/* Writes map iframe page. */ -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>map</title>
+{{- range .ScriptURLs}}
+  <script src="{{.}}"></script>
+{{end}}
+{{- range .InlineScripts}}
+  <script>{{.}}</script>
+{{end}}
+  <style>{{.InlineStyle}}</style>
+</head>
+<body>
+  <div id="map-div"></div>
+</body>
+</html>

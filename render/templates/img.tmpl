@@ -1,0 +1,22 @@
+{{/* Writes <picture> containing <source> and <img>. */}}
+{{/* If rendering for AMP, calls the amp-img template instead. */}}
+{{define "img" -}}
+{{if amp}}{{template "amp-img" .}}{{else -}}
+<picture>{{/**/ -}}
+  <source type="image/webp" sizes="{{.Sizes}}" srcset="{{.WebPSrcset}}">{{/**/ -}}
+  <img {{range .Attr}}{{.}} {{end}}{{/**/ -}}
+      src="{{.Src}}" sizes="{{.Sizes}}" srcset="{{.Srcset}}" {{/**/ -}}
+      width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
+</picture>{{end -}}
+{{end}}
+
+{{/* Writes <amp-img></amp-img> and a fallback. */}}
+{{define "amp-img" -}}
+<amp-img {{range .Attr}}{{.}} {{end}}{{/**/ -}}
+    src="{{.WebPSrc}}" sizes="{{.Sizes}}" srcset="{{.WebPSrcset}}" {{/**/ -}}
+    width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
+<amp-img fallback {{range .Attr}}{{.}} {{end}}{{/**/ -}}
+    src="{{.Src}}" sizes="{{.Sizes}}" srcset="{{.Srcset}}" {{/**/ -}}
+    width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}"></amp-img>{{/**/ -}}
+</amp-img>{{/**/ -}}
+{{end}}

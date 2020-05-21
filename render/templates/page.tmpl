@@ -1,0 +1,136 @@
+{{/* Writes the top of a normal page. */}}
+{{define "start" -}}
+<!DOCTYPE html>
+{{/* TODO: Make language configurable. */ -}}
+<html {{if amp}}amp {{end}}lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="{{.LinkRel}}" href="{{.LinkHref}}">
+    {{.CSPMeta}}
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+    <meta name="description" content="{{.Desc}}">
+    <meta name="robots" content="NOODP">
+
+    <title>{{.Title}}</title>
+
+    <link rel="apple-touch-icon-precomposed" href="{{.SiteInfo.FaviconPath}}">
+    <link rel="icon" sizes="{{.FaviconWidth}}x{{.FaviconHeight}}" href="{{.SiteInfo.FaviconPath}}">
+
+    <script type="application/ld+json">{{.StructData}}</script>
+    {{if amp}}
+      <style amp-boilerplate>{{.AMPStyle}}</style>
+      <noscript><style amp-boilerplate>{{.AMPNoscriptStyle}}</style></noscript>
+      <style amp-custom>{{.AMPCustomStyle}}</style>
+      <script async custom-element="amp-sidebar" src="https://cdn.ampproject.org/v0/amp-sidebar-0.1.js"></script>
+      {{if or .HasGraph .HasMap -}}
+      <script async custom-element="amp-iframe" src="https://cdn.ampproject.org/v0/amp-iframe-0.1.js"></script>
+      {{end -}}
+      <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+      <script async src="https://cdn.ampproject.org/v0.js"></script>
+    {{else}}{{/* non-AMP */}}
+      <style>{{.HTMLStyle}}</style>
+      {{range .HTMLScripts}}<script>{{.}}</script>
+      {{end -}}
+    {{end}}
+  </head>
+
+  <body id="top">
+    {{if amp}}{{template "header_amp" .}}{{end}}
+    <div id="container">
+    {{if not amp}}{{template "header_html" .}}{{end}}
+{{end}}
+
+{{/* Writes top-of-<body> data for non-AMP pages. */}}
+{{/* For desktop and responsive mobile, the logo and navbox are at the top of the page. */}}
+{{define "header_html"}}
+<header>
+  {{template "img" .LogoHTML}}
+  {{/* This mirrors the box_header and box_footer templates. */ -}}
+  <nav id="nav-box" class="box">
+    <div class="top"></div>
+    <div id="nav-title" class="title">
+      {{.SiteInfo.NavText}}
+      {{template "img" .NavToggle}}
+    </div>
+    <div class="body">
+      {{/* On mobile, collapse the navbox if the page doesn't have subpages. */ -}}
+      <ul id="nav-list"{{- if not .NavItem.Children}} class="collapsed-mobile"{{end}}>
+        {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
+      </ul>
+    </div>
+  </nav>
+</header>
+{{end}}
+
+{{/* Writes start-of-<body> data for AMP pages. */}}
+{{/* For AMP, just the logo and a menu button go at the top. The navbox ends up in a sidebar. */}}
+{{define "header_amp"}}
+{{/* The validator barfs if the <amp-analytics> <script> tag doesn't have the "type" attribute. */ -}}
+<amp-analytics type="googleanalytics">
+  <script type="application/json">
+    {
+      "vars": {
+        "account": "{{.SiteInfo.GoogleAnalyticsCode}}"
+      },
+      "triggers": {
+        "trackPageview": {
+          "on": "visible",
+          "request": "pageview"
+        }
+      }
+    }
+  </script>
+</amp-analytics>
+
+<amp-sidebar id="sidebar" layout="nodisplay" side="right">
+  {{/* This mirrors the box_header and box_footer templates. */ -}}
+  <nav id="nav-box" class="box">
+    <div class="top"></div>
+    <div id="nav-title" class="title">
+      {{.SiteInfo.NavText}}
+    </div>
+    <div class="body">
+      <ul id="nav-list">
+        {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
+      </ul>
+    </div>
+  </nav>
+</amp-sidebar>
+
+<header>
+  <div id="top-container">
+    {{template "img" .LogoAMP}}
+    {{template "img" .MenuButton}}
+  </div>
+</header>
+{{end}}
+
+{{/* Writes the bottom of a normal page. */}}
+{{define "end" -}}
+      <footer>
+        {{/* TODO: Make text configurable. */ -}}
+        {{if not .HideBackToTop}}<div class="back-to-top"><a href="#top">Back to top</a></div>{{end}}
+        {{if not .HideDates}}<div class="dates">
+          {{if .Created}}<div class="created">Page created in {{formatDate .Created "2006"}}.</div>{{end}}
+          {{if .Modified}}<div class="modified"> Last modified {{formatDate .Modified "Jan. 2, 2006"}}.</div>{{end}}
+        </div>{{end}}
+      </footer>
+    </div>
+  </body>
+</html>
+{{end}}
+
+{{/* Writes an <li> for a navigation item and its children. */}}
+{{define "nav_item" -}}
+<li>
+{{- $curID := currentID -}}
+{{- if .HasID $curID}}<span class="selected">{{.Name}}</span>
+{{- else}}<a href="{{if amp}}{{.AMPURL}}{{else}}{{.URL}}{{end}}">{{.Name}}</a>
+{{- end}}
+{{- if and .Children (.FindID $curID)}}
+<ul>
+{{range .Children}}{{template "nav_item" .}}{{end}}
+</ul>
+{{end -}}
+</li>
+{{end}}

@@ -1,0 +1,19 @@
+{{/* Writes <figure> for "image" and "graph" code blocks. */}}
+{{define "figure_start"}}
+<figure
+{{- if or .Align .Class}} class="
+  {{- if eq .Align "left"}}left
+  {{- else if eq .Align "right"}}right
+  {{- else if eq .Align "center"}}center
+  {{- else if eq .Align "desktop_left"}}desktop-left mobile-center
+  {{- else if eq .Align "desktop_right"}}desktop-right mobile-center
+  {{- end -}}
+  {{- if .Class}}{{if .Align}} {{end}}{{.Class}}{{end -}}
+"{{end}}>
+{{end}}
+
+{{- /* Writes <figcaption></figcaption> and </figure> for "image" and "graph" code blocks. */}}
+{{define "figure_end" -}}
+{{if .Caption}}<figcaption>{{.Caption}}</figcaption>{{end}}
+</figure>
+{{end}}

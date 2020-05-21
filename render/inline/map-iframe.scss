@@ -1,0 +1,22 @@
+body {
+  // background-image set to placeholder in inline style from render/iframe.go
+  background-size: 100% 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#map-div {
+  display: inline-block;
+  height: 100%;
+  position: absolute;
+  visibility: hidden;
+  width: 100%;
+  &.loaded { visibility: visible; }
+}
+
+a.location {
+  color: #555;
+  cursor: pointer;
+  font-family: Arial,Helvetica,sans-serif;
+  text-decoration: underline;
+}

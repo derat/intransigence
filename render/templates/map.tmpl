@@ -1,0 +1,11 @@
+{{/* Writes <iframe></iframe> for "map" code block. */ -}}
+<div class="mapbox">
+  {{if amp}}<amp-iframe {{else}}<iframe {{end -}}
+  id="map" width="{{.Width}}" height="{{.Height}}" {{/**/ -}}
+  {{if amp}}layout="responsive" frameborder="0" {{end -}}
+  sandbox="allow-scripts allow-top-navigation" src="{{.Href}}">{{/**/ -}}
+  {{if amp}}
+  {{template "img" .}}
+  {{end}}
+  {{if amp}}</amp-iframe>{{else}}</iframe>{{end}}
+</div>

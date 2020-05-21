@@ -1,4 +1,4 @@
-module github.com/derat/homepage
+module github.com/derat/plaingen
 
 go 1.14
 

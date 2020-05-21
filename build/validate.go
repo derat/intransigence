@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/derat/homepage/render"
+	"github.com/derat/plaingen/render"
 	"github.com/derat/validate"
 )
 

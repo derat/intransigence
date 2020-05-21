@@ -1,0 +1,6 @@
+{{/* Writes <figure> and <img> for "image" code block. */ -}}
+{{template "figure_start" .}}
+{{if .Href}}<a href="{{.Href}}">{{end}}
+{{template "img" .}}
+{{if .Href}}</a>{{end}}
+{{template "figure_end" .}}

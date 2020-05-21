@@ -14,6 +14,13 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+// Process inline/*.scss into inline/*.css and inline/*.js into inline/*.js.min.
+//go:generate gen/gen_css.sh
+//go:generate gen/gen_js_min.sh
+
+// Generate an std_inline.go file that defines a map[string]string named stdInline.
+//go:generate sh -c "go run gen/gen_filemap.go stdInline inline/*.css inline/*.js.min | gofmt -s >std_inline.go"
+
 // SiteInfo specifies high-level information about the site.
 type SiteInfo struct {
 	// BaseURL is the base site URL with a trailing slash, e.g. "https://www.example.org/".
@@ -41,6 +48,7 @@ type SiteInfo struct {
 	MenuButtonPath string `yaml:"menu_button_path"`
 
 	// The following fields are used in structured data.
+	// TODO: Accept a path for the publisher logo and infer width/height.
 	AuthorName          string `yaml:"author_name"`
 	AuthorEmail         string `yaml:"author_email"`
 	PublisherName       string `yaml:"publisher_name"`
@@ -90,11 +98,16 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 // ReadInline reads and returns the contents of the named file in the inline dir.
 // It panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
-	b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
-	if err != nil {
-		panic(fmt.Sprint("Failed reading file: ", err))
+	data, ok := stdInline[fn]
+	if !ok {
+		b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
+		if err != nil {
+			// TODO: Consider not panicking here since files are user-supplied.
+			panic(fmt.Sprint("Failed reading file: ", err))
+		}
+		data = string(b)
 	}
-	return strings.TrimSpace(string(b)) // sassc doesn't remove trailing newline
+	return strings.TrimSpace(data) // sassc doesn't remove trailing newline
 }
 
 // CheckStatic returns an error if p (e.g. "foo/bar.png") doesn't exist

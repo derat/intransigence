@@ -5,10 +5,14 @@ package render
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"path/filepath"
 )
+
+// Generate an std_templates.go file that defines a map[string]string named stdTemplates.
+//go:generate sh -c "go run gen/gen_filemap.go stdTemplates templates/*.tmpl | gofmt -s >std_templates.go"
 
 // templater caches and executes HTML templates.
 type templater struct {
@@ -18,11 +22,13 @@ type templater struct {
 }
 
 // newTemplater returns a templater that will load templates from the supplied directory.
+// TODO: Delete dir arg if it's unneeded.
 func newTemplater(dir string, commonFuncs template.FuncMap) *templater {
 	return &templater{dir, commonFuncs, make(map[string]*template.Template)}
 }
 
 // load loads and caches a template consisting of the supplied files and functions.
+// files are loaded first from stdTemplates before falling back to actual files in t.dir.
 func (t *templater) load(files []string, funcs template.FuncMap) (*template.Template, error) {
 	if len(files) == 0 {
 		return nil, errors.New("no files supplied")
@@ -33,11 +39,6 @@ func (t *templater) load(files []string, funcs template.FuncMap) (*template.Temp
 		return tmpl, nil
 	}
 
-	var paths []string
-	for _, fn := range files {
-		paths = append(paths, filepath.Join(t.dir, fn))
-	}
-
 	fm := template.FuncMap{}
 	for n, f := range t.commonFuncs {
 		fm[n] = f
@@ -46,10 +47,24 @@ func (t *templater) load(files []string, funcs template.FuncMap) (*template.Temp
 		fm[n] = f
 	}
 
-	tmpl, err := template.New(name).Funcs(fm).ParseFiles(paths...)
-	if err != nil {
-		return nil, err
+	tmpl := template.New(name).Funcs(fm)
+
+	var paths []string
+	for _, fn := range files {
+		if s, ok := stdTemplates[fn]; ok {
+			if _, err := tmpl.Parse(s); err != nil {
+				return nil, fmt.Errorf("failed parsing %v: %v", fn, err)
+			}
+		} else {
+			paths = append(paths, filepath.Join(t.dir, fn))
+		}
 	}
+	if len(paths) > 0 {
+		if _, err := tmpl.ParseFiles(paths...); err != nil {
+			return nil, err
+		}
+	}
+
 	t.tmpls[name] = tmpl
 	return tmpl, nil
 }
