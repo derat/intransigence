@@ -26,7 +26,7 @@ import (
 	// Importing this as gopkg.in/russross/blackfriday.v2 doesn't work since the
 	// package's go.mod currently contains the github.com URL instead:
 	// https://github.com/russross/blackfriday/issues/500
-	md "github.com/russross/blackfriday/v2"
+	bf "github.com/russross/blackfriday/v2"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -43,7 +43,7 @@ const (
 // The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
 func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	r := newRenderer(si, amp)
-	b := md.Run(markdown, md.WithRenderer(r), md.WithExtensions(md.CommonExtensions&^md.Autolink))
+	b := bf.Run(markdown, bf.WithRenderer(r), bf.WithExtensions(bf.CommonExtensions&^bf.Autolink))
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -53,18 +53,18 @@ func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 // pageInfo holds information about the current page that is used by page.tmpl.
 type pageInfo struct {
 	Title           string `yaml:"title"`             // used in <title> element
-	ID              string `yaml:"id"`                // ID to highlight in navbox
+	ID              string `yaml:"id"`                // NavItem.ID to highlight in navbox
 	Desc            string `yaml:"desc"`              // meta description
-	ImagePath       string `yaml:"image_path"`        // path to structured data image
+	ImagePath       string `yaml:"image_path"`        // path to structured data image in static dir
 	Created         string `yaml:"created"`           // creation date as 'YYYY-MM-DD'
 	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
 	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
 	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
-	HideDates       bool   `yaml:"hide_dates"`        // hide footer created andmodified dates
+	HideDates       bool   `yaml:"hide_dates"`        // hide footer created and modified dates
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
-	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more maps
+	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more graphs
 
-	SiteInfo      *SiteInfo `yaml:"-"`
+	SiteInfo      *SiteInfo `yaml:"-"` // site-level information
 	FaviconWidth  int       `yaml:"-"` // width of SiteInfo.FaviconPath
 	FaviconHeight int       `yaml:"-"` // width of SiteInfo.FaviconPath
 	LogoHTML      imgInfo   `yaml:"-"` // header logo for non-AMP
@@ -77,13 +77,13 @@ type pageInfo struct {
 	LinkRel  string `yaml:"-"` // rel attribute for <link>, e.g. "canonical"
 	LinkHref string `yaml:"-"` // href attribute for <link>
 
-	HTMLStyle        template.CSS  `yaml:"-"`
-	HTMLScripts      []template.JS `yaml:"-"`
-	AMPStyle         template.CSS  `yaml:"-"`
-	AMPNoscriptStyle template.CSS  `yaml:"-"`
-	AMPCustomStyle   template.CSS  `yaml:"-"`
-	CSPMeta          template.HTML `yaml:"-"`
-	StructData       structData    `yaml:"-"`
+	HTMLStyle        template.CSS  `yaml:"-"` // inline CSS for non-AMP page
+	HTMLScripts      []template.JS `yaml:"-"` // inline JS for non-AMP page
+	AMPStyle         template.CSS  `yaml:"-"` // inline boilerplate CSS for AMP page
+	AMPNoscriptStyle template.CSS  `yaml:"-"` // inline boilerplate <noscript> CSS for AMP page
+	AMPCustomStyle   template.CSS  `yaml:"-"` // inline custom CSS for AMP page
+	CSPMeta          template.HTML `yaml:"-"` // <meta> tag for Content Security policy
+	StructData       structData    `yaml:"-"` // structured data JSON info
 }
 
 // imgInfo holds information used by img.tmpl.
@@ -111,17 +111,19 @@ type figureInfo struct {
 	Class   string        `yaml:"class"`   // CSS class
 }
 
+// renderer converts a single Markdown page into HTML.
+// It implements the bf.Renderer interface.
 type renderer struct {
-	si   *SiteInfo
-	pi   pageInfo
-	tmpl *templater
-	hr   *md.HTMLRenderer
-	err  error // error encountered during rendering
-	amp  bool  // rendering an AMP page
+	si   *SiteInfo        // site-level info
+	pi   pageInfo         // page-level info
+	tmpl *templater       // loads and executes HTML templates
+	hr   *bf.HTMLRenderer // standard BlackFriday HTML renderer
+	err  error            // error encountered during rendering
+	amp  bool             // rendering an AMP page
 
-	startingBox bool         // in the middle of a level-1 header
+	startingBox bool         // currently in the middle of a level-1 header
 	boxTitle    bytes.Buffer // text seen while startingBox is true
-	inBox       bool         // rendering a box
+	inBox       bool         // currently rendering a box
 
 	lastFigureAlign string // last "align" value used for a figure
 	numMapMarkers   int    // number of boxes with "map_marker"
@@ -131,7 +133,7 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 	r := renderer{
 		si:  &si,
 		pi:  pageInfo{SiteInfo: &si, Desc: si.DefaultDesc},
-		hr:  md.NewHTMLRenderer(md.HTMLRendererParameters{}),
+		hr:  bf.NewHTMLRenderer(bf.HTMLRendererParameters{}),
 		amp: amp,
 	}
 	r.tmpl = newTemplater(filepath.Join(si.TemplateDir()), template.FuncMap{
@@ -174,38 +176,38 @@ func (r *renderer) setErrorf(format string, args ...interface{}) error {
 	return err
 }
 
-func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
+func (r *renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// Bail if we already set an error in RenderHeader.
 	if r.err != nil {
-		return md.Terminate
+		return bf.Terminate
 	}
 
 	// Capture box title text.
-	if node.Type != md.Heading && r.startingBox {
+	if node.Type != bf.Heading && r.startingBox {
 		return r.hr.RenderNode(&r.boxTitle, node, entering)
 	}
 
 	switch node.Type {
-	case md.Code:
+	case bf.Code:
 		return r.mangleOutput(w, node, entering, unescapeQuotes)
-	case md.CodeBlock:
+	case bf.CodeBlock:
 		return r.renderCodeBlock(w, node, entering)
-	case md.Heading:
+	case bf.Heading:
 		return r.renderHeading(w, node, entering)
-	case md.HTMLSpan:
+	case bf.HTMLSpan:
 		return r.renderHTMLSpan(w, node, entering)
-	case md.Link:
+	case bf.Link:
 		// Make sure that we don't rewrite the link a second time when exiting.
 		if entering {
 			link, err := r.rewriteLink(string(node.LinkData.Destination))
 			if err != nil {
 				r.setError(err)
-				return md.Terminate
+				return bf.Terminate
 			}
 			node.LinkData.Destination = []byte(link)
 		}
 		// Fall through and let Blackfriday render the possibly-updated URL as normal.
-	case md.Text:
+	case bf.Text:
 		return r.mangleOutput(w, node, entering, unescapeQuotes|escapeEmdashes)
 	}
 
@@ -213,13 +215,13 @@ func (r *renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 	return r.hr.RenderNode(w, node, entering)
 }
 
-func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
+func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	if r.err != nil {
 		return
 	}
 
 	fc := ast.FirstChild
-	if fc == nil || fc.Type != md.CodeBlock || string(fc.CodeBlockData.Info) != "page" {
+	if fc == nil || fc.Type != bf.CodeBlock || string(fc.CodeBlockData.Info) != "page" {
 		r.setErrorf(`page doesn't start with "page" code block`)
 		return
 	}
@@ -413,7 +415,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl", "img.tmpl"}, "start", &r.pi, nil))
 }
 
-func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
+func (r *renderer) RenderFooter(w io.Writer, ast *bf.Node) {
 	// Bail if we set an error in RenderHeader or RenderNode.
 	if r.err != nil {
 		return
@@ -426,9 +428,9 @@ func (r *renderer) RenderFooter(w io.Writer, ast *md.Node) {
 	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "end", &r.pi, nil))
 }
 
-// Renders a node of type md.CodeBlock and returns the appropriate walk status.
-// Sets r.err and returns md.Terminate if an error is encountered.
-func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
+// Renders a node of type bf.CodeBlock and returns the appropriate walk status.
+// Sets r.err and returns bf.Terminate if an error is encountered.
+func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// Rewrites the supplied iframe URL (e.g. iframes/my_map.html) to be either absolute or site-rooted.
 	// The framed page isn't AMP-compliant, so it won't be served by the AMP cache: https://www.erat.org/amp.html#iframes
 	// Absolute URLs could presumably also be used in the non-AMP case, but it makes development harder.
@@ -457,9 +459,9 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 	switch string(node.CodeBlockData.Info) {
 	case "clear":
 		if r.setError(r.tmpl.run(w, []string{"clear.tmpl"}, nil, nil)) != nil {
-			return md.Terminate
+			return bf.Terminate
 		}
-		return md.SkipChildren
+		return bf.SkipChildren
 	case "graph":
 		var info struct {
 			figureInfo `yaml:",inline"`
@@ -470,14 +472,14 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse graph info from %q: %v", node.Literal, err)
-			return md.Terminate
+			return bf.Terminate
 		}
 		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
 		info.Href = iframeHref(info.Href)
 		if r.setError(r.tmpl.run(w, []string{"graph.tmpl", "figure.tmpl"}, info, nil)) != nil {
-			return md.Terminate
+			return bf.Terminate
 		}
-		return md.SkipChildren
+		return bf.SkipChildren
 	case "image":
 		var info struct {
 			figureInfo `yaml:",inline"`
@@ -486,11 +488,11 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
-			return md.Terminate
+			return bf.Terminate
 		}
 		if err := r.finishImgInfo(&info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
-			return md.Terminate
+			return bf.Terminate
 		}
 		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
 		if len(info.Href) == 0 && info.imgInfo.biggestSrc != info.imgInfo.Src {
@@ -500,13 +502,13 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 			var err error
 			if info.Href, err = r.rewriteLink(info.Href); err != nil {
 				r.setError(err)
-				return md.Terminate
+				return bf.Terminate
 			}
 		}
 		if r.setError(r.tmpl.run(w, []string{"image_block.tmpl", "figure.tmpl", "img.tmpl"}, info, nil)) != nil {
-			return md.Terminate
+			return bf.Terminate
 		}
-		return md.SkipChildren
+		return bf.SkipChildren
 	case "map":
 		var info struct {
 			imgInfo `yaml:",inline"` // placeholder image (also used for dimensions)
@@ -514,31 +516,31 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *md.Node, entering bool) md
 		}
 		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
-			return md.Terminate
+			return bf.Terminate
 		}
 		info.imgInfo.layout = "fill"
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
 		if err := r.finishImgInfo(&info.imgInfo); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
-			return md.Terminate
+			return bf.Terminate
 		}
 		info.Href = iframeHref(info.Href)
 		if r.setError(r.tmpl.run(w, []string{"map.tmpl", "img.tmpl"}, info, nil)) != nil {
-			return md.Terminate
+			return bf.Terminate
 		}
-		return md.SkipChildren
+		return bf.SkipChildren
 	case "page":
-		return md.SkipChildren // handled in RenderHeader
+		return bf.SkipChildren // handled in RenderHeader
 	default:
 		node.CodeBlockData.Info = nil // prevent Blackfriday from adding e.g. "language-html" CSS class
 		return r.mangleOutput(w, node, entering, unescapeQuotes|removeCodeNewline)
 	}
 }
 
-// Renders a node of type md.Heading and returns the appropriate walk status.
-// Sets r.err and returns md.Terminate if an error is encountered.
-func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
+// Renders a node of type bf.Heading and returns the appropriate walk status.
+// Sets r.err and returns bf.Terminate if an error is encountered.
+func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// Let Blackfriday render everything apart from level-1 headings, which we hijack toplevel headings to render boxes.
 	if node.HeadingData.Level != 1 {
 		return r.hr.RenderNode(w, node, entering)
@@ -550,13 +552,13 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	if entering {
 		if r.inBox {
 			if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", nil, nil)) != nil {
-				return md.Terminate
+				return bf.Terminate
 			}
 			r.inBox = false
 		}
 		r.startingBox = true
 		r.boxTitle.Reset()
-		return md.GoToNext
+		return bf.GoToNext
 	}
 
 	// Additional attributes can be passed as slash-separated values in the
@@ -588,17 +590,17 @@ func (r *renderer) renderHeading(w io.Writer, node *md.Node, entering bool) md.W
 	r.startingBox = false
 	r.inBox = true
 	if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "start", &info, nil)) != nil {
-		return md.Terminate
+		return bf.Terminate
 	}
-	return md.GoToNext
+	return bf.GoToNext
 }
 
-// Renders a node of type md.HTMLSpan and returns the appropriate walk status.
-// Sets r.err and returns md.Terminate if an error is encountered.
-func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.WalkStatus {
+// Renders a node of type bf.HTMLSpan and returns the appropriate walk status.
+// Sets r.err and returns bf.Terminate if an error is encountered.
+func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// Wrap all the logic in a function to make it easy to consolidate error-handling.
-	// md.Terminate is always returned if an error occurs.
-	ws, err := func() (md.WalkStatus, error) {
+	// bf.Terminate is always returned if an error occurs.
+	ws, err := func() (bf.WalkStatus, error) {
 		token, err := parseTag(node.Literal)
 		if err != nil {
 			return 0, err
@@ -611,7 +613,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			} else if token.Type == html.EndTagToken {
 				io.WriteString(w, "</code>")
 			}
-			return md.SkipChildren, nil
+			return bf.SkipChildren, nil
 		case "image":
 			if token.Type == html.StartTagToken {
 				var info = imgInfo{
@@ -628,7 +630,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 					return 0, err
 				}
 			}
-			return md.SkipChildren, nil
+			return bf.SkipChildren, nil
 		case "only-amp":
 			if !r.amp {
 				if token.Type == html.StartTagToken {
@@ -637,7 +639,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 					io.WriteString(w, "\n-->")
 				}
 			}
-			return md.GoToNext, nil // process nested nodes
+			return bf.GoToNext, nil // process nested nodes
 		case "only-nonamp":
 			if r.amp {
 				if token.Type == html.StartTagToken {
@@ -646,7 +648,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 					io.WriteString(w, "\n-->")
 				}
 			}
-			return md.GoToNext, nil // process nested nodes
+			return bf.GoToNext, nil // process nested nodes
 		case "text-size":
 			if token.Type == html.StartTagToken {
 				var info struct {
@@ -668,14 +670,14 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *md.Node, entering bool) md.
 			} else if token.Type == html.EndTagToken {
 				io.WriteString(w, "</span>")
 			}
-			return md.GoToNext, nil // process nested content
+			return bf.GoToNext, nil // process nested content
 		default:
 			return 0, errors.New("unsupported tag")
 		}
 	}()
 	if err != nil {
 		r.setErrorf("rendering HTML span %q failed: %v", node.Literal, err)
-		return md.Terminate
+		return bf.Terminate
 	}
 	return ws
 }
@@ -740,7 +742,7 @@ const (
 // mangleOutput is a helper function that uses Blackfriday's standard
 // HTMLRenderer to render the supplied node, and then performs the requested
 // operations on the output before writing it to w.
-func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops mangleOps) md.WalkStatus {
+func (r *renderer) mangleOutput(w io.Writer, node *bf.Node, entering bool, ops mangleOps) bf.WalkStatus {
 	var b bytes.Buffer
 	ret := r.hr.RenderNode(&b, node, entering)
 	s := b.String()
@@ -758,7 +760,7 @@ func (r *renderer) mangleOutput(w io.Writer, node *md.Node, entering bool, ops m
 	}
 	if _, err := io.WriteString(w, s); err != nil {
 		r.setErrorf("failed writing mangled %v node: %v", node.Type, err)
-		return md.Terminate
+		return bf.Terminate
 	}
 	return ret
 }
