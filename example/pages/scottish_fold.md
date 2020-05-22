@@ -50,6 +50,9 @@ can choose the most appropriate size. Additionally, WebP versions of the image
 are automatically generated for browsers that support them, and the image
 automatically links to the high-resolution version of itself.
 
+Images can also be inserted inline via `<image path="..." alt="..."></image>`
+tags, as you can see here: <image path="scottish_fold/nyan.gif" alt="Nyan cat"></image>
+
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
 ### Controversy {#controversy}

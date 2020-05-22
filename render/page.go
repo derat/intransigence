@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
