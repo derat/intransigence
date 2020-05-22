@@ -37,6 +37,11 @@ type NavItem struct {
 	Children []*NavItem `yaml:"children"`
 }
 
+// IsIndex returns true if this item represents the site's index page.
+func (n *NavItem) IsIndex() bool {
+	return n.ID == "indexID"
+}
+
 // IsBarePage returns true if n.URL represents a bare page without a fragment, e.g. "foo.html".
 // If n does not represent a bare page, an empty string is returned.
 func (n *NavItem) IsBarePage() bool {

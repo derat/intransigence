@@ -20,14 +20,22 @@ google_maps_api_key:
 d3_script_url: https://d3js.org/d3.v3.min.js
 extra_static_dirs:
 nav_items:
-- name: Top
-  url: top.html
-  id: top
+- name: Welcome
+  url: index.html
+  id: index
+- name: Cats
+  url: cats.html
+  id: cats
   children:
-  - name: Anchor
-    url: top.html#anchor
-  - name: Nested
-    url: nested.html
-    id: nested
+  - name: Scottish Fold
+    url: scottish_fold.html
+    id: scottish
+    children:
+    - name: Characteristics
+      url: scottish_fold.html#chars
+    - name: Fame
+      url: scottish_fold.html#fame
+    - name: Controversy
+      url: scottish_fold.html#controversy
 - name: Email me
   url: mailto:user@example.org

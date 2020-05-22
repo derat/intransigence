@@ -52,8 +52,8 @@
       {{template "img" .NavToggle}}
     </div>
     <div class="body">
-      {{/* On mobile, collapse the navbox if the page doesn't have subpages. */ -}}
-      <ul id="nav-list"{{- if not .NavItem.Children}} class="collapsed-mobile"{{end}}>
+      {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
+      <ul id="nav-list"{{- if not (or .NavItem.IsIndex .NavItem.Children)}} class="collapsed-mobile"{{end}}>
         {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
       </ul>
     </div>

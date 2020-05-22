@@ -229,17 +229,17 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 		return
 	}
 
-	// Add a fake nav item for the index page if it's current.
-	// The Name and URL fields don't need to be set since this item is never rendered.
-	if r.pi.ID == indexID {
-		r.pi.NavItem = &NavItem{ID: indexID, Children: r.si.NavItems}
-	} else {
-		for _, n := range r.si.NavItems {
-			if r.pi.NavItem = n.FindID(r.pi.ID); r.pi.NavItem != nil {
-				break
-			}
+	for _, n := range r.si.NavItems {
+		if r.pi.NavItem = n.FindID(r.pi.ID); r.pi.NavItem != nil {
+			break
 		}
-		if r.pi.NavItem == nil {
+	}
+	if r.pi.NavItem == nil {
+		// Add a fake nav item for the index page if it's current and isn't listed.
+		// The Name and URL fields don't need to be set since this item is never rendered.
+		if r.pi.ID == indexID {
+			r.pi.NavItem = &NavItem{ID: indexID}
+		} else {
 			r.setErrorf("no page with ID %q", r.pi.ID)
 			return
 		}
