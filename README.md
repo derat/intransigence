@@ -177,9 +177,9 @@ Left and right floats can be cleared using an empty fenced code block of type
 
 ### URLs
 
-URLs can be specified within `<code-url></code-url>` to prevent word-breaking.
-The contents are not escaped. Add a backslash in the scheme to prevent
-auto-linking.
+URLs can be placed within `<code-url></code-url>` to let them wrap on mobile
+even if they don't contain characters that would usually trigger wrapping. The
+contents are not escaped. Add a backslash in the scheme to prevent auto-linking.
 
 ### Text size
 

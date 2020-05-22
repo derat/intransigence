@@ -92,8 +92,8 @@ func TestBuild_Full(t *testing.T) {
 		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
 		`<span class="small">makes\s+text\s+small</span>`,             // <text-size small>
 		`<span class="real-small">makes\s+it\s+even\s+smaller</span>`, // <text-size tiny>
-		`<code class="url">https://www.example.org/a/quite/long/url/` +
-			`that/should/not/be/wrapped/</code>`, // <code-url>
+		`<code class="url">https://www.example.org/a/quite/long/url` + // <code-url>
+			`/that/should/be/wrapped</code>`,
 		`<a href="#top">Back\s+to\s+top</a>`,
 		`Page created in 2020\.`,
 		`Last modified May 21, 2020\.`,

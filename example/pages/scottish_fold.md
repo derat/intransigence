@@ -84,6 +84,7 @@ version](scottish_fold.html!force_amp).</only-nonamp>
 `<text-size small>` <text-size small>makes text small</text-size>, and
 `<text-size tiny>` <text-size tiny>makes it even smaller</text-size>.
 
-When specifying a URL, it's nice to have it not wrapped across multiple lines.
-You can accomplish this on larger displays by using `<code-url>`, as seen here:
-<code-url>https://www.example.org/a/quite/long/url/that/should/not/be/wrapped/</code-url>
+When specifying a long URL, it's nice to have it wrap across multiple lines on
+smaller displays even if it doesn't contain characters that would normally
+trigger wrapping. You can accomplish this by using `<code-url>`, as seen here:
+<code-url>https://www.example.org/a/quite/long/url/that/should/be/wrapped</code-url>
