@@ -24,6 +24,7 @@ type imgInfo struct {
 	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
 
 	// These fields are set programatically, mostly by finishImgInfo.
+	ID                 string              // DOM ID for image
 	Attr               []template.HTMLAttr // additional attributes to include (can be modified before/after finishImgInfo)
 	Src, WebPSrc       string              // 'src' attr values for original and WebP images (set by finishImgInfo)
 	Srcset, WebPSrcset string              // 'srcset' attr values for original and WebP images (set by finishImgInfo)

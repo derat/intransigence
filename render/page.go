@@ -234,7 +234,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.LogoHTML = imgInfo{
 		Path: r.si.LogoPathHTML,
 		Alt:  r.si.LogoAlt,
-		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
+		ID:   "nav-logo",
 	}
 	if err := r.pi.LogoHTML.finish(r.si, r.amp); err != nil {
 		r.setErrorf("logo failed: %v", err)
@@ -252,7 +252,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.LogoAMP = imgInfo{
 		Path: r.si.LogoPathAMP,
 		Alt:  r.si.LogoAlt,
-		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
+		ID:   "nav-logo",
 	}
 	if err := r.pi.LogoAMP.finish(r.si, r.amp); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)
@@ -263,7 +263,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.NavToggle = imgInfo{
 		Path: r.si.NavTogglePath,
 		Alt:  "[toggle navigation]",
-		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-toggle-img"`)},
+		ID:   "nav-toggle-img",
 	}
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Attr = append(r.pi.NavToggle.Attr, template.HTMLAttr(`class="expand"`))
@@ -276,8 +276,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.MenuButton = imgInfo{
 		Path: r.si.MenuButtonPath,
 		Alt:  "[toggle menu]",
+		ID:   "menu-button",
 		Attr: []template.HTMLAttr{
-			template.HTMLAttr(`id="menu-button"`),
 			template.HTMLAttr(`tabindex="0"`),
 			template.HTMLAttr(`role="button"`),
 			template.HTMLAttr(`on="tap:sidebar.open"`),
