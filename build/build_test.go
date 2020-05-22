@@ -56,8 +56,9 @@ func TestBuild_Full(t *testing.T) {
 		`Welcome`, // from heading
 		`This is the site's landing page\.`,
 	}, []string{
-		`Back to top`,   // hide_back_to_top
-		`Last modified`, // hide_dates
+		`class="collapsed-mobile"`, // navbox shouldn't be collapsed for index
+		`Back to top`,              // hide_back_to_top
+		`Last modified`,            // hide_dates
 	})
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
 		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
@@ -97,6 +98,7 @@ func TestBuild_Full(t *testing.T) {
 		`Page created in 2020\.`,
 		`Last modified May 21, 2020\.`,
 	}, []string{
+		`class="collapsed-mobile"`,          // navbox shouldn't be collapsed due to children
 		`(?s)viewing\s+the\s+AMP\s+version`, // <only-amp>
 	})
 

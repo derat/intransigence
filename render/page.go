@@ -367,8 +367,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			return
 		}
 
-		r.pi.HTMLStyle = template.CSS(getStdInline("base.css") + getStdInline("base-nonamp.css") +
-			r.si.ReadInline("base.css.min") + r.si.ReadInline("base-nonamp.css.min") +
+		r.pi.HTMLStyle = template.CSS(getStdInline("base.css") + getStdInline("nonamp.css") +
+			r.si.ReadInline("base.css.min") + r.si.ReadInline("nonamp.css.min") +
 			fmt.Sprintf("@media(min-width:%dpx){%s%s}",
 				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css.min")) +
 			fmt.Sprintf("@media(max-width:%dpx){%s%s}",

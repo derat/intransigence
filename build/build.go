@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/derat/plaingen/render"
+	"github.com/derat/intransigence/render"
 	"github.com/otiai10/copy"
 )
 

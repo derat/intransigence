@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/derat/plaingen/build"
+	"github.com/derat/intransigence/build"
 )
 
 func main() {

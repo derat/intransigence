@@ -1,4 +1,4 @@
-module github.com/derat/plaingen
+module github.com/derat/intransigence
 
 go 1.14
 

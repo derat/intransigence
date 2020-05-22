@@ -1,9 +1,9 @@
 # Current and past/temp generated site.
-out/
+/out
 /.out.*
+
+# Generated minified CSS files.
+/inline/*.css.min
 
 # Generated WebP images.
 *.webp
-
-# Generated minified CSS files.
-inline/*.css.min

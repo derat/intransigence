@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/derat/htmlpretty"
-	"github.com/derat/plaingen/render"
+	"github.com/derat/intransigence/render"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/derat/plaingen/render"
+	"github.com/derat/intransigence/render"
 )
 
 // writeSitemap generates a sitemap listing all normal pages in si and writes it to path p.

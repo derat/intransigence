@@ -39,7 +39,7 @@ type NavItem struct {
 
 // IsIndex returns true if this item represents the site's index page.
 func (n *NavItem) IsIndex() bool {
-	return n.ID == "indexID"
+	return n.ID == indexID
 }
 
 // IsBarePage returns true if n.URL represents a bare page without a fragment, e.g. "foo.html".
