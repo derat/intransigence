@@ -1,5 +1,7 @@
 # intransigence
 
+## Description
+
 This repository contains Go code for generating a basic-but-modern static
 website from Markdown files. Various features are included (and hardcoded):
 
@@ -60,6 +62,24 @@ future.
 [generating AMP pages]: https://www.erat.org/amp.html#my-site
 
 ## Usage
+
+### Installation
+
+The `intransigence` executable can be installed to `$GOPATH/bin` by running `go
+install ./...`.
+
+### Dependencies
+
+The following tools must be available in `$PATH`:
+
+*   `cwebp` and `gif2webp` to create WebP images.
+*   `sassc` to process SASS `.scss` files into standard CSS files.
+*   `yui-compressor` to minify JavaScript files.
+
+These tools can be installed on a Debian system by running `apt install sassc
+webp yui-compressor` as root.
+
+### Site directory
 
 A site is defined via a directory with the following structure:
 
@@ -177,7 +197,7 @@ enclosed markup will be wrapped in an HTML comment in the other version.
 A link to a page can be suffixed with `!force\_amp` or `!force\_nonamp` to force
 it to always be rewritten to the AMP or non-AMP version of the page.
 
-## Details
+## Implementation
 
 ### `render` package
 

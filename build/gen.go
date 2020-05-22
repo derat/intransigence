@@ -137,7 +137,7 @@ func generateCSS(dir string) error {
 		statusf("Generating CSS: [%d/%d]", i, len(ps))
 		dp := p[:len(p)-4] + "css" + minSuffix
 		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
-			return err
+			return fmt.Errorf("failed running sassc on %v: %v", p, err)
 		}
 	}
 	return nil
@@ -182,7 +182,7 @@ func generateWebP(dir string) error {
 		switch filepath.Ext(ip) {
 		case ".gif":
 			if err := exec.Command("gif2webp", ip, "-o", wp).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed running gif2webp on %v: %v", ip, err)
 			}
 		default:
 			// https://chromium.googlesource.com/webm/libwebp/+/refs/heads/0.4.1/src/enc/config.c#52
@@ -191,7 +191,7 @@ func generateWebP(dir string) error {
 				preset = "photo"
 			}
 			if err := exec.Command("cwebp", "-preset", preset, ip, "-o", wp).Run(); err != nil {
-				return err
+				return fmt.Errorf("failed running cwebp on %v: %v", ip, err)
 			}
 		}
 		num++
