@@ -13,9 +13,6 @@ author_name: Site Author
 author_email: user@example.org
 publisher_name: example.org
 publisher_logo_path: resources/logo-460.png
-google_analytics_code: UA-123456-1
-google_maps_api_key: 
-d3_script_url: https://d3js.org/d3.v3.min.js
 extra_static_dirs:
   "extra": other
 nav_items:

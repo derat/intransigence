@@ -54,10 +54,14 @@ type SiteInfo struct {
 	PublisherLogoPath string `yaml:"publisher_logo_path"`
 
 	// GoogleAnalyticsCode uniquely identifies the site, e.g. "UA-123456-1".
+	// Google Analytics is only used for the AMP version of the page (typically served from a CDN),
+	// and only if this field is non-empty.
 	GoogleAnalyticsCode string `yaml:"google_analytics_code"`
 	// GoogleMapsAPIKey is used for Google Maps API billing.
+	// It is only needed if maps are embedded in the site.
 	GoogleMapsAPIKey string `yaml:"google_maps_api_key"`
 	// D3ScriptURL is the URL of the minified d3.js to use for graphs.
+	// The CDN-hosted version of the file is used by default.
 	D3ScriptURL string `yaml:"d3_script_url"`
 	// ExtraStaticDirs contains extra dirs to copy into the output dir.
 	// Keys are paths relative to the site dir and values are paths relative to the output dir.
@@ -65,6 +69,10 @@ type SiteInfo struct {
 
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
+
+	// FaviconWidth and FaviconHeight are automatically inferred from FaviconPath.
+	FaviconWidth  int `yaml:"-"`
+	FaviconHeight int `yaml:"-"`
 
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
@@ -87,6 +95,17 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	ip := filepath.Join(si.PageDir(), "index.md")
 	if _, err := os.Stat(ip); err != nil {
 		return nil, err
+	}
+
+	if si.D3ScriptURL == "" {
+		si.D3ScriptURL = "https://d3js.org/d3.v3.min.js"
+	}
+
+	if si.FaviconPath != "" {
+		if si.FaviconWidth, si.FaviconHeight, err = imageSize(
+			filepath.Join(si.StaticDir(), si.FaviconPath)); err != nil {
+			return nil, fmt.Errorf("failed getting favicon dimensions: %v", err)
+		}
 	}
 
 	return &si, nil

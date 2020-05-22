@@ -60,15 +60,13 @@ type pageInfo struct {
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more graphs
 
-	SiteInfo      *SiteInfo `yaml:"-"` // site-level information
-	FaviconWidth  int       `yaml:"-"` // width of SiteInfo.FaviconPath
-	FaviconHeight int       `yaml:"-"` // width of SiteInfo.FaviconPath
-	LogoHTML      imgInfo   `yaml:"-"` // header logo for non-AMP
-	LogoAMP       imgInfo   `yaml:"-"` // header logo for AMP
-	NavToggle     imgInfo   `yaml:"-"` // nav toggle icon for non-AMP
-	MenuButton    imgInfo   `yaml:"-"` // menu button for AMP
+	SiteInfo *SiteInfo `yaml:"-"` // site-level information
+	NavItem  *NavItem  `yaml:"-"` // nav item corresponding to current page
 
-	NavItem *NavItem `yaml:"-"` // nav item corresponding to current page
+	LogoHTML   imgInfo `yaml:"-"` // header logo for non-AMP
+	LogoAMP    imgInfo `yaml:"-"` // header logo for AMP
+	NavToggle  imgInfo `yaml:"-"` // nav toggle icon for non-AMP
+	MenuButton imgInfo `yaml:"-"` // menu button for AMP
 
 	LinkRel  string `yaml:"-"` // rel attribute for <link>, e.g. "canonical"
 	LinkHref string `yaml:"-"` // href attribute for <link>
@@ -224,13 +222,6 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		}
 	}
 
-	var err error
-	if r.pi.FaviconWidth, r.pi.FaviconHeight, err = imageSize(
-		filepath.Join(r.si.StaticDir(), r.si.FaviconPath)); err != nil {
-		r.setErrorf("failed getting favicon dimensions: %v", err)
-		return
-	}
-
 	r.pi.LogoHTML = imgInfo{
 		Path: r.si.LogoPathHTML,
 		Alt:  r.si.LogoAlt,
@@ -307,6 +298,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			URL:  r.si.BaseURL,
 		},
 	}
+	var err error
 	if r.si.PublisherLogoPath != "" {
 		if r.pi.StructData.Publisher.Logo, err = r.newStructDataImage(r.si.PublisherLogoPath); err != nil {
 			r.setError(err)
