@@ -48,13 +48,10 @@ type SiteInfo struct {
 	MenuButtonPath string `yaml:"menu_button_path"`
 
 	// The following fields are used in structured data.
-	// TODO: Accept a path for the publisher logo and infer width/height.
-	AuthorName          string `yaml:"author_name"`
-	AuthorEmail         string `yaml:"author_email"`
-	PublisherName       string `yaml:"publisher_name"`
-	PublisherLogoURL    string `yaml:"publisher_logo_url"`
-	PublisherLogoWidth  int    `yaml:"publisher_logo_width"`
-	PublisherLogoHeight int    `yaml:"publisher_logo_height"`
+	AuthorName        string `yaml:"author_name"`
+	AuthorEmail       string `yaml:"author_email"`
+	PublisherName     string `yaml:"publisher_name"`
+	PublisherLogoPath string `yaml:"publisher_logo_path"`
 
 	// GoogleAnalyticsCode uniquely identifies the site, e.g. "UA-123456-1".
 	GoogleAnalyticsCode string `yaml:"google_analytics_code"`

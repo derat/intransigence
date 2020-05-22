@@ -7,10 +7,10 @@ type structData struct {
 	Context          string `json:"@context"`
 	Type             string `json:"@type"`
 	MainEntityOfPage string `json:"mainEntityOfPage"`
-	Headline         string `json:"headline"`
+	Headline         string `json:"headline,omitempty"`
 	Description      string `json:"description,omitempty"`
 	DateModified     string `json:"dateModified,omitempty"`
-	DatePublished    string `json:"datePublished"`
+	DatePublished    string `json:"datePublished,omitempty"`
 
 	Author    structDataAuthor    `json:"author"`
 	Publisher structDataPublisher `json:"publisher"`
@@ -20,15 +20,15 @@ type structData struct {
 
 type structDataAuthor struct {
 	Type  string `json:"@type"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 type structDataPublisher struct {
-	Type string          `json:"@type"`
-	Name string          `json:"name"`
-	URL  string          `json:"url"`
-	Logo structDataImage `json:"logo"`
+	Type string           `json:"@type"`
+	Name string           `json:"name,omitempty"`
+	URL  string           `json:"url,omitempty"`
+	Logo *structDataImage `json:"logo,omitempty"`
 }
 
 type structDataImage struct {

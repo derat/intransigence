@@ -55,9 +55,7 @@ type pageInfo struct {
 	Title           string `yaml:"title"`             // used in <title> element
 	ID              string `yaml:"id"`                // ID to highlight in navbox
 	Desc            string `yaml:"desc"`              // meta description
-	ImgURL          string `yaml:"img_url"`           // structured data image URL (must be 696 pixels wide)
-	ImgWidth        int    `yaml:"img_width"`         // structured data image width
-	ImgHeight       int    `yaml:"img_height"`        // structured data image width
+	ImagePath       string `yaml:"image_path"`        // path to structured data image
 	Created         string `yaml:"created"`           // creation date as 'YYYY-MM-DD'
 	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
 	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
@@ -312,7 +310,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 
 	// It would be much simpler to just use a map[string]interface{} for this,
 	// but the properties are marshaled in an arbitrary order then, making it
-	// hard to compare the output against template_lib.rb.
+	// hard to compare the output against the previous version of the site.
 	r.pi.StructData = structData{
 		Context:       "http://schema.org",
 		Type:          "Article",
@@ -327,13 +325,13 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 			Type: "Organization",
 			Name: r.si.PublisherName,
 			URL:  r.si.BaseURL,
-			Logo: structDataImage{
-				Type:   "ImageObject",
-				URL:    r.si.PublisherLogoURL,
-				Width:  r.si.PublisherLogoWidth,
-				Height: r.si.PublisherLogoHeight,
-			},
 		},
+	}
+	if r.si.PublisherLogoPath != "" {
+		if r.pi.StructData.Publisher.Logo, err = r.newStructDataImage(r.si.PublisherLogoPath); err != nil {
+			r.setError(err)
+			return
+		}
 	}
 	if r.pi.StructData.MainEntityOfPage, err = r.si.AbsURL(r.pi.NavItem.URL); err != nil {
 		r.setError(err)
@@ -345,17 +343,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *md.Node) {
 	if r.pi.Modified != "" {
 		r.pi.StructData.DateModified = r.pi.Modified
 	}
-	if r.pi.ImgURL != "" && r.pi.ImgWidth > 0 && r.pi.ImgHeight > 0 {
-		r.pi.StructData.Image = &structDataImage{
-			Type:   "ImageObject",
-			Width:  r.pi.ImgWidth,
-			Height: r.pi.ImgHeight,
-		}
-		if err := r.si.CheckStatic(r.pi.ImgURL); err != nil {
-			r.setError(err)
-			return
-		}
-		if r.pi.StructData.Image.URL, err = r.si.AbsURL(r.pi.ImgURL); err != nil {
+	if r.pi.ImagePath != "" {
+		if r.pi.StructData.Image, err = r.newStructDataImage(r.pi.ImagePath); err != nil {
 			r.setError(err)
 			return
 		}
@@ -895,6 +884,21 @@ func (r *renderer) makeSrcset(pre, suf string) (string, []int, error) {
 		srcs = append(srcs, fmt.Sprintf("%s%d%s %dw", pre, width, suf, width))
 	}
 	return strings.Join(srcs, ", "), widths, nil
+}
+
+// newStructDataImage returns a structDataImage for the image
+// at the supplied path under the static dir.
+func (r *renderer) newStructDataImage(path string) (*structDataImage, error) {
+	img := &structDataImage{Type: "ImageObject"}
+	if err := r.si.CheckStatic(path); err != nil {
+		return nil, err
+	}
+	var err error
+	if img.URL, err = r.si.AbsURL(path); err != nil {
+		return nil, err
+	}
+	img.Width, img.Height, err = imageSize(filepath.Join(r.si.StaticDir(), path))
+	return img, err
 }
 
 // removeExt removes the extension (e.g. ".txt") from p.

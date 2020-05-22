@@ -39,8 +39,20 @@ func TestBuild_Full(t *testing.T) {
 		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
 		`<meta charset="utf-8">`,
 		`<link rel="amphtml"\s+href="https://www.example.org/index.amp.html">`,
-		`"datePublished":\s*"2020-05-20"`,                             // struct data
 		`(?s)<title>\s*Welcome\s+to\s+an\s+example\s+site\s*</title>`, // hide_title_suffix
+		`<link rel="icon" sizes="192x192" href="resources/favicon\.png">`,
+		`<script type="application/ld\+json">` + // structured data
+			`{"@context":"http://schema\.org","@type":"Article",` +
+			`"mainEntityOfPage":"https://www\.example\.org/",` +
+			`"headline":"Welcome to an example site",` +
+			`"description":"Provides a high-level overview of features",` +
+			`"dateModified":"2020-05-20","datePublished":"2020-05-19",` +
+			`"author":{"@type":"Person","name":"Site Author","email":"user@example\.org"},` +
+			`"publisher":{"@type":"Organization","name":"example\.org","url":"https://www\.example\.org/",` +
+			`"logo":{"@type":"ImageObject","url":"https://www\.example\.org/resources/logo-460\.png","width":460,"height":460}},` +
+			`"image":{"@type":"ImageObject","url":"https://www\.example\.org/scottish_fold/maru-800\.jpg","width":800,"height":500}}` +
+			`</script>`,
+		`<meta name="description" content="Provides a high-level overview of features">`, // desc
 		`Welcome`, // from heading
 		`This is the site's landing page\.`,
 	}, []string{
