@@ -8,16 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
 	"net/url"
-	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -84,24 +80,6 @@ type pageInfo struct {
 	AMPCustomStyle   template.CSS  `yaml:"-"` // inline custom CSS for AMP page
 	CSPMeta          template.HTML `yaml:"-"` // <meta> tag for Content Security policy
 	StructData       structData    `yaml:"-"` // structured data JSON info
-}
-
-// imgInfo holds information used by img.tmpl.
-type imgInfo struct {
-	Path   string `html:"path" yaml:"path"`     // path, e.g. "files/img.png" or "files/img-*.png"
-	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels; inferred if empty
-	Height int    `html:"height" yaml:"height"` // 100% height in pixels; inferred if empty
-	Alt    string `html:"alt" yaml:"alt"`       // alt text
-	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
-
-	// These fields are set programatically, mostly by finishImgInfo.
-	Attr               []template.HTMLAttr // additional attributes to include (can be modified before/after finishImgInfo)
-	Src, WebPSrc       string              // 'src' attr values for original and WebP images (set by finishImgInfo)
-	Srcset, WebPSrcset string              // 'srcset' attr values for original and WebP images (set by finishImgInfo)
-	Sizes              string              // 'sizes' attr value (set by finishImgInfo but can be modified after)
-	biggestSrc         string              // highest-res version of Src (set by finishImgInfo)
-	widths             []int               // ascending widths in pixels of images if multi-res (set by finishImgInfo)
-	layout             string              // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
 }
 
 // figureInfo holds information used by figure.tmpl.
@@ -258,7 +236,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		Alt:  r.si.LogoAlt,
 		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
 	}
-	if err := r.finishImgInfo(&r.pi.LogoHTML); err != nil {
+	if err := r.pi.LogoHTML.finish(r.si, r.amp); err != nil {
 		r.setErrorf("logo failed: %v", err)
 		return
 	}
@@ -276,7 +254,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		Alt:  r.si.LogoAlt,
 		Attr: []template.HTMLAttr{template.HTMLAttr(`id="nav-logo"`)},
 	}
-	if err := r.finishImgInfo(&r.pi.LogoAMP); err != nil {
+	if err := r.pi.LogoAMP.finish(r.si, r.amp); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)
 		return
 	}
@@ -290,7 +268,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Attr = append(r.pi.NavToggle.Attr, template.HTMLAttr(`class="expand"`))
 	}
-	if err := r.finishImgInfo(&r.pi.NavToggle); err != nil {
+	if err := r.pi.NavToggle.finish(r.si, r.amp); err != nil {
 		r.setErrorf("nav toggle failed: %v", err)
 		return
 	}
@@ -305,7 +283,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			template.HTMLAttr(`on="tap:sidebar.open"`),
 		},
 	}
-	if err := r.finishImgInfo(&r.pi.MenuButton); err != nil {
+	if err := r.pi.MenuButton.finish(r.si, r.amp); err != nil {
 		r.setErrorf("menu button failed: %v", err)
 		return
 	}
@@ -490,7 +468,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
-		if err := r.finishImgInfo(&info.imgInfo); err != nil {
+		if err := info.imgInfo.finish(r.si, r.amp); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -521,7 +499,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		info.imgInfo.layout = "fill"
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
-		if err := r.finishImgInfo(&info.imgInfo); err != nil {
+		if err := info.imgInfo.finish(r.si, r.amp); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -623,7 +601,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := r.finishImgInfo(&info); err != nil {
+				if err := info.finish(r.si, r.amp); err != nil {
 					return 0, err
 				}
 				if err := r.tmpl.runNamed(w, []string{"img.tmpl"}, "img", info, nil); err != nil {
@@ -765,129 +743,6 @@ func (r *renderer) mangleOutput(w io.Writer, node *bf.Node, entering bool, ops m
 	return ret
 }
 
-// finishImgInfo validates an imgInfo struct and fills additional fields.
-func (r *renderer) finishImgInfo(info *imgInfo) error {
-	if info.Path == "" {
-		return errors.New("path must be set")
-	}
-	if info.Alt == "" {
-		return errors.New("alt must be set")
-	}
-	if r.amp {
-		if info.layout == "" {
-			info.layout = "responsive"
-		}
-		info.Attr = append(info.Attr, template.HTMLAttr(fmt.Sprintf(`layout="%s"`, info.layout)))
-	}
-	if info.Lazy && !r.amp { // <amp-img> already lazy-loads
-		info.Attr = append(info.Attr, template.HTMLAttr(`loading="lazy"`))
-	}
-
-	wc := strings.IndexByte(info.Path, '*')
-	if wc == -1 {
-		info.Src = info.Path
-		info.WebPSrc = removeExt(info.Src) + WebPExt
-		info.biggestSrc = info.Src
-
-		// If the image's display dimensions weren't supplied, get them from the file.
-		if info.Width <= 0 || info.Height <= 0 {
-			var err error
-			if info.Width, info.Height, err = imageSize(filepath.Join(r.si.StaticDir(), info.Src)); err != nil {
-				return fmt.Errorf("failed getting %v size: %v", info.Src, err)
-			}
-		}
-		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
-		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
-	} else {
-		pre := info.Path[:wc]
-		suf := info.Path[wc+1:]
-		var err error
-		if info.Srcset, info.widths, err = r.makeSrcset(pre, suf); err != nil {
-			return err
-		} else if info.Srcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
-		}
-		wsuf := removeExt(suf) + WebPExt
-		if info.WebPSrcset, _, err = r.makeSrcset(pre, wsuf); err != nil {
-			return err
-		} else if info.WebPSrcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
-		}
-
-		if info.Width <= 0 || info.Height <= 0 {
-			var p string
-			if info.Width <= 0 && len(info.widths) >= 2 {
-				// If there are 1x and 2x images, use the dimensions of the 1x image.
-				for _, w := range info.widths[1:] {
-					if w == 2*info.widths[0] {
-						p = fmt.Sprintf("%s%d%s", pre, info.widths[0], suf)
-					}
-				}
-			} else if info.Width > 0 {
-				// If the width was supplied, use that file's height.
-				p = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
-			}
-			if p == "" {
-				return errors.New("dimensions could not be determined")
-			}
-			if info.Width, info.Height, err = imageSize(filepath.Join(r.si.StaticDir(), p)); err != nil {
-				return fmt.Errorf("failed getting %v dimensions: %v", p, err)
-			}
-		}
-		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
-		info.WebPSrc = removeExt(info.Src) + WebPExt
-		info.biggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
-	}
-
-	if info.Sizes == "" {
-		info.Sizes = fmt.Sprintf("%dpx", info.Width)
-	}
-
-	if err := r.si.CheckStatic(info.Src); err != nil {
-		return err
-	}
-	if err := r.si.CheckStatic(info.WebPSrc); err != nil {
-		return err
-	}
-	if err := r.si.CheckStatic(info.biggestSrc); err != nil {
-		return err
-	}
-	return nil
-}
-
-// makeSrcset returns a srcset attribute value corresponding to the images matched by
-// pre and suf. The returned slice contains image widths in ascending order.
-func (r *renderer) makeSrcset(pre, suf string) (string, []int, error) {
-	glob := filepath.Join(r.si.StaticDir(), pre+"*"+suf)
-	ps, err := filepath.Glob(glob)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// Ascending order by embedded image width.
-	sort.Slice(ps, func(i, j int) bool {
-		if len(ps[i]) < len(ps[j]) {
-			return true
-		} else if len(ps[i]) > len(ps[j]) {
-			return false
-		}
-		return ps[i] < ps[j]
-	})
-
-	var srcs []string
-	var widths []int
-	preLen := len(filepath.Join(r.si.StaticDir(), pre))
-	for _, p := range ps {
-		width, err := strconv.Atoi(p[preLen : len(p)-len(suf)])
-		if err != nil {
-			return "", nil, err
-		}
-		widths = append(widths, width)
-		srcs = append(srcs, fmt.Sprintf("%s%d%s %dw", pre, width, suf, width))
-	}
-	return strings.Join(srcs, ", "), widths, nil
-}
-
 // newStructDataImage returns a structDataImage for the image
 // at the supplied path under the static dir.
 func (r *renderer) newStructDataImage(path string) (*structDataImage, error) {
@@ -906,18 +761,6 @@ func (r *renderer) newStructDataImage(path string) (*structDataImage, error) {
 // removeExt removes the extension (e.g. ".txt") from p.
 func removeExt(p string) string {
 	return p[:len(p)-len(filepath.Ext(p))]
-}
-
-// imageSize returns the dimensions of the image at p.
-func imageSize(p string) (w, h int, err error) {
-	f, err := os.Open(p)
-	if err != nil {
-		return 0, 0, err
-	}
-	defer f.Close()
-
-	cfg, _, err := image.DecodeConfig(f)
-	return cfg.Width, cfg.Height, err
 }
 
 // getStdInline returns the contents of the named standard inline file from std_inline.go.
