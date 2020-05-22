@@ -10,8 +10,8 @@ modified: 2020-05-20
 This page lists the various cats that this site has to offer.
 
 A `page` fenced code block must appear at the top of every page Markdown file.
-It contains metadata about the page like its title and the page's ID in
-`site.yaml`:
+It contains a YAML dictionary of metadata about the page, like its title and the
+page's ID in `site.yaml`:
 
 ````md
 ```page

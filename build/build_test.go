@@ -38,88 +38,112 @@ func TestBuild_Full(t *testing.T) {
 	checkPageContents(t, filepath.Join(out, "index.html"), []string{
 		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
 		`<meta charset="utf-8">`,
-		`<link rel="amphtml" href="https://www.example.org/index.amp.html">`,
-		`"datePublished":\s*"1995-01-01"`,              // struct data
-		`(?s)<title>\s*Index - example.org\s*</title>`, // suffix added
-		`Hello`, // from heading
-		`This is the index page\.`,
-		`Back to top`,
-		`Page created in 1995.`,        // from page block
-		`Last modified Dec. 31, 1999.`, // from page block
-	}, nil)
+		`<link rel="amphtml"\s+href="https://www.example.org/index.amp.html">`,
+		`"datePublished":\s*"2020-05-20"`,                             // struct data
+		`(?s)<title>\s*Welcome\s+to\s+an\s+example\s+site\s*</title>`, // hide_title_suffix
+		`Welcome`, // from heading
+		`This is the site's landing page\.`,
+	}, []string{
+		`Back to top`,   // hide_back_to_top
+		`Last modified`, // hide_dates
+	})
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
 		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
-		`<link rel="canonical" href="https://www.example.org/">`,
+		`<link rel="canonical"\s+href="https://www.example.org/">`,
 	}, nil)
 
-	// Check that custom features work.
-	checkPageContents(t, filepath.Join(out, "features.html"), []string{
-		`(?s)<div class="title">\s*Features\s*</div>`, // level-1 heading
-		`(?s)<title>\s*Features\s*</title>`,           // hide_title_suffix
-		// TODO: Also test prefix/suffix.
-		`<figure class="desktop-right mobile-center custom-class">\s*` + // "image" code block
-			`<a href="img_link.html">` +
+	// scottish_fold.html demonstrates a large number of custom features.
+	checkPageContents(t, filepath.Join(out, "scottish_fold.html"), []string{
+		`(?s)<title>\s*Scottish Fold\s+-\s+example.org\s*</title>`, // suffix added to title
+		`<li><span\s+class="selected">Scottish\s+Fold</span>`,      // nav item selected
+		`(?s)<div class="title">\s*Scottish\s+Fold\s*</div>`,       // box created by level-1 heading
+		`<figure class="desktop-left mobile-center custom-class">\s*` + // "image" code block
+			`<a href="scottish_fold/maru-800\.jpg">` +
 			`<picture>` +
-			`<source\s+type="image/webp"\s+sizes="300px"\s+srcset="images/test.webp 300w">` +
-			`<img\s+src="images/test.png"\s+sizes="300px"\s+srcset="images/test.png 300w"\s+` +
-			`width="300"\s+height="200"\s+alt="Alt text">` +
+			`<source\s+type="image/webp"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w">` +
+			`<img\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">` +
 			`</picture>` +
 			`</a>\s*` +
-			`<figcaption>\s*Image caption\s*</figcaption>\s*` +
+			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
 		`<div class="clear"></div>`, // "clear" code block
 		`<picture>` + // <image>
-			`<source\s+type="image/webp"\s+sizes="48px"\s+srcset="images/test.webp 48w">` +
-			`<img class="inline"\s+src="images/test.png"\s+sizes="48px"\s+` +
-			`srcset="images/test.png 48w"\s+width="48"\s+height="24"\s+alt="Alt text">` +
+			`<source\s+type="image/webp"\s+sizes="61px"\s+srcset="scottish_fold/nyan\.webp 61w">` +
+			`<img\s+class="inline"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
+			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">` +
 			`</picture>`,
-		`<code class="url">https://code.example.org/</code>`, // <code-url>
-		`<span class="small">small text</span>`,              // <text-size small>
-		`<span class="real-small">tiny text</span>`,          // <text-size tiny>
-		`(?s)<p>\s*only for non-AMP\s*</p>`,                  // </only-nonamp>
-		// !force_amp and !force_nonamp link flags
-		`<a href="https://www.google.com/">absolute link</a>`,
-		`<a href="bare.html#frag">bare link</a>`,
-		`<a href="files/file.txt">text link</a>`,
-		`<a href="forced_amp.amp.html#frag">forced AMP link</a>`,
-		`<a href="forced_nonamp.html#frag">forced non-AMP link</a>`,
+		`(?s)viewing\s+the\s+non-AMP\s+version`,                       // <only-nonamp>
+		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
+		`<span class="small">makes\s+text\s+small</span>`,             // <text-size small>
+		`<span class="real-small">makes\s+it\s+even\s+smaller</span>`, // <text-size tiny>
+		`<code class="url">https://www.example.org/a/quite/long/url/` +
+			`that/should/not/be/wrapped/</code>`, // <code-url>
+		`<a href="#top">Back\s+to\s+top</a>`,
+		`Page created in 2020\.`,
+		`Last modified May 21, 2020\.`,
 	}, []string{
-		`only for amp`,  // <only-amp>
-		`Back to top`,   // hide_back_to_top
-		`Last modified`, // no modified in page block
-	})
-	checkPageContents(t, filepath.Join(out, "features.amp.html"), []string{
-		`(?)<p>\s*only for AMP\s*</p>`, // <only-amp>
-		// !force_amp and !force_nonamp link flags
-		`<a href="https://www.google.com/">absolute link</a>`,
-		`<a href="bare.amp.html#frag">bare link</a>`,
-		`<a href="https://www.example.org/files/file.txt">text link</a>`,
-		`(?s)<a href="forced_amp.amp.html#frag">forced\s+AMP\s+link</a>`,
-		`(?s)<a href="forced_nonamp.html#frag">forced\s+non-AMP\s+link</a>`,
-	}, []string{
-		`only for non-AMP`,
+		`(?s)viewing\s+the\s+AMP\s+version`, // <only-amp>
 	})
 
-	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(dir, "static/images/test.png"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "other/test.css"), filepath.Join(dir, "static/other/test.css"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(dir, "extra/file.txt"), contentsEqual)
+	// Check AMP-specific markup in the AMP version of the page.
+	checkPageContents(t, filepath.Join(out, "scottish_fold.amp.html"), []string{
+		`<figure class="desktop-left mobile-center custom-class">\s*` + // "image" code block
+			`<a href="https://www\.example\.org/scottish_fold/maru-800\.jpg">` +
+			`<amp-img\s+layout="responsive"\s+src="scottish_fold/maru-400\.webp"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w"\s+` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">` +
+			`<amp-img\s+fallback\s+layout="responsive"\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box"></amp-img>` +
+			`</amp-img>` +
+			`</a>\s*` +
+			`<figcaption>\s*Maru\s*</figcaption>\s*` +
+			`</figure>`,
+		`<amp-img\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.webp"\s+sizes="61px"\s+` + // <image>
+			`srcset="scottish_fold/nyan\.webp 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">` +
+			`<amp-img\s+fallback\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
+			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>` +
+			`</amp-img>`,
+		`(?s)viewing\s+the\s+AMP\s+version`,                   // <only-amp>
+		`<a href="scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp
+	}, []string{
+		`(?s)viewing\s+the\s+non-AMP\s+version`, // <only-nonamp>
+	})
+
+	// Static data should be copied into the output directory.
+	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "favicon.ico"), filepath.Join(dir, "static/favicon.ico"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold/nyan.gif"), filepath.Join(dir, "static/scottish_fold/nyan.gif"), contentsEqual)
+	compareFiles(t, filepath.Join(out, "other/extra.html"), filepath.Join(dir, "extra/extra.html"), contentsEqual)
 
 	// Textual files should be gzipped, and the .gz file should have the same mtime as the original file.
 	compareFiles(t, filepath.Join(out, "index.html.gz"), filepath.Join(out, "index.html"), contentsEqual|mtimeEqual)
-	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(out, "features.html"), contentsEqual|mtimeEqual)
-	compareFiles(t, filepath.Join(out, "other/test.css.gz"), filepath.Join(out, "other/test.css"), contentsEqual|mtimeEqual)
-	checkFileNotExist(t, filepath.Join(out, "images/test.png.gz")) // image files shouldn't be compressed
+	compareFiles(t, filepath.Join(out, "cats.html.gz"), filepath.Join(out, "cats.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold.html.gz"), filepath.Join(out, "scottish_fold.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "static.html.gz"), filepath.Join(out, "static.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "other/extra.html.gz"), filepath.Join(out, "other/extra.html"), contentsEqual|mtimeEqual)
+
+	// Image files shouldn't be compressed.
+	checkFileNotExist(t, filepath.Join(out, "favicon.ico.gz"))
+	checkFileNotExist(t, filepath.Join(out, "scottish_fold/nyan.gif.gz"))
 
 	// The generated sitemap should list all pages.
 	checkFileContents(t, filepath.Join(out, sitemapFile), strings.TrimLeft(`
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://www.example.org/index.html</loc>
+    <loc>https://www.example.org/</loc>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://www.example.org/features.html</loc>
+    <loc>https://www.example.org/cats.html</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://www.example.org/scottish_fold.html</loc>
     <changefreq>weekly</changefreq>
   </url>
 </urlset>
@@ -158,12 +182,13 @@ func TestBuild_Rebuild(t *testing.T) {
 	oldOut := filepath.Join(dir, oldOutSubdir)
 
 	// Unchanged files' and directories' mtimes should be copied over from the first build.
-	compareFiles(t, filepath.Join(out, "features.html"), filepath.Join(oldOut, "features.html"), contentsEqual|mtimeEqual)
-	compareFiles(t, filepath.Join(out, "features.html.gz"), filepath.Join(oldOut, "features.html.gz"), contentsEqual|mtimeEqual)
-	compareFiles(t, filepath.Join(out, "images"), filepath.Join(oldOut, "images"), mtimeEqual)
-	compareFiles(t, filepath.Join(out, "images/test.png"), filepath.Join(oldOut, "images/test.png"), contentsEqual|mtimeEqual)
-	compareFiles(t, filepath.Join(out, "more"), filepath.Join(oldOut, "more"), mtimeEqual)
-	compareFiles(t, filepath.Join(out, "more/file.txt"), filepath.Join(oldOut, "more/file.txt"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "cats.html"), filepath.Join(oldOut, "cats.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "cats.html.gz"), filepath.Join(oldOut, "cats.html.gz"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold"), filepath.Join(oldOut, "scottish_fold"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold/maru-400.jpg"),
+		filepath.Join(oldOut, "scottish_fold/maru-400.jpg"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(oldOut, "static.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "other/extra.html"), filepath.Join(oldOut, "other/extra.html"), contentsEqual|mtimeEqual)
 	compareFiles(t, out, oldOut, mtimeEqual)
 
 	// The new index file should have the newly-added content and an updated mtime.
@@ -184,7 +209,7 @@ func newTestSiteDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := copy.Copy("testdata", dir); err != nil {
+	if err := copy.Copy("../example", dir); err != nil {
 		os.RemoveAll(dir)
 		return "", fmt.Errorf("failed copying test data: %v", err)
 	}

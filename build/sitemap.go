@@ -14,16 +14,15 @@ import (
 // writeSitemap generates a sitemap listing all normal pages in si and writes it to path p.
 func writeSitemap(p string, si *render.SiteInfo) error {
 	var sm sitemap
-	url, err := si.AbsURL(render.IndexPage)
-	if err != nil {
-		return err
-	}
-	sm.add(url, changesWeekly)
 
 	// Recursively walk nav items and add all pages.
+	addedIndex := false
 	var add func(it *render.NavItem) error
 	add = func(it *render.NavItem) error {
 		if it.IsBarePage() {
+			if it.URL == render.IndexPage {
+				addedIndex = true
+			}
 			url, err := si.AbsURL(it.URL)
 			if err != nil {
 				return err
@@ -41,6 +40,14 @@ func writeSitemap(p string, si *render.SiteInfo) error {
 		if err := add(it); err != nil {
 			return err
 		}
+	}
+
+	if !addedIndex {
+		url, err := si.AbsURL(render.IndexPage)
+		if err != nil {
+			return err
+		}
+		sm.add(url, changesWeekly)
 	}
 
 	f, err := os.Create(p)

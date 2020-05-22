@@ -9,7 +9,7 @@ logo_path_amp: resources/logo-amp-*.png
 logo_alt: Example.org
 nav_toggle_path: resources/collapse-*.png
 menu_button_path: resources/menu-*.png
-author_name: 
+author_name: Site Author
 author_email: user@example.org
 publisher_name: example.org
 publisher_logo_url: https://www.example.org/resources/logo.png
@@ -19,6 +19,7 @@ google_analytics_code: UA-123456-1
 google_maps_api_key: 
 d3_script_url: https://d3js.org/d3.v3.min.js
 extra_static_dirs:
+  "extra": other
 nav_items:
 - name: Welcome
   url: index.html

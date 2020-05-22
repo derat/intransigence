@@ -2,7 +2,7 @@
 title: Scottish Fold
 id: scottish
 created: 2020-05-20
-modified: 2020-05-20
+modified: 2020-05-21
 ```
 
 # Scottish Fold
@@ -33,14 +33,22 @@ Japan and is fascinated by cardboard boxes:
 ```image
 path: scottish_fold/maru-*.jpg
 alt: Maru the cat sitting in a small cardboard box
+align: desktop_left
+caption: Maru
+class: custom-class
 ```
 
-The above image was inserted using an `image` fenced code block:
+```clear
+```
+
+The above image was inserted using an `image` fenced code block with a YAML
+dictionary specifying image attributes:
 
 ````md
 ```image
 path: scottish_fold/maru-*.jpg
 alt: Maru the cat sitting in a small cardboard box
+[other attributes]
 ```
 ````
 
@@ -51,7 +59,7 @@ are automatically generated for browsers that support them, and the image
 automatically links to the high-resolution version of itself.
 
 Images can also be inserted inline via `<image path="..." alt="..."></image>`
-tags, as you can see here: <image path="scottish_fold/nyan.gif" alt="Nyan cat"></image>
+tags, as you can see here: <image path="scottish_fold/nyan.gif" alt="Nyan Cat"></image>
 
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
@@ -72,3 +80,10 @@ link to go to one version of the page or the other.
 version](scottish_fold.html!force_nonamp).</only-amp>
 <only-nonamp>You're viewing the non-AMP version of this page. Here's the [AMP
 version](scottish_fold.html!force_amp).</only-nonamp>
+
+`<text-size small>` <text-size small>makes text small</text-size>, and
+`<text-size tiny>` <text-size tiny>makes it even smaller</text-size>.
+
+When specifying a URL, it's nice to have it not wrapped across multiple lines.
+You can accomplish this on larger displays by using `<code-url>`, as seen here:
+<code-url>https://www.example.org/a/quite/long/url/that/should/not/be/wrapped/</code-url>

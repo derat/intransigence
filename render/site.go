@@ -150,5 +150,9 @@ func (si *SiteInfo) AbsURL(u string) (string, error) {
 		}
 		return u, nil
 	}
+	// Just link to the main URL instead of appending index.html.
+	if u == IndexPage {
+		return si.BaseURL, nil
+	}
 	return si.BaseURL + u, nil
 }
