@@ -84,9 +84,10 @@ webp yui-compressor` as root.
 A site is defined via a directory with the following structure:
 
 *   `site.yaml` - YAML representation of the `SiteInfo` struct struct from
-    <render/site.go> containing high-level information about the site, along
-    with a hierarchy of `NavItem` structs from <render/nav.go> defining the
-    structure of the site's navigation menu.
+    [render/site.go](render/site.go) containing high-level information about the
+    site, along with a hierarchy of `NavItem` structs from
+    [render/nav.go](render/nav.go) defining the structure of the site's
+    navigation menu.
 *   `pages/` - Subdirectory containing Markdown files specifying the content of
     individual pages. These files are described in more detail below.
 *   `inline/` - Subdirectory containing `.scss` files with custom CSS rules:
@@ -98,7 +99,7 @@ A site is defined via a directory with the following structure:
 *   `static/` - Subdirectory containing files that are copied unchanged to the
     top level of the output directory (e.g. images).
 
-The <example> directory defines an example site and is a good starting point.
+The [example](example) directory defines an example site and is a good starting point.
 
 When the `intransigence` executable is run within a site directory, it reads the
 `site.yaml` file and then builds the site into an `out/` subdirectory. Flags can
@@ -125,7 +126,7 @@ Usage of intransigence:
 
 Each Markdown file in the site directory's `pages/` subdirectory must start with
 a [fenced code block] of type `page`. The block contains a YAML representation
-of the `pageInfo` struct defined in <render/page.go>, e.g.
+of the `pageInfo` struct defined in [render/page.go](render/page.go), e.g.
 
 ````md
 ```page
@@ -149,8 +150,8 @@ Boxes are started by defining level-1 headings:
 ```
 
 The (optional) ID can be followed with slash-separated arguments to further
-customize the box. See `renderHeading` in <render/page.go> for available
-arguments.
+customize the box. See `renderHeading` in [render/page.go](render/page.go) for
+available arguments.
 
 The box is automatically closed when a new box is started or the document ends.
 
@@ -158,17 +159,18 @@ The box is automatically closed when a new box is started or the document ends.
 
 Graph and map iframes are inserted using fenced code blocks of type `graph` and
 `map`, respectively, containing YAML dictionaries. See the `"graph"` and `"map"`
-cases in `renderCodeBlock` in <render/page.go> for available options.
+cases in `renderCodeBlock` in [render/page.go](render/page.go) for available
+options.
 
 ### Images
 
 Block-style images are inserted using fenced code blocks of type `image`
 containing YAML dictionaries. See the `"image"` case in `renderCodeBlock` in
-<render/page.go> for available options.
+[render/page.go](render/page.go) for available options.
 
 Inline images are inserted using `<image></image>`, with details specified via
 attributes on the opening tag. See the `"image"` case in `renderHTMLSpan` in
-<render/page.go> for available options.
+[render/page.go](render/page.go) for available options.
 
 ### Clearing floats
 
@@ -201,28 +203,28 @@ it to always be rewritten to the AMP or non-AMP version of the page.
 
 ### `render` package
 
-The <render> package is responsible for rendering an individual page
-in either HTML or AMP format. It uses Go's [html/template package] and the
+The [render](render) package is responsible for rendering an individual page in
+either HTML or AMP format. It uses Go's [html/template package] and the
 [Blackfriday Markdown library]. A custom Markdown renderer is used to execute
 HTML templates in response to specific Markdown data.
 
-Hardcoded HTML templates are located in <render/templates> and copied into
-<render/std_templates.go> so they can be included in the `intransigence`
-executable. The start and end of each page are rendered by
-<render/templates/page.tmpl>. Other templates are used to render individual
-elements of the page.
+Hardcoded HTML templates are located in [render/templates](render/templates) and
+copied into [render/std_templates.go](render/std_templates.go) so they can be
+included in the `intransigence` executable. The start and end of each page are
+rendered by [render/templates/page.tmpl](render/templates/page.tmpl). Other
+templates are used to render individual elements of the page.
 
-Hardcoded Javascript and CSS files are located in <render/inline> and copied
-into <render/std_inline.go>.
+Hardcoded Javascript and CSS files are located in [render/inline](render/inline)
+and copied into [render/std_inline.go](render/std_inline.go).
 
 [html/template package]: https://golang.org/pkg/html/template/
 [Blackfriday Markdown library]: https://github.com/russross/blackfriday
 
 ### `build` package
 
-The <build> package is responsible for building the whole site. The `Build`
-function in <build/build.go> provides the implementation of the [intransigence
-executable](cmd/intransigence/main.go) by:
+The [build](build) package is responsible for building the whole site. The
+`Build` function in [build/build.go](build/build.go) provides the implementation
+of the [intransigence executable](cmd/intransigence/main.go) by:
 
 *   generating and minifying CSS, JS, and WebP files as needed,
 *   generating HTML and AMP versions of all pages,
@@ -234,4 +236,5 @@ executable](cmd/intransigence/main.go) by:
 *   starting a web server and showing a diff to let the user manually verify the
     new version of the site.
 
-<build/build_test.go> performs end-to-end testing of the whole process.
+[build/build_test.go](build/build_test.go) performs end-to-end testing of the
+whole process.
