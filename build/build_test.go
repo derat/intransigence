@@ -20,8 +20,6 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
-const repoPath = ".." // path from package to the main repo dir
-
 func TestBuild_Full(t *testing.T) {
 	dir, err := newTestSiteDir()
 	if err != nil {
