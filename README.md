@@ -196,7 +196,7 @@ enclosed markup will be wrapped in an HTML comment in the other version.
 
 ### Links
 
-A link to a page can be suffixed with `!force\_amp` or `!force\_nonamp` to force
+A link to a page can be suffixed with `!force_amp` or `!force_nonamp` to force
 it to always be rewritten to the AMP or non-AMP version of the page.
 
 ## Implementation
