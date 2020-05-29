@@ -552,7 +552,7 @@ func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.W
 		case v == "narrow":
 			info.Narrow = true
 		case v == "map_marker":
-			info.MapLabel = string('A' + r.numMapMarkers)
+			info.MapLabel = string(rune('A' + r.numMapMarkers))
 			r.numMapMarkers++
 		}
 	}
