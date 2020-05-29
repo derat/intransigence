@@ -1,5 +1,7 @@
 # intransigence
 
+[![Build Status](https://travis-ci.org/derat/intransigence.svg?branch=master)](https://travis-ci.org/derat/intransigence)
+
 ## Description
 
 This repository contains Go code for generating a basic-but-modern static
