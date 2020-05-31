@@ -88,7 +88,9 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	defer f.Close()
 
 	si := SiteInfo{dir: filepath.Dir(p)}
-	if err := yaml.NewDecoder(f).Decode(&si); err != nil {
+	dec := yaml.NewDecoder(f)
+	dec.KnownFields(true)
+	if err := dec.Decode(&si); err != nil {
 		return nil, err
 	}
 

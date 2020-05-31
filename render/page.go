@@ -201,7 +201,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		r.setErrorf(`page doesn't start with "page" code block`)
 		return
 	}
-	if err := yaml.Unmarshal(fc.Literal, &r.pi); err != nil {
+	if err := unmarshalYAML(fc.Literal, &r.pi); err != nil {
 		r.setErrorf("failed to parse page info from %q: %v", fc.Literal, err)
 		return
 	}
@@ -440,7 +440,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			Width      int    `yaml:"width"`  // graph width (without border)
 			Height     int    `yaml:"height"` // graph height (without border)
 		}
-		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
+		if err := unmarshalYAML(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse graph info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -456,7 +456,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			imgInfo    `yaml:",inline"`
 			Href       string `yaml:"href"`
 		}
-		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
+		if err := unmarshalYAML(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -484,7 +484,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			imgInfo `yaml:",inline"` // placeholder image (also used for dimensions)
 			Href    string           `yaml:"href"` // relative path to map iframe page
 		}
-		if err := yaml.Unmarshal(node.Literal, &info); err != nil {
+		if err := unmarshalYAML(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -763,4 +763,13 @@ func getStdInline(fn string) string {
 		panic(fmt.Sprintf("No standard inline file %q", fn))
 	}
 	return strings.TrimSpace(data) // sassc doesn't remove trailing newline
+}
+
+// unmarshalYAML decodes a YAML document within b into out.
+// An error is returned if any unknown fields are found
+// (differing from yaml.Unmarshal's behavior).
+func unmarshalYAML(b []byte, out interface{}) error {
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec.KnownFields(true)
+	return dec.Decode(out)
 }

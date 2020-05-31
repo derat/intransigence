@@ -14,14 +14,16 @@ import (
 // IframeOutDir is the subdirectory under the output dir for generated iframe pages.
 const IframeOutDir = "iframes"
 
-// Iframe renders and returns the framed page described by the supplied JS data.
-func Iframe(si SiteInfo, js []byte) ([]byte, error) {
+// Iframe renders and returns the framed page described by the supplied JSON data.
+func Iframe(si SiteInfo, jb []byte) ([]byte, error) {
 	var data struct {
 		Type        string      `json:"type"`        // "graph" or "map"
 		Data        interface{} `json:"data"`        // type-specific data
 		Placeholder string      `json:"placeholder"` // placeholder image path (just for maps)
 	}
-	if err := json.Unmarshal(js, &data); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(jb))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&data); err != nil {
 		return nil, err
 	}
 
