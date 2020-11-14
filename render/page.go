@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -507,7 +508,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		return bf.SkipChildren // handled in RenderHeader
 	default:
 		node.CodeBlockData.Info = nil // prevent Blackfriday from adding e.g. "language-html" CSS class
-		return r.mangleOutput(w, node, entering, unescapeQuotes|removeCodeNewline)
+		return r.mangleOutput(w, node, entering, unescapeQuotes|removeCodeNewline|wrapNoSelect)
 	}
 }
 
@@ -710,7 +711,10 @@ const (
 	unescapeQuotes    mangleOps = 1 << iota // replaces '&quot;' with '"'
 	escapeEmdashes                          // replaces '—' with '&mdash;'
 	removeCodeNewline                       // removes '\n' before trailing '</code></pre>'
+	wrapNoSelect                            // wraps ‹›-enclosed text in '<span class="no-select">'
 )
+
+var noSelectRegexp = regexp.MustCompile(`‹([^›]*)›`)
 
 // mangleOutput is a helper function that uses Blackfriday's standard
 // HTMLRenderer to render the supplied node, and then performs the requested
@@ -730,6 +734,9 @@ func (r *renderer) mangleOutput(w io.Writer, node *bf.Node, entering bool, ops m
 		if strings.HasSuffix(s, suf) {
 			s = s[:len(s)-len(suf)] + suf[1:]
 		}
+	}
+	if ops&wrapNoSelect != 0 {
+		s = noSelectRegexp.ReplaceAllString(s, `<span class="no-select">$1</span>`)
 	}
 	if _, err := io.WriteString(w, s); err != nil {
 		r.setErrorf("failed writing mangled %v node: %v", node.Type, err)

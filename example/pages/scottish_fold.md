@@ -88,3 +88,7 @@ When specifying a long URL, it's nice to have it wrap across multiple lines on
 smaller displays even if it doesn't contain characters that would normally
 trigger wrapping. You can accomplish this by using `<code-url>`, as seen here:
 <code-url>https://www.example.org/a/quite/long/url/that/should/be/wrapped</code-url>
+
+```
+Text can also be ‹marked as non-selectable› within a code block.
+```

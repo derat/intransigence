@@ -92,6 +92,8 @@ func TestBuild_Full(t *testing.T) {
 		`<span class="real-small">makes\s+it\s+even\s+smaller</span>`, // <text-size tiny>
 		`<code class="url">https://www.example.org/a/quite/long/url` + // <code-url>
 			`/that/should/be/wrapped</code>`,
+		`Text can also be <span class="no-select">marked as ` + // ‹...›
+			`non-selectable</span> within a code block`,
 		`<a href="#top">Back\s+to\s+top</a>`,
 		`Page created in 2020\.`,
 		`Last modified May 21, 2020\.`,

@@ -201,6 +201,13 @@ enclosed markup will be wrapped in an HTML comment in the other version.
 A link to a page can be suffixed with `!force_amp` or `!force_nonamp` to force
 it to always be rewritten to the AMP or non-AMP version of the page.
 
+### Non-selectable text
+
+Text within a code block can be wrapped between `‹` and `›` to indicate that it
+shouldn't be selectable by the user. This can be used to make it easier to
+copy-and-paste a series of shell commands that are prefixed with a prompt
+character like `$` or `#`.
+
 ## Implementation
 
 ### `render` package

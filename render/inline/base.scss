@@ -48,6 +48,7 @@
     .clear { clear: both; }
     .small { font-size: 90%; }
     .real-small { font-size: 80%; }
+    .no-select { user-select: none; }
 
     .graph {
       background-color: transparent;
