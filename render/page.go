@@ -39,7 +39,8 @@ const (
 // The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
 func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
 	r := newRenderer(si, amp)
-	b := bf.Run(markdown, bf.WithRenderer(r), bf.WithExtensions(bf.CommonExtensions&^bf.Autolink))
+	b := bf.Run(markdown, bf.WithRenderer(r),
+		bf.WithExtensions((bf.CommonExtensions&^bf.Autolink)|bf.Footnotes))
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -107,9 +108,11 @@ type renderer struct {
 
 func newRenderer(si SiteInfo, amp bool) *renderer {
 	r := renderer{
-		si:  &si,
-		pi:  pageInfo{SiteInfo: &si, Desc: si.DefaultDesc},
-		hr:  bf.NewHTMLRenderer(bf.HTMLRendererParameters{}),
+		si: &si,
+		pi: pageInfo{SiteInfo: &si, Desc: si.DefaultDesc},
+		hr: bf.NewHTMLRenderer(bf.HTMLRendererParameters{
+			Flags: bf.FootnoteReturnLinks,
+		}),
 		amp: amp,
 	}
 	r.tmpl = newTemplater(filepath.Join(si.TemplateDir()), template.FuncMap{
@@ -174,7 +177,7 @@ func (r *renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 		return r.renderHTMLSpan(w, node, entering)
 	case bf.Link:
 		// Make sure that we don't rewrite the link a second time when exiting.
-		if entering {
+		if entering && node.LinkData.Footnote == nil {
 			link, err := r.rewriteLink(string(node.LinkData.Destination))
 			if err != nil {
 				r.setError(err)
