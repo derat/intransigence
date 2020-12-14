@@ -15,9 +15,10 @@ type cspDirective string
 const (
 	cspDefault cspDirective = "default-src"
 	cspChild                = "child-src"
+	cspConnect              = "connect-src"
 	cspImg                  = "img-src"
-	cspStyle                = "style-src"
 	cspScript               = "script-src"
+	cspStyle                = "style-src"
 	cspFrame                = "frame-src" // deprecated by "child-src" in CSP 2
 )
 
@@ -54,7 +55,7 @@ func (c cspBuilder) hash(dir cspDirective, val string) {
 // tag returns a full <meta> tag with the previously-specified directives.
 func (c cspBuilder) tag() string {
 	var dirs []string
-	for _, dir := range []cspDirective{cspDefault, cspChild, cspImg, cspScript, cspStyle, cspFrame} {
+	for _, dir := range []cspDirective{cspDefault, cspChild, cspConnect, cspImg, cspScript, cspStyle, cspFrame} {
 		var srcs []string
 		for _, s := range c[dir] {
 			srcs = append(srcs, string(s)) // this is dumb

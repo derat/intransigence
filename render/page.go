@@ -381,6 +381,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 		if r.si.CloudflareAnalyticsToken != "" {
 			csp.add(cspScript, cspSource(r.si.CloudflareAnalyticsScriptURL))
+			csp.add(cspConnect, cspSource(r.si.CloudflareAnalyticsConnectPattern))
 		}
 
 		csp.hash(cspStyle, string(r.pi.HTMLStyle))

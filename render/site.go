@@ -80,6 +80,9 @@ type SiteInfo struct {
 
 	// CloudflareAnalyticsScriptURL is sourced for Cloudflare Web Analytics.
 	CloudflareAnalyticsScriptURL string `yaml:"-"`
+	// CloudflareAnalyticsConnectPattern is a CSP connect-src pattern matching connections
+	// made by CloudflareAnalyticsScriptURL.
+	CloudflareAnalyticsConnectPattern string `yaml:"-"`
 
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
@@ -95,7 +98,8 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	defer f.Close()
 
 	si := SiteInfo{
-		CloudflareAnalyticsScriptURL: "https://static.cloudflareinsights.com/beacon.min.js",
+		CloudflareAnalyticsScriptURL:      "https://static.cloudflareinsights.com/beacon.min.js",
+		CloudflareAnalyticsConnectPattern: "https://cloudflareinsights.com",
 		dir: filepath.Dir(p),
 	}
 	dec := yaml.NewDecoder(f)
