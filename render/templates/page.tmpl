@@ -122,6 +122,8 @@
       </footer>{{/**/ -}}
       {{end}}
     </div>{{/* #container */}}
+    {{if and .SiteInfo.CloudflareAnalyticsToken (not amp)}}<!-- Cloudflare Web Analytics --><script defer src="{{.SiteInfo.CloudflareAnalyticsScriptURL}}" data-cf-beacon="{'token':'{{.SiteInfo.CloudflareAnalyticsToken}}'}"></script><!-- End Cloudflare Web Analytics -->
+    {{end}}
   </body>
 </html>
 {{end}}

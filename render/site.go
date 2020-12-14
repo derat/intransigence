@@ -60,6 +60,10 @@ type SiteInfo struct {
 	// GoogleMapsAPIKey is used for Google Maps API billing.
 	// It is only needed if maps are embedded in the site.
 	GoogleMapsAPIKey string `yaml:"google_maps_api_key"`
+	// CloudflareAnalyticsToken identifies the site for Cloudflare Web Analytics,
+	// e.g. "4d65822107fcfd524d65822107fcfd52". This is only used for the non-AMP version of the page,
+	// and only if this field is non-empty.
+	CloudflareAnalyticsToken string `yaml:"cloudflare_analytics_token"`
 	// D3ScriptURL is the URL of the minified d3.js to use for graphs.
 	// The CDN-hosted version of the file is used by default.
 	D3ScriptURL string `yaml:"d3_script_url"`
@@ -74,6 +78,9 @@ type SiteInfo struct {
 	FaviconWidth  int `yaml:"-"`
 	FaviconHeight int `yaml:"-"`
 
+	// CloudflareAnalyticsScriptURL is sourced for Cloudflare Web Analytics.
+	CloudflareAnalyticsScriptURL string `yaml:"-"`
+
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
 	dir string
@@ -87,7 +94,10 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	}
 	defer f.Close()
 
-	si := SiteInfo{dir: filepath.Dir(p)}
+	si := SiteInfo{
+		CloudflareAnalyticsScriptURL: "https://static.cloudflareinsights.com/beacon.min.js",
+		dir: filepath.Dir(p),
+	}
 	dec := yaml.NewDecoder(f)
 	dec.KnownFields(true)
 	if err := dec.Decode(&si); err != nil {

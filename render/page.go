@@ -379,6 +379,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		csp.add(cspChild, cspSelf)
 		csp.add(cspImg, cspSelf)
 
+		if r.si.CloudflareAnalyticsToken != "" {
+			csp.add(cspScript, cspSource(r.si.CloudflareAnalyticsScriptURL))
+		}
+
 		csp.hash(cspStyle, string(r.pi.HTMLStyle))
 		for _, s := range r.pi.HTMLScripts {
 			csp.hash(cspScript, string(s))
