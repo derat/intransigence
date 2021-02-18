@@ -17,7 +17,7 @@ website from Markdown files. Various features are included (and hardcoded):
 *   [Content Security Policy] `<meta>` tags are automatically generated.
 *   Interactive [Google Maps] and simple [D3.js] line graphs can be embedded via
     iframes.
-*   Textual files is automatically compressed via [gzip] for efficient serving.
+*   Textual files are automatically compressed via [gzip] for efficient serving.
 *   File modification timestamps are preserved when regenerating the site to
     minimize the data that needs to be sent when pushing the site to a remote
     web server via [rsync].
