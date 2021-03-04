@@ -10,6 +10,17 @@ function initializeMap() {
   // selectPoint(). Get the base page URL from document.referrer so we can use
   // it to construct a URL with the correct fragment and assign that directly to
   // window.top.location, which _is_ allowed.
+  //
+  // TODO: This doesn't work quite right. When a page is loaded from a Google
+  // results page, it looks like we get a URL like
+  // https://www-example-org.cdn.ampproject.org/v/s/www.example.org/page.amp.html
+  // here, but the outer page seems to actually be
+  // https://www.google.com/amp/s/www.example.org/page.amp.html. Per
+  // https://developers.googleblog.com/2017/02/whats-in-amp-url.html, this
+  // sounds like it's weirdness relating to the prerendering. The upshot is that
+  // clicking on a location link triggers a navigation to the ampproject.org
+  // URL. I'm not sure how to fix this, since I don't want to hardcode a
+  // www.google.com/amp URL here.
   pageUrl = document.referrer.split('#', 1)[0];
 
   var mapOptions = {
