@@ -33,6 +33,10 @@ type SiteInfo struct {
 	FaviconPath string `yaml:"favicon_path"`
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
+	// FeedTitle is used as the title for the RSS (Atom) feed.
+	FeedTitle string `yaml:"feed_title"`
+	// FeedDesc is used as the description for the RSS (Atom) feed.
+	FeedDesc string `yaml:"feed_desc"`
 
 	// LogoPathHTML is the image at the top of the page for non-AMP, e.g. "resources/logo-*.png".
 	// The image's intrinsic dimensions for larger displays come from the smallest image.

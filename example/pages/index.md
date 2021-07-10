@@ -8,6 +8,7 @@ modified: 2020-05-20
 hide_title_suffix: true
 hide_back_to_top: true
 hide_dates: true
+omit_from_feed: true
 ```
 
 # Welcome

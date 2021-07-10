@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"golang.org/x/net/html"
@@ -29,19 +30,21 @@ const (
 
 // generatePages renders non-AMP and AMP versions of all normal pages and writes them
 // to the appropriate subdirectory under out. The generated files' paths are returned.
-func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, error) {
+// The returned feed info structs are sorted newest-to-oldest.
+func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []render.PageFeedInfo, error) {
 	ps, err := filepath.Glob(filepath.Join(si.PageDir(), "*.md"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to enumerate pages: %v", err)
+		return nil, nil, fmt.Errorf("failed to enumerate pages: %v", err)
 	}
 
 	defer clearStatus()
 	var outPaths []string
+	var feedInfos []render.PageFeedInfo
 	for i, p := range ps {
 		statusf("Generating pages: [%d/%d]", i, len(ps))
 		md, err := ioutil.ReadFile(p)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		base := filepath.Base(p)
@@ -49,9 +52,12 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, erro
 
 		build := func(dest string, amp bool) error {
 			outPaths = append(outPaths, dest)
-			b, err := render.Page(*si, md, amp)
+			b, fi, err := render.Page(*si, md, amp)
 			if err != nil {
 				return fmt.Errorf("failed to render %s: %v", filepath.Base(dest), err)
+			}
+			if fi != nil && !amp {
+				feedInfos = append(feedInfos, *fi)
 			}
 			if pretty {
 				if b, err = prettyPrintDoc(bytes.NewReader(b)); err != nil {
@@ -62,13 +68,18 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, erro
 		}
 
 		if err := build(filepath.Join(out, base+render.HTMLExt), false /* amp */); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err := build(filepath.Join(out, base+render.AMPExt), true /* amp */); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return outPaths, nil
+
+	sort.Slice(feedInfos, func(i, j int) bool {
+		return feedInfos[i].Created.After(feedInfos[j].Created)
+	})
+
+	return outPaths, feedInfos, nil
 }
 
 // generateIframes renders all iframe pages and writes them to the appropriate subdirectory under out.

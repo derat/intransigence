@@ -32,25 +32,52 @@ const (
 	mobileMaxWidth  = 640
 	desktopMinWidth = mobileMaxWidth + 1
 
+	dateLayout = "2006-01-02"
+
 	// WebPExt is the extension for generated WebP image files.
 	WebPExt = ".webp"
 )
 
 // Page renders and returns the page described by the supplied Markdown data.
 // The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
-func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, error) {
+// The returned feed info is nil if the page should not be included in the Atom feed.
+func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, *PageFeedInfo, error) {
 	r := newRenderer(si, amp)
 	b := bf.Run(markdown, bf.WithRenderer(r),
 		bf.WithExtensions((bf.CommonExtensions&^bf.Autolink)|bf.Footnotes))
 	if r.err != nil {
-		return nil, r.err
+		return nil, nil, r.err
 	}
-	return b, nil
+
+	var fi *PageFeedInfo
+	if !r.pi.OmitFromFeed && r.pi.Created != "" {
+		fi = &PageFeedInfo{
+			Title: r.pi.Title,
+			Desc:  r.pi.Desc,
+		}
+		var err error
+		if fi.AbsURL, err = si.AbsURL(r.pi.NavItem.URL); err != nil {
+			return nil, nil, err
+		}
+		if fi.Created, err = time.Parse(dateLayout, r.pi.Created); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return b, fi, nil
+}
+
+// PageFeedInfo contains metadata about a page that is needed to generate an Atom feed.
+type PageFeedInfo struct {
+	Title   string
+	Desc    string
+	AbsURL  string
+	Created time.Time
 }
 
 // pageInfo holds information about the current page that is used by page.tmpl.
 type pageInfo struct {
-	Title           string `yaml:"title"`             // used in <title> element
+	Title           string `yaml:"title"`             // original title
 	ID              string `yaml:"id"`                // NavItem.ID to highlight in navbox
 	Desc            string `yaml:"desc"`              // meta description
 	ImagePath       string `yaml:"image_path"`        // path to structured data image in static dir
@@ -59,19 +86,23 @@ type pageInfo struct {
 	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
 	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
 	HideDates       bool   `yaml:"hide_dates"`        // hide footer created and modified dates
+	OmitFromFeed    bool   `yaml:"omit_from_feed"`    // omit page from RSS feed
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more graphs
 
 	SiteInfo *SiteInfo `yaml:"-"` // site-level information
 	NavItem  *NavItem  `yaml:"-"` // nav item corresponding to current page
 
+	FullTitle string `yaml:"-"` // used in <title> element (possibly has suffix)
+
 	LogoHTML   imgInfo `yaml:"-"` // header logo for non-AMP
 	LogoAMP    imgInfo `yaml:"-"` // header logo for AMP
 	NavToggle  imgInfo `yaml:"-"` // nav toggle icon for non-AMP
 	MenuButton imgInfo `yaml:"-"` // menu button for AMP
 
-	LinkRel  string `yaml:"-"` // rel attribute for <link>, e.g. "canonical"
-	LinkHref string `yaml:"-"` // href attribute for <link>
+	LinkRel  string `yaml:"-"` // rel attribute for AMP/non-AMP <link>, e.g. "canonical"
+	LinkHref string `yaml:"-"` // href attribute for AMP/non-AMP <link>
+	FeedHref string `yaml:"-"` // href attribute for Atom feed <link>
 
 	HTMLStyle        template.CSS  `yaml:"-"` // inline CSS for non-AMP page
 	HTMLScripts      []template.JS `yaml:"-"` // inline JS for non-AMP page
@@ -124,7 +155,7 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 			return r.pi.NavItem.ID
 		},
 		"formatDate": func(date, layout string) string {
-			t, err := time.Parse("2006-01-02", date)
+			t, err := time.Parse(dateLayout, date)
 			if err != nil {
 				r.setErrorf("failed to parse date %q: %v", date, err)
 				return ""
@@ -226,6 +257,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		}
 	}
 
+	// Append the title suffix if needed.
+	r.pi.FullTitle = r.pi.Title
+	if !r.pi.HideTitleSuffix {
+		r.pi.FullTitle += r.si.TitleSuffix
+	}
+
 	r.pi.LogoHTML = imgInfo{
 		Path: r.si.LogoPathHTML,
 		Alt:  r.si.LogoAlt,
@@ -283,6 +320,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		return
 	}
 
+	var err error
+	if r.pi.FeedHref, err = r.si.AbsURL(FeedFile); err != nil {
+		r.setError(err)
+		return
+	}
+
 	// It would be much simpler to just use a map[string]interface{} for this,
 	// but the properties are marshaled in an arbitrary order then, making it
 	// hard to compare the output against the previous version of the site.
@@ -302,7 +345,6 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			URL:  r.si.BaseURL,
 		},
 	}
-	var err error
 	if r.si.PublisherLogoPath != "" {
 		if r.pi.StructData.Publisher.Logo, err = r.newStructDataImage(r.si.PublisherLogoPath); err != nil {
 			r.setError(err)
@@ -324,11 +366,6 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			r.setError(err)
 			return
 		}
-	}
-
-	// Do this here so it's not included in structured data.
-	if !r.pi.HideTitleSuffix {
-		r.pi.Title += r.si.TitleSuffix
 	}
 
 	if r.amp {

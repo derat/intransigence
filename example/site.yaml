@@ -4,6 +4,8 @@ title_suffix: ' - example.org'
 default_desc: Example site
 favicon_path: resources/favicon.png
 nav_text: Example site
+feed_title: example.org
+feed_desc: New pages on example.org
 logo_path_html: resources/logo-html-*.png
 logo_path_amp: resources/logo-amp-*.png
 logo_alt: Example.org

@@ -17,6 +17,9 @@ const (
 	indexID       = "index"
 	indexFileBase = "index"
 	IndexPage     = indexFileBase + HTMLExt
+
+	// FeedFile is the filename for the site's Atom feed.
+	FeedFile = "atom.xml"
 )
 
 // pageRegexp matches regular page filenames with an optional fragment.

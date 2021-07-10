@@ -23,6 +23,7 @@ website from Markdown files. Various features are included (and hardcoded):
     web server via [rsync].
 *   Page display is (somewhat) configurable via custom [Sass] SCSS files.
 *   A [Sitemap] XML file listing the site's pages is automatically created.
+*   An [RSS]\ (actually [Atom]) feed listing new pages is automatically created.
 *   When regenerating the site, a web server is started to allow viewing the new
     pages and a diff is displayed to make it easy to see changes from the
     previous version.
@@ -58,6 +59,8 @@ future.
 [rsync]: https://rsync.samba.org/
 [Sass]: https://sass-lang.com/
 [Sitemap]: https://www.sitemaps.org/
+[RSS]: https://en.wikipedia.org/wiki/RSS
+[Atom]: https://en.wikipedia.org/wiki/Atom_(Web_standard)
 [Ruby]: https://www.ruby-lang.org/
 [eRuby]: https://en.wikipedia.org/wiki/ERuby
 [my website]: https://www.erat.org/

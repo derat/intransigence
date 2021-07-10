@@ -1,4 +1,4 @@
-{{/* Writes the top of a normal page. */}}
+{{/* Writes the top of a normal (AMP or non-AMP) page. */}}
 {{define "start" -}}
 <!DOCTYPE html>
 {{/* TODO: Make language configurable. */ -}}
@@ -6,12 +6,13 @@
   <head>
     <meta charset="utf-8">
     <link rel="{{.LinkRel}}" href="{{.LinkHref}}">
+    <link rel="alternate" type="application/atom+xml" href="{{.FeedHref}}">
     {{.CSPMeta}}
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
     <meta name="description" content="{{.Desc}}">
     <meta name="robots" content="NOODP">
 
-    <title>{{.Title}}</title>
+    <title>{{.FullTitle}}</title>
 
     {{if .SiteInfo.FaviconPath -}}
     <link rel="apple-touch-icon-precomposed" href="{{.SiteInfo.FaviconPath}}">

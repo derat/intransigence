@@ -73,10 +73,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	}
 
 	var genPaths []string
-	if ps, err := generatePages(si, out, flags&PrettyPrint != 0); err != nil {
+	var feedInfos []render.PageFeedInfo
+	if genPaths, feedInfos, err = generatePages(si, out, flags&PrettyPrint != 0); err != nil {
 		return err
-	} else {
-		genPaths = append(genPaths, ps...)
 	}
 	if ps, err := generateIframes(si, out, flags&PrettyPrint != 0); err != nil {
 		return err
@@ -107,6 +106,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 
 	if err := writeSitemap(filepath.Join(out, sitemapFile), si); err != nil {
 		return fmt.Errorf("sitemap failed: %v", err)
+	}
+	if err := writeFeed(filepath.Join(out, render.FeedFile), si, feedInfos); err != nil {
+		return fmt.Errorf("feed failed: %v", err)
 	}
 
 	// Create gzipped versions of text-based files for the HTTP server to use.

@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derat/intransigence/render"
+
 	"github.com/otiai10/copy"
 	"github.com/pmezard/go-difflib/difflib"
 )
@@ -37,6 +39,7 @@ func TestBuild_Full(t *testing.T) {
 		"^<!DOCTYPE html>\n<html lang=\"en\">\n",
 		`<meta charset="utf-8">`,
 		`<link rel="amphtml"\s+href="https://www.example.org/index.amp.html">`,
+		`<link rel="alternate"\s+type="application/atom\+xml"\s+href="https://www\.example\.org/atom\.xml">`,
 		`(?s)<title>\s*Welcome\s+to\s+an\s+example\s+site\s*</title>`, // hide_title_suffix
 		`<link rel="icon" sizes="192x192" href="resources/favicon\.png">`,
 		`<script type="application/ld\+json">` + // structured data
@@ -61,6 +64,7 @@ func TestBuild_Full(t *testing.T) {
 	checkPageContents(t, filepath.Join(out, "index.amp.html"), []string{
 		"^<!DOCTYPE html>\n<html amp lang=\"en\">\n",
 		`<link rel="canonical"\s+href="https://www.example.org/">`,
+		`<link rel="alternate"\s+type="application/atom\+xml"\s+href="https://www\.example\.org/atom\.xml">`,
 	}, nil)
 
 	// scottish_fold.html demonstrates a large number of custom features.
@@ -162,6 +166,41 @@ func TestBuild_Full(t *testing.T) {
   </url>
 </urlset>
 `, "\n"))
+
+	checkFileContents(t, filepath.Join(out, render.FeedFile), strings.TrimLeft(`
+<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom">
+  <title>example.org</title>
+  <id>https://www.example.org/</id>
+  <updated>2020-05-20T00:00:00Z</updated>
+  <subtitle>New posts on example.org</subtitle>
+  <link href="https://www.example.org/"></link>
+  <author>
+    <name>Site Author</name>
+    <email>user@example.org</email>
+  </author>
+  <entry>
+    <title>Cats</title>
+    <updated>2020-05-20T00:00:00Z</updated>
+    <id>tag:www.example.org,2020-05-20:/cats.html</id>
+    <link href="https://www.example.org/cats.html" rel="alternate"></link>
+    <summary type="html">Example site</summary>
+    <author>
+      <name>Site Author</name>
+      <email>user@example.org</email>
+    </author>
+  </entry>
+  <entry>
+    <title>Scottish Fold</title>
+    <updated>2020-05-20T00:00:00Z</updated>
+    <id>tag:www.example.org,2020-05-20:/scottish_fold.html</id>
+    <link href="https://www.example.org/scottish_fold.html" rel="alternate"></link>
+    <summary type="html">Example site</summary>
+    <author>
+      <name>Site Author</name>
+      <email>user@example.org</email>
+    </author>
+  </entry>
+</feed>`, "\n"))
 
 	if t.Failed() {
 		fmt.Println("Output is in", out)
