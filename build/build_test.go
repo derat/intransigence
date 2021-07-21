@@ -172,7 +172,7 @@ func TestBuild_Full(t *testing.T) {
   <title>example.org</title>
   <id>https://www.example.org/</id>
   <updated>2020-05-20T00:00:00Z</updated>
-  <subtitle>New posts on example.org</subtitle>
+  <subtitle>New pages on example.org</subtitle>
   <link href="https://www.example.org/"></link>
   <author>
     <name>Site Author</name>
