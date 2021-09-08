@@ -58,7 +58,7 @@
     </div>
     <div class="body">
       {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
-      <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not .NavItem.Children)}} class="collapsed-mobile"{{end}}>
+      <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not (.NavItem.VisibleChildren ""))}} class="collapsed-mobile"{{end}}>
         {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
       </ul>
     </div>
@@ -136,9 +136,9 @@
 {{- if .HasID $curID}}<span class="selected">{{.Name}}</span>
 {{- else}}<a href="{{if amp}}{{.AMPURL}}{{else}}{{.URL}}{{end}}">{{.Name}}</a>
 {{- end}}
-{{- if and .Children (.FindID $curID)}}
+{{- if and (.VisibleChildren $curID) (.FindID $curID)}}
 <ul>
-{{range .Children}}{{template "nav_item" .}}{{end}}
+{{range (.VisibleChildren $curID)}}{{template "nav_item" .}}{{end}}
 </ul>
 {{end -}}
 </li>

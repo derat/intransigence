@@ -35,5 +35,9 @@ nav_items:
       url: scottish_fold.html#fame
     - name: Controversy
       url: scottish_fold.html#controversy
+  - name: Cheshire
+    url: cheshire.html
+    id: cheshire
+    omit_from_menu: true
 - name: Email me
   url: mailto:user@example.org

@@ -36,6 +36,9 @@ type NavItem struct {
 	// It may be empty if the item doesn't correspond to the top of a page
 	// (e.g. if it contains a fragment).
 	ID string `yaml:"id"`
+	// OmitFromMenu indicates that the item should not be displayed in the menu (unless the
+	// described page itself is currently active).
+	OmitFromMenu bool `yaml:"omit_from_menu"`
 	// Children contains items nested under this one in the menu.
 	Children []*NavItem `yaml:"children"`
 }
@@ -83,6 +86,18 @@ func (n *NavItem) FindID(id string) *NavItem {
 		}
 	}
 	return nil
+}
+
+// VisibleChildren returns n's children that should be shown, given that curID is
+// the ID of the currently-active item.
+func (n *NavItem) VisibleChildren(curID string) []*NavItem {
+	var cs []*NavItem
+	for _, c := range n.Children {
+		if !c.OmitFromMenu || c.HasID(curID) {
+			cs = append(cs, c)
+		}
+	}
+	return cs
 }
 
 // splitPage splits a string like "foo.html#frag" into "foo" and "#frag".

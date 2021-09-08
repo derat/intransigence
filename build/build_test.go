@@ -58,6 +58,8 @@ func TestBuild_Full(t *testing.T) {
 		`This is the site's landing page\.`,
 	}, []string{
 		`class="collapsed-mobile"`, // navbox shouldn't be collapsed for index
+		`Cheshire`,                 // omit_from_menu
+		`cheshire.html`,            // omit_from_menu
 		`Back to top`,              // hide_back_to_top
 		`Last modified`,            // hide_dates
 	})
@@ -103,6 +105,8 @@ func TestBuild_Full(t *testing.T) {
 		`Last modified May 21, 2020\.`,
 	}, []string{
 		`class="collapsed-mobile"`,          // navbox shouldn't be collapsed due to children
+		`Cheshire`,                          // omit_from_menu
+		`cheshire.html`,                     // omit_from_menu
 		`(?s)viewing\s+the\s+AMP\s+version`, // <only-amp>
 	})
 
@@ -130,6 +134,10 @@ func TestBuild_Full(t *testing.T) {
 	}, []string{
 		`(?s)viewing\s+the\s+non-AMP\s+version`, // <only-nonamp>
 	})
+
+	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{
+		`<li><span class="selected">Cheshire</span>`, // omit_from_menu, but also active page
+	}, []string{})
 
 	// Static data should be copied into the output directory.
 	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual)
@@ -164,6 +172,10 @@ func TestBuild_Full(t *testing.T) {
     <loc>https://www.example.org/scottish_fold.html</loc>
     <changefreq>weekly</changefreq>
   </url>
+  <url>
+    <loc>https://www.example.org/cheshire.html</loc>
+    <changefreq>weekly</changefreq>
+  </url>
 </urlset>
 `, "\n"))
 
@@ -171,13 +183,24 @@ func TestBuild_Full(t *testing.T) {
 <?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom">
   <title>example.org</title>
   <id>https://www.example.org/</id>
-  <updated>2020-05-20T00:00:00Z</updated>
+  <updated>2021-09-07T00:00:00Z</updated>
   <subtitle>New pages on example.org</subtitle>
   <link href="https://www.example.org/"></link>
   <author>
     <name>Site Author</name>
     <email>user@example.org</email>
   </author>
+  <entry>
+    <title>Cheshire Cat</title>
+    <updated>2021-09-07T00:00:00Z</updated>
+    <id>tag:www.example.org,2021-09-07:/cheshire.html</id>
+    <link href="https://www.example.org/cheshire.html" rel="alternate"></link>
+    <summary type="html">Example site</summary>
+    <author>
+      <name>Site Author</name>
+      <email>user@example.org</email>
+    </author>
+  </entry>
   <entry>
     <title>Cats</title>
     <updated>2020-05-20T00:00:00Z</updated>
