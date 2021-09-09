@@ -135,9 +135,11 @@ func TestBuild_Full(t *testing.T) {
 		`(?s)viewing\s+the\s+non-AMP\s+version`, // <only-nonamp>
 	})
 
-	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{
-		`<li><span class="selected">Cheshire</span>`, // omit_from_menu, but also active page
-	}, []string{})
+	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{}, []string{
+		`Scottish fold`,      // omit_from_menu (don't expand parent)
+		`scottish_fold.html`, // omit_from_menu (don't expand parent)
+		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
+	})
 
 	// Static data should be copied into the output directory.
 	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual)

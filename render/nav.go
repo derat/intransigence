@@ -88,12 +88,11 @@ func (n *NavItem) FindID(id string) *NavItem {
 	return nil
 }
 
-// VisibleChildren returns n's children that should be shown, given that curID is
-// the ID of the currently-active item.
-func (n *NavItem) VisibleChildren(curID string) []*NavItem {
+// VisibleChildren returns children that have not been explicitly omitted from the navigation menu.
+func (n *NavItem) VisibleChildren() []*NavItem {
 	var cs []*NavItem
 	for _, c := range n.Children {
-		if !c.OmitFromMenu || c.HasID(curID) {
+		if !c.OmitFromMenu {
 			cs = append(cs, c)
 		}
 	}

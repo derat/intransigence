@@ -58,7 +58,7 @@
     </div>
     <div class="body">
       {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
-      <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not (.NavItem.VisibleChildren ""))}} class="collapsed-mobile"{{end}}>
+      <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
         {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
       </ul>
     </div>
@@ -132,13 +132,12 @@
 {{/* Writes an <li> for a navigation item and its children. */}}
 {{define "nav_item" -}}
 <li>
-{{- $curID := currentID -}}
-{{- if .HasID $curID}}<span class="selected">{{.Name}}</span>
+{{- if .HasID current.ID}}<span class="selected">{{.Name}}</span>
 {{- else}}<a href="{{if amp}}{{.AMPURL}}{{else}}{{.URL}}{{end}}">{{.Name}}</a>
 {{- end}}
-{{- if and (.VisibleChildren $curID) (.FindID $curID)}}
+{{- if and .VisibleChildren (.FindID current.ID) (not current.OmitFromMenu)}}
 <ul>
-{{range (.VisibleChildren $curID)}}{{template "nav_item" .}}{{end}}
+{{range .VisibleChildren}}{{template "nav_item" .}}{{end}}
 </ul>
 {{end -}}
 </li>

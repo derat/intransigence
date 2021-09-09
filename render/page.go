@@ -151,8 +151,8 @@ func newRenderer(si SiteInfo, amp bool) *renderer {
 		"amp": func() bool {
 			return r.amp
 		},
-		"currentID": func() string {
-			return r.pi.NavItem.ID
+		"current": func() *NavItem {
+			return r.pi.NavItem
 		},
 		"formatDate": func(date, layout string) string {
 			t, err := time.Parse(dateLayout, date)
