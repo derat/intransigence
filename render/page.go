@@ -89,6 +89,7 @@ type pageInfo struct {
 	OmitFromFeed    bool   `yaml:"omit_from_feed"`    // omit page from RSS feed
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more graphs
+	PageStyle       string `yaml:"page_style"`        // optional custom page-specific CSS
 
 	SiteInfo *SiteInfo `yaml:"-"` // site-level information
 	NavItem  *NavItem  `yaml:"-"` // nav item corresponding to current page
@@ -379,7 +380,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		r.pi.AMPNoscriptStyle = template.CSS(getStdInline("amp-boilerplate-noscript.css"))
 		r.pi.AMPCustomStyle = template.CSS(
 			getStdInline("base.css") + getStdInline("mobile.css") + getStdInline("amp.css") +
-				r.si.ReadInline("base.css.min") + r.si.ReadInline("mobile.css.min") + r.si.ReadInline("amp.css.min"))
+				r.si.ReadInline("base.css.min") + r.si.ReadInline("mobile.css.min") +
+				r.si.ReadInline("amp.css.min") + r.pi.PageStyle)
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -405,7 +407,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			fmt.Sprintf("@media(min-width:%dpx){%s%s}",
 				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css.min")) +
 			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
-				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css.min")))
+				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css.min")) +
+			r.pi.PageStyle)
 		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js.min"))}
 		if r.pi.HasMap {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js.min")))
