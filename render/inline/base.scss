@@ -7,7 +7,8 @@
     }
 
     > *:first-child,
-    > *:first-child > h3:first-child {
+    > *:first-child > h3:first-child,
+    > p:first-of-type {
       margin-top: 0;
     }
     > *:last-child {
