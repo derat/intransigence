@@ -49,18 +49,20 @@
 {{/* For desktop and responsive mobile, the logo and navbox are at the top of the page. */}}
 {{define "header_html"}}
 <header>
-  {{template "img" .LogoHTML}}
-  {{/* This mirrors the box_header and box_footer templates. */ -}}
-  <nav id="nav-box" class="box">
-    <div id="nav-title" class="title">
-      {{.SiteInfo.NavText}}
-      {{template "img" .NavToggle}}
-    </div>
-    <div class="body">
-      {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
-      <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
-        {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
-      </ul>
+  <nav id="nav-wrapper">
+    {{template "img" .LogoHTML}}
+    {{/* This mirrors the box_header and box_footer templates. */ -}}
+    <div id="nav-box" class="box">
+      <div id="nav-title" class="title">
+        {{.SiteInfo.NavText}}
+        {{template "img" .NavToggle}}
+      </div>
+      <div class="body">
+        {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
+        <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
+          {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
+        </ul>
+      </div>
     </div>
   </nav>
 </header>
