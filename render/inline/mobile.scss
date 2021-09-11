@@ -1,7 +1,11 @@
-.desktop-only { display: none; }
+.desktop-only {
+  display: none;
+}
 
 #nav-box {
-  > .body { overflow: hidden; }
+  > .body {
+    overflow: hidden;
+  }
 }
 
 #nav-toggle-img {
@@ -14,7 +18,7 @@
 
 #nav-list {
   max-height: 8192px; // arbitrary but needs to be large enough to fit contents
-  opacity: 1.0;
+  opacity: 1;
   &.collapsed-mobile {
     max-height: 0;
     opacity: 0;
@@ -24,14 +28,16 @@
 .box.content {
   width: 100%;
   > .body {
-    figure.mobile-center { // matches 'center' in base.scss
-      margin-left: auto;
+    figure.mobile-center {
+      margin-left: auto; // matches 'center' in base.scss
       margin-right: auto;
     }
 
     // URLs might not contain hyphens, in which case they can't be broken using
     // 'normal' (which tends to need to happen a lot on narrow mobile screens).
     // Let them be broken anywhere instead.
-    .url { word-break: break-all; }
+    .url {
+      word-break: break-all;
+    }
   }
 }

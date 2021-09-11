@@ -1,12 +1,20 @@
-.mobile-only { display: none; }
+.mobile-only {
+  display: none;
+}
 
-#nav-toggle-img { display: none; }
+#nav-toggle-img {
+  display: none;
+}
 
 .box.content {
   > .body {
     figure {
-      &.desktop-left { float: left; } // matches 'left' in base.scss
-      &.desktop-right { float: right; } // matches 'right' in base.scss
+      &.desktop-left {
+        float: left; // matches 'left' in base.scss
+      }
+      &.desktop-right {
+        float: right; // matches 'right' in base.scss
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 .box.content {
   > .body {
-    &:after { // clear floating content before ending box
-      clear: both;
+    &:after {
+      clear: both; // clear floating content before ending box
       content: "";
       display: block;
     }
@@ -15,14 +15,20 @@
     }
 
     figure {
-      &.left { float: left; }
-      &.right { float: right; }
-      &.center { // explicitly-set width is needed when using this
-        margin-left: auto;
+      &.left {
+        float: left;
+      }
+      &.right {
+        float: right;
+      }
+      &.center {
+        margin-left: auto; // explicitly-set width is needed when using this
         margin-right: auto;
       }
 
-      * { max-width: 100%; }
+      * {
+        max-width: 100%;
+      }
 
       img {
         border: 0;
@@ -31,11 +37,18 @@
       }
     }
 
-    img, amp-img {
-      &.inline { vertical-align: middle; }
-      &.pixelated { image-rendering: pixelated; }
+    img,
+    amp-img {
+      &.inline {
+        vertical-align: middle;
+      }
+      &.pixelated {
+        image-rendering: pixelated;
+      }
     }
-    img.inline { display: inline; }
+    img.inline {
+      display: inline;
+    }
 
     pre {
       max-width: 100%;
@@ -43,12 +56,22 @@
       word-wrap: break-word;
     }
 
-    table { border-collapse: collapse; }
+    table {
+      border-collapse: collapse;
+    }
 
-    .clear { clear: both; }
-    .small { font-size: 90%; }
-    .real-small { font-size: 80%; }
-    .no-select { user-select: none; }
+    .clear {
+      clear: both;
+    }
+    .small {
+      font-size: 90%;
+    }
+    .real-small {
+      font-size: 80%;
+    }
+    .no-select {
+      user-select: none;
+    }
 
     .graph {
       background-color: transparent;
