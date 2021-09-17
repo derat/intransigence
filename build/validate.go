@@ -28,6 +28,8 @@ var cssIgnore = []*regexp.Regexp{
 	regexp.MustCompile(`-amp-start.* is an unknown vendor extension`),
 	regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
 	regexp.MustCompile(`^-[a-z]+-animation is an unknown vendor extension$`),
+	// As of 20210917, the W3C validator appears to be choking on more stuff from inlined styles.
+	regexp.MustCompile(`^Parse Error  @(|-moz-|-ms-|-o-)keyframes -amp-start\{from\{visibility:hidden\}to\{visibility:visible\}\}$`),
 	// Permit styling scrollbars for WebKit-based browsers.
 	regexp.MustCompile(`-webkit-scrollbar is an unknown vendor extended pseudo-element$`),
 }
