@@ -85,7 +85,7 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []re
 // generateIframes renders all iframe pages and writes them to the appropriate subdirectory under out.
 // The generated files' paths are returned.
 func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, error) {
-	ps, err := filepath.Glob(filepath.Join(si.IframeDir(), "*.json"))
+	ps, err := filepath.Glob(filepath.Join(si.IframeDir(), "*.yaml"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to enumerate iframe data: %v", err)
 	}
@@ -100,7 +100,7 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, er
 		}
 
 		base := filepath.Base(p)
-		base = base[:len(base)-len(".json")]
+		base = base[:len(base)-len(".yaml")]
 		dest := filepath.Join(out, render.IframeOutDir, base+render.HTMLExt)
 		outPaths = append(outPaths, dest)
 
