@@ -16,5 +16,11 @@
         float: right; // matches 'right' in base.scss
       }
     }
+
+    // Avoid extra margin before paragraphs following floated divs.
+    > figure.desktop-left:first-child + p,
+    > figure.desktop-right:first-child + p {
+      margin-top: 0;
+    }
   }
 }
