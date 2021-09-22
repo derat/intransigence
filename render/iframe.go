@@ -6,6 +6,7 @@ package render
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"path/filepath"
@@ -17,9 +18,28 @@ const IframeOutDir = "iframes"
 // Iframe renders and returns the framed page described by the supplied YAML data.
 func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 	var data struct {
-		Type        string      `json:"type",yaml:"type"`               // "graph" or "map"
-		Data        interface{} `json:"data",yaml:"data"`               // type-specific data
-		Placeholder string      `json:"placeholder",yaml:"placeholder"` // placeholder image path (just for maps)
+		// Map-specific data.
+		MapPlaceholder string `yaml:"map_placeholder"` // placeholder image path (relative to iframe)
+		MapPoints      []struct {
+			Name    string     `json:"name" yaml:"name"`        // name displayed on label
+			LatLong [2]float64 `json:"latLong" yaml:"lat_long"` // [latitude, longitude]
+			ID      string     `json:"id" yaml:"id"`            // matches anchor ID on page
+		} `yaml:"map_points"` // points of interest
+
+		// Graph-specific data.
+		Graphs map[string]struct {
+			Title  string `json:"title" yaml:"title"` // title displayed in graph
+			Points []struct {
+				Time  int64   `json:"time" yaml:"time"` // seconds since Unix epoch
+				Value float64 `json:"value" yaml:"value"`
+			} `json:"points" yaml:"points"`
+			Notes []struct {
+				Time int64  `json:"time" yaml:"time"` // seconds since Unix epoch
+				Text string `json:"text" yaml:"text"` // label for note
+			} `json:"notes" yaml:"notes"`
+			Range [2]float64 `json:"range" yaml:"range"` // [min, max]
+			Units string     `json:"units" yaml:"units"` // units displayed on graph
+		} `yaml:"graphs"` // keyed by ID from page
 	}
 	if err := unmarshalYAML(yb, &data); err != nil {
 		return nil, err
@@ -27,14 +47,13 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 
 	tmpl := newTemplater(filepath.Join(si.TemplateDir()), nil)
 
-	jsonData, err := json.MarshalIndent(data.Data, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal data to JSON: %v", err)
-	}
-
 	var b bytes.Buffer
-	switch data.Type {
-	case "graph":
+	switch {
+	case data.Graphs != nil:
+		jsonData, err := json.MarshalIndent(data.Graphs, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal data to JSON: %v", err)
+		}
 		var td = struct {
 			CSPMeta       template.HTML
 			ScriptURLs    []string
@@ -63,11 +82,15 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		if err := tmpl.run(&b, []string{"graph_page.tmpl"}, td, nil); err != nil {
 			return nil, err
 		}
-	case "map":
+	case data.MapPoints != nil:
 		// The generated page will be in a subdir, so make sure that the placeholder path takes
 		// that into account.
-		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.Placeholder)); err != nil {
+		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholder)); err != nil {
 			return nil, err
+		}
+		jsonData, err := json.MarshalIndent(data.MapPoints, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal data to JSON: %v", err)
 		}
 		var td = struct {
 			ScriptURLs    []string
@@ -80,14 +103,14 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 				template.JS(getStdInline("map-iframe.js.min")),
 			},
 			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css.min") +
-				"body{background-image:url('" + data.Placeholder + "')}"),
+				"body{background-image:url('" + data.MapPlaceholder + "')}"),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.
 		if err := tmpl.run(&b, []string{"map_page.tmpl"}, td, nil); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unknown type %q", data.Type)
+		return nil, errors.New("unknown iframe type")
 	}
 	return b.Bytes(), nil
 }
