@@ -129,15 +129,15 @@ func TestBuild_Full(t *testing.T) {
 			`<amp-img\s+fallback\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>` +
 			`</amp-img>`,
-		`(?s)viewing\s+the\s+AMP\s+version`,                   // <only-amp>
-		`<a href="scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp
+		`(?s)viewing\s+the\s+AMP\s+version`,                                             // <only-amp>
+		`<a href="https://www\.example\.org/scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp
 	}, []string{
 		`(?s)viewing\s+the\s+non-AMP\s+version`, // <only-nonamp>
 	})
 
 	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{}, []string{
-		`Scottish fold`,      // omit_from_menu (don't expand parent)
-		`scottish_fold.html`, // omit_from_menu (don't expand parent)
+		`Scottish fold`,                                // omit_from_menu (don't expand parent)
+		`scottish_fold.html`,                           // omit_from_menu (don't expand parent)
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 

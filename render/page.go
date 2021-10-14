@@ -713,6 +713,11 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		return link, nil
 	}
 
+	// TODO: Revisit this decision.
+	if link[0] == '/' {
+		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
+	}
+
 	// Check if we were explicitly asked to return an AMP or non-AMP page.
 	var forceAMP, forceNonAMP bool
 	if tl := strings.TrimSuffix(link, "!force_amp"); tl != link {
@@ -723,11 +728,6 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		link = tl
 	}
 
-	// TODO: Revisit this decision.
-	if link[0] == '/' {
-		return "", fmt.Errorf("link %q shouldn't have leading slash", link)
-	}
-
 	// Make sure that links to static resources work.
 	if !isPage(link) {
 		if err := r.si.CheckStatic(link); err != nil {
@@ -735,18 +735,34 @@ func (r *renderer) rewriteLink(link string) (string, error) {
 		}
 	}
 
-	// Non-AMP links don't need to be rewritten.
-	if (!r.amp && !forceAMP) || forceNonAMP {
-		return link, nil
+	if r.amp {
+		// Resources that aren't AMP pages (or images?) probably won't be served by AMP caches. I
+		// haven't been able to find anything in the AMP documentation guaranteeing that all caches
+		// will rewrite relative links to these resources, though.
+		//
+		// https://github.com/ampproject/amphtml/blob/main/docs/spec/amp-cache-guidelines.md only
+		// says that image/* should be accepted by caches.
+		//
+		// https://developers.google.com/amp/cache/overview says that at least in the case of the Google
+		// AMP Cache, "outbound links are made absolute so that they continue to work when the document
+		// is served from the Google AMP Cache origin instead of the publisher origin." Empirically,
+		// Google's cache seems to rewrite relative links that were pointing to non-AMP pages.
+		//
+		// Using absolute URLs is annoying for development, but seems safer to do.
+		if !isPage(link) || forceNonAMP {
+			if abs, err := r.si.AbsURL(link); err != nil {
+				return "", err
+			} else {
+				return abs, nil
+			}
+		}
+		return ampPage(link), nil
 	}
 
-	// If this isn't a regular page, it may not be served by the AMP CDN. Use an absolute URL.
-	if !isPage(link) {
-		return r.si.BaseURL + link, nil
+	if forceAMP {
+		return ampPage(link), nil
 	}
-
-	// Use the AMP version of the page instead.
-	return ampPage(link), nil
+	return link, nil
 }
 
 // mangleOps describes operations that mangleOutput should perform.
