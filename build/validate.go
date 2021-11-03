@@ -25,13 +25,13 @@ var ampIgnore []*regexp.Regexp
 
 var cssIgnore = []*regexp.Regexp{
 	// AMP's inlined styles use these.
-	regexp.MustCompile(`-amp-start.* is an unknown vendor extension`),
+	regexp.MustCompile(`-amp-start.* is a vendor extension`),
 	regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
-	regexp.MustCompile(`^-[a-z]+-animation is an unknown vendor extension$`),
+	regexp.MustCompile(`^-[a-z]+-animation is a vendor extension$`),
 	// As of 20210917, the W3C validator appears to be choking on more stuff from inlined styles.
 	regexp.MustCompile(`^Parse Error  @(|-moz-|-ms-|-o-)keyframes -amp-start\{from\{visibility:hidden\}to\{visibility:visible\}\}$`),
 	// Permit styling scrollbars for WebKit-based browsers.
-	regexp.MustCompile(`-webkit-scrollbar is an unknown vendor extended pseudo-element$`),
+	regexp.MustCompile(`-webkit-scrollbar is a vendor extended pseudo-element$`),
 }
 
 // validateFiles validates files at the supplied paths.
