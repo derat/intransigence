@@ -116,9 +116,11 @@ type pageInfo struct {
 
 // figureInfo holds information used by figure.tmpl.
 type figureInfo struct {
-	Align   string        `yaml:"align"`   // left, right, center, desktop_left, desktop_right, desktop_alt
-	Caption template.HTML `yaml:"caption"` // <figcaption> text; template.HTML to permit links and not escape quotes
-	Class   string        `yaml:"class"`   // CSS class
+	Align       string        `yaml:"align"`        // left, right, center, desktop_left, desktop_right, desktop_alt
+	Caption     template.HTML `yaml:"caption"`      // <figcaption> text; template.HTML to permit links and not escape quotes
+	Class       string        `yaml:"class"`        // CSS class
+	DesktopOnly bool          `yaml:"desktop_only"` // only display on desktop
+	MobileOnly  bool          `yaml:"mobile_only"`  // only display on mobile
 }
 
 // renderer converts a single Markdown page into HTML.

@@ -3,9 +3,10 @@ module github.com/derat/intransigence
 go 1.14
 
 require (
-	github.com/derat/htmlpretty v0.0.0-20200529155732-22cbe49e3770
+	github.com/derat/htmlpretty v0.0.0-20211119154049-a05b52733e02
 	github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d
 	github.com/gorilla/feeds v1.1.1
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/otiai10/copy v1.1.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/russross/blackfriday/v2 v2.0.1
