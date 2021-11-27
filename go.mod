@@ -11,6 +11,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )

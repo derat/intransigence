@@ -92,6 +92,13 @@ func TestBuild_Full(t *testing.T) {
 			`<img\s+class="inline"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">` +
 			`</picture>`,
+		`<figure>\s*` + // "image" code block for WebP image
+			`<picture>` +
+			`<img\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/christmas.webp 400w"\s+` +
+			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">` +
+			`</picture>\s*` +
+			`</figure>`,
 		`(?s)viewing\s+the\s+non-AMP\s+version`,                       // <only-nonamp>
 		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
 		`<span class="small">makes\s+text\s+small</span>`,             // <text-size small>
@@ -129,6 +136,11 @@ func TestBuild_Full(t *testing.T) {
 			`<amp-img\s+fallback\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>` +
 			`</amp-img>`,
+		`<figure>\s*` + // "image" code block for WebP image
+			`<amp-img\s+layout="responsive"\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
+			`srcset="scottish_fold/christmas\.webp 400w"\s+width="400"\s+height="300"\s+` +
+			`alt="Scottish Fold cat under a Christmas tree">\s*</amp-img>\s*` +
+			`</figure>`,
 		`(?s)viewing\s+the\s+AMP\s+version`,                                             // <only-amp>
 		`<a href="https://www\.example\.org/scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp
 	}, []string{
@@ -136,8 +148,8 @@ func TestBuild_Full(t *testing.T) {
 	})
 
 	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{}, []string{
-		`Scottish fold`,                                // omit_from_menu (don't expand parent)
-		`scottish_fold.html`,                           // omit_from_menu (don't expand parent)
+		`Scottish fold`,      // omit_from_menu (don't expand parent)
+		`scottish_fold.html`, // omit_from_menu (don't expand parent)
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 

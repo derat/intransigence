@@ -61,6 +61,13 @@ automatically links to the high-resolution version of itself.
 Images can also be inserted inline via `<image path="..." alt="..."></image>`
 tags, as you can see here: <image path="scottish_fold/nyan.gif" alt="Nyan Cat"></image>
 
+Images that are already in the WebP format are also supported:
+
+```image
+path: scottish_fold/christmas.webp
+alt: Scottish Fold cat under a Christmas tree
+```
+
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
 ### Controversy {#controversy}

@@ -7,3 +7,6 @@
 
 # Generated WebP images.
 *.webp
+
+# Checked-in WebP image.
+!/static/scottish_fold/christmas.webp

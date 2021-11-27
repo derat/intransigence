@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	_ "golang.org/x/image/webp"
 )
 
 // imgInfo holds information used by img.tmpl.
@@ -56,7 +58,9 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 	wc := strings.IndexByte(info.Path, '*')
 	if wc == -1 {
 		info.Src = info.Path
-		info.WebPSrc = removeExt(info.Src) + WebPExt
+		if !strings.HasSuffix(info.Src, WebPExt) {
+			info.WebPSrc = removeExt(info.Src) + WebPExt
+		}
 		info.biggestSrc = info.Src
 
 		// If the image's display dimensions weren't supplied, get them from the file.
@@ -67,7 +71,9 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 			}
 		}
 		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
-		info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+		if info.WebPSrc != "" {
+			info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+		}
 	} else {
 		pre := info.Path[:wc]
 		suf := info.Path[wc+1:]
@@ -77,11 +83,13 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 		} else if info.Srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
 		}
-		wsuf := removeExt(suf) + WebPExt
-		if info.WebPSrcset, _, err = makeSrcset(si.StaticDir(), pre, wsuf); err != nil {
-			return err
-		} else if info.WebPSrcset == "" {
-			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
+		if !strings.HasSuffix(info.Path, WebPExt) {
+			wsuf := removeExt(suf) + WebPExt
+			if info.WebPSrcset, _, err = makeSrcset(si.StaticDir(), pre, wsuf); err != nil {
+				return err
+			} else if info.WebPSrcset == "" {
+				return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
+			}
 		}
 
 		if info.Width <= 0 || info.Height <= 0 {
@@ -105,7 +113,9 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 			}
 		}
 		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
-		info.WebPSrc = removeExt(info.Src) + WebPExt
+		if !strings.HasSuffix(info.Src, WebPExt) {
+			info.WebPSrc = removeExt(info.Src) + WebPExt
+		}
 		info.biggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
 	}
 
@@ -116,8 +126,10 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 	if err := si.CheckStatic(info.Src); err != nil {
 		return err
 	}
-	if err := si.CheckStatic(info.WebPSrc); err != nil {
-		return err
+	if info.WebPSrc != "" {
+		if err := si.CheckStatic(info.WebPSrc); err != nil {
+			return err
+		}
 	}
 	if err := si.CheckStatic(info.biggestSrc); err != nil {
 		return err
