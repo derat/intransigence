@@ -12,4 +12,3 @@ before_install:
 
 go:
   - 1.x
-  - master
