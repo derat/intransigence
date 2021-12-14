@@ -1,6 +1,6 @@
 # intransigence
 
-[![Build Status](https://travis-ci.org/derat/intransigence.svg?branch=master)](https://travis-ci.org/derat/intransigence)
+![Build Status](https://storage.googleapis.com/derat-build-badges/cd8ac1c1-aec8-4958-bf64-b174cd881b27.svg)
 
 ## Description
 

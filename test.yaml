@@ -1,0 +1,16 @@
+# This is a Google Cloud Build configuration file for running tests.
+
+steps:
+  - name: golang
+    entrypoint: sh
+    args:
+      - "-c"
+      - |
+        apt-get update
+        apt-get install -y npm sassc webp yui-compressor
+        npm install -g amphtml-validator
+        go test -v ./...
+
+tags:
+  - commit-$COMMIT_SHA
+  - trigger-name-$TRIGGER_NAME
