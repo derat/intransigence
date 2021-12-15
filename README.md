@@ -1,6 +1,6 @@
 # intransigence
 
-![Build Status](https://storage.googleapis.com/derat-build-badges/cd8ac1c1-aec8-4958-bf64-b174cd881b27.svg)
+[![Build Status](https://storage.googleapis.com/derat-build-badges/cd8ac1c1-aec8-4958-bf64-b174cd881b27.svg)](https://storage.googleapis.com/derat-build-badges/cd8ac1c1-aec8-4958-bf64-b174cd881b27.html)
 
 ## Description
 
