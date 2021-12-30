@@ -74,6 +74,7 @@ func compressDir(dir string) error {
 }
 
 // compressFile writes a gzipped version of sp at dp.
+// The modification time in the gzip header is unset.
 func compressFile(sp, dp string) error {
 	sf, err := os.Open(sp)
 	if err != nil {

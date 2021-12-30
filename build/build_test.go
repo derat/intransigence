@@ -272,6 +272,7 @@ func TestBuild_Rebuild(t *testing.T) {
 	oldOut := filepath.Join(dir, oldOutSubdir)
 
 	// Unchanged files' and directories' mtimes should be copied over from the first build.
+	compareFiles(t, out, oldOut, mtimeEqual)
 	compareFiles(t, filepath.Join(out, "cats.html"), filepath.Join(oldOut, "cats.html"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "cats.html.gz"), filepath.Join(oldOut, "cats.html.gz"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "scottish_fold"), filepath.Join(oldOut, "scottish_fold"), mtimeEqual)
@@ -299,7 +300,14 @@ func newTestSiteDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := copy.Copy("../example", dir); err != nil {
+	const src = "../example"
+	if err := copy.Copy(src, dir, copy.Options{
+		// Make sure that we don't pick up any random output that happened to be
+		// in the example directory.
+		Skip: func(p string) bool {
+			return strings.HasPrefix(p, src+"/out") || strings.HasPrefix(p, src+"/.out.")
+		},
+	}); err != nil {
 		os.RemoveAll(dir)
 		return "", fmt.Errorf("failed copying test data: %v", err)
 	}
@@ -328,13 +336,33 @@ func checkPageContents(t *testing.T, p string, pats, negPats []string) {
 	}
 }
 
-// getFileTimes returns p's mtime and atime.
-func getFileTimes(p string) (atime, mtime time.Time, err error) {
+// getFileMtime returns p's mtime.
+// If p is a .gz file, it additionally checks that the gzip header does not contain an mtime.
+func getFileMtime(p string) (time.Time, error) {
 	fi, err := os.Stat(p)
 	if err != nil {
-		return mtime, atime, err
+		return time.Time{}, err
 	}
-	return getAtime(fi), fi.ModTime(), nil
+
+	if filepath.Ext(p) == ".gz" {
+		f, err := os.Open(p)
+		if err != nil {
+			return time.Time{}, err
+		}
+		defer f.Close()
+
+		r, err := gzip.NewReader(f)
+		if err != nil {
+			return time.Time{}, err
+		}
+		defer r.Close()
+
+		if !r.Header.ModTime.IsZero() {
+			return time.Time{}, fmt.Errorf("%v header contains non-zero mtime %v", p, r.Header.ModTime)
+		}
+	}
+
+	return fi.ModTime(), nil
 }
 
 // getFileContents reads and returns p's contents.
@@ -388,9 +416,9 @@ const (
 func compareFiles(t *testing.T, p, ref string, ct compareTypes) {
 	if ct&(mtimeEqual|mtimeAfter) != 0 {
 		// Don't compare atime, since it gets updated when the file is read and isn't used by rsync.
-		if _, pm, err := getFileTimes(p); err != nil {
+		if pm, err := getFileMtime(p); err != nil {
 			t.Errorf("Couldn't stat out file: %v", err)
-		} else if _, rm, err := getFileTimes(ref); err != nil {
+		} else if rm, err := getFileMtime(ref); err != nil {
 			t.Errorf("Couldn't stat ref file: %v", err)
 		} else if ct&mtimeEqual != 0 && !pm.Equal(rm) {
 			t.Errorf("%v mtime (%v) doesn't match %v (%v)", p, pm, ref, rm)

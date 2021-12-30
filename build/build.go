@@ -119,7 +119,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	// If we built into the site dir, rename the temp dir that we used.
 	if buildToSiteDir {
 		dest := filepath.Join(dir, outSubdir)
-		if _, err := os.Stat(dest); err == nil {
+		if _, err := os.Stat(dest); err != nil && !os.IsNotExist(err) {
+			return err
+		} else if err == nil {
 			// Show a diff and confirm that we should replace the existing output dir.
 			if flags&Prompt != 0 {
 				if ok, err := prompt(ctx, dest, out, flags&Serve != 0); err != nil {
@@ -140,9 +142,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 			if err := os.Rename(dest, old); err != nil {
 				return err
 			}
-		} else if !os.IsNotExist(err) {
-			return err
 		}
+
+		// Move the temp dir to the final location.
 		if err := os.Rename(out, dest); err != nil {
 			return err
 		}
