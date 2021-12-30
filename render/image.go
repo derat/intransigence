@@ -26,14 +26,16 @@ type imgInfo struct {
 	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
 
 	// These fields are set programatically, mostly by finishImgInfo.
-	ID                 string              // DOM ID for image
-	Attr               []template.HTMLAttr // additional attributes to include (can be modified before/after finishImgInfo)
-	Src, WebPSrc       string              // 'src' attr values for original and WebP images (set by finishImgInfo)
-	Srcset, WebPSrcset string              // 'srcset' attr values for original and WebP images (set by finishImgInfo)
-	Sizes              string              // 'sizes' attr value (set by finishImgInfo but can be modified after)
-	biggestSrc         string              // highest-res version of Src (set by finishImgInfo)
-	widths             []int               // ascending widths in pixels of images if multi-res (set by finishImgInfo)
-	layout             string              // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
+	ID   string              // DOM ID for image
+	Attr []template.HTMLAttr // additional attrs to include (can be modified before/after finishImgInfo)
+
+	Src, Srcset                 string // attr values for preferred image
+	FallbackSrc, FallbackSrcset string // attr values for fallback image (if any)
+
+	Sizes      string // 'sizes' attr value (set by finishImgInfo but can be modified after)
+	biggestSrc string // highest-res version of image (set by finishImgInfo)
+	widths     []int  // ascending widths in pixels of images if multi-res (set by finishImgInfo)
+	layout     string // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
 }
 
 // finish validates info and fills additional fields.
@@ -55,43 +57,40 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 		info.Attr = append(info.Attr, template.HTMLAttr(`loading="lazy"`))
 	}
 
-	wc := strings.IndexByte(info.Path, '*')
-	if wc == -1 {
-		info.Src = info.Path
-		if !strings.HasSuffix(info.Src, WebPExt) {
-			info.WebPSrc = removeExt(info.Src) + WebPExt
+	if wc := strings.IndexByte(info.Path, '*'); wc == -1 {
+		// There's no wildcard, so there's just one size.
+		if strings.HasSuffix(info.Path, WebPExt) {
+			info.Src = info.Path
+		} else {
+			info.Src = removeExt(info.Path) + WebPExt
+			info.FallbackSrc = info.Path
 		}
-		info.biggestSrc = info.Src
+		info.biggestSrc = info.Path
 
 		// If the image's display dimensions weren't supplied, get them from the file.
 		if info.Width <= 0 || info.Height <= 0 {
 			var err error
-			if info.Width, info.Height, err = imageSize(filepath.Join(si.StaticDir(), info.Src)); err != nil {
-				return fmt.Errorf("failed getting %v size: %v", info.Src, err)
+			if info.Width, info.Height, err = imageSize(filepath.Join(si.StaticDir(), info.Path)); err != nil {
+				return fmt.Errorf("failed getting %v size: %v", info.Path, err)
 			}
 		}
 		info.Srcset = fmt.Sprintf("%s %dw", info.Src, info.Width)
-		if info.WebPSrc != "" {
-			info.WebPSrcset = fmt.Sprintf("%s %dw", info.WebPSrc, info.Width)
+		if info.FallbackSrc != "" {
+			info.FallbackSrcset = fmt.Sprintf("%s %dw", info.FallbackSrc, info.Width)
 		}
 	} else {
+		// There's a wildcard, so we have multiple sizes.
 		pre := info.Path[:wc]
 		suf := info.Path[wc+1:]
 		var err error
-		if info.Srcset, info.widths, err = makeSrcset(si.StaticDir(), pre, suf); err != nil {
+		var srcset string
+		if srcset, info.widths, err = makeSrcset(si.StaticDir(), pre, suf); err != nil {
 			return err
-		} else if info.Srcset == "" {
+		} else if srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
 		}
-		if !strings.HasSuffix(info.Path, WebPExt) {
-			wsuf := removeExt(suf) + WebPExt
-			if info.WebPSrcset, _, err = makeSrcset(si.StaticDir(), pre, wsuf); err != nil {
-				return err
-			} else if info.WebPSrcset == "" {
-				return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
-			}
-		}
 
+		// If the image's display dimensions weren't supplied, get them from the files.
 		if info.Width <= 0 || info.Height <= 0 {
 			var p string
 			if info.Width <= 0 && len(info.widths) >= 2 {
@@ -112,11 +111,25 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 				return fmt.Errorf("failed getting %v dimensions: %v", p, err)
 			}
 		}
-		info.Src = fmt.Sprintf("%s%d%s", pre, info.Width, suf)
-		if !strings.HasSuffix(info.Src, WebPExt) {
-			info.WebPSrc = removeExt(info.Src) + WebPExt
-		}
+
+		src := fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 		info.biggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
+
+		if strings.HasSuffix(info.Path, WebPExt) {
+			// If this was already a set of WebP images, use them directly.
+			info.Src, info.Srcset = src, srcset
+		} else {
+			// Otherwise, make a WebP srcset and use the original images as a fallback.
+			info.Src = removeExt(src) + WebPExt
+			wsuf := removeExt(suf) + WebPExt
+			if info.Srcset, _, err = makeSrcset(si.StaticDir(), pre, wsuf); err != nil {
+				return err
+			} else if info.Srcset == "" {
+				return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
+			}
+			info.FallbackSrc = src
+			info.FallbackSrcset = srcset
+		}
 	}
 
 	if info.Sizes == "" {
@@ -126,8 +139,8 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 	if err := si.CheckStatic(info.Src); err != nil {
 		return err
 	}
-	if info.WebPSrc != "" {
-		if err := si.CheckStatic(info.WebPSrc); err != nil {
+	if info.FallbackSrc != "" {
+		if err := si.CheckStatic(info.FallbackSrc); err != nil {
 			return err
 		}
 	}

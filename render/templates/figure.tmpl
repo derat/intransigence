@@ -11,11 +11,12 @@
   {{- if .Class}} {{.Class}}{{end -}}
   {{- if .DesktopOnly}} desktop-only{{end -}}
   {{- if .MobileOnly}} mobile-only{{end -}}
-"{{end}}>
+"{{end}}>{{/**/ -}}
 {{end}}
 
 {{- /* Writes <figcaption></figcaption> and </figure> for "image" and "graph" code blocks. */}}
 {{define "figure_end" -}}
-{{if .Caption}}<figcaption>{{.Caption}}</figcaption>{{end}}
+{{if .Caption}}<figcaption>{{.Caption}}</figcaption>
+{{end -}}
 </figure>
 {{end}}

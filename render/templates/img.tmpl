@@ -3,24 +3,25 @@
 {{define "img" -}}
 {{if amp}}{{template "amp-img" .}}{{else -}}
 <picture>{{/**/ -}}
-  {{if .WebPSrc -}}
-  <source type="image/webp" sizes="{{.Sizes}}" srcset="{{.WebPSrcset}}">{{/**/ -}}
+  {{if .FallbackSrc -}}
+  <source type="image/webp" sizes="{{.Sizes}}" srcset="{{.Srcset}}">{{/**/ -}}
   {{end -}}
   <img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end}}{{/**/ -}}
-      src="{{.Src}}" sizes="{{.Sizes}}" srcset="{{.Srcset}}" {{/**/ -}}
+      src="{{or .FallbackSrc .Src}}" sizes="{{.Sizes}}" {{/**/ -}}
+      srcset="{{or .FallbackSrcset .Srcset}}" {{/**/ -}}
       width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
 </picture>{{end -}}
 {{end}}
 
 {{/* Writes <amp-img></amp-img> and a fallback. */}}
 {{define "amp-img" -}}
-{{if .WebPSrc -}}
 <amp-img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end}}{{/**/ -}}
-    src="{{.WebPSrc}}" sizes="{{.Sizes}}" srcset="{{.WebPSrcset}}" {{/**/ -}}
-    width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
-{{end -}}
-<amp-img {{if .WebPSrc}}fallback {{end}}{{range .Attr}}{{.}} {{end}}{{/**/ -}}
     src="{{.Src}}" sizes="{{.Sizes}}" srcset="{{.Srcset}}" {{/**/ -}}
+    width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
+{{if .FallbackSrc -}}
+<amp-img fallback {{range .Attr}}{{.}} {{end -}}
+    src="{{.FallbackSrc}}" sizes="{{.Sizes}}" srcset="{{.FallbackSrcset}}" {{/**/ -}}
     width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}"></amp-img>{{/**/ -}}
+{{end -}}
 </amp-img>{{/**/ -}}
 {{end}}
