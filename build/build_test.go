@@ -119,27 +119,43 @@ func TestBuild_Full(t *testing.T) {
 
 	// Check AMP-specific markup in the AMP version of the page.
 	checkPageContents(t, filepath.Join(out, "scottish_fold.amp.html"), []string{
-		`<figure class="desktop-left mobile-center custom-class">\s*` + // "image" code block
+		// "image" code block
+		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="https://www\.example\.org/scottish_fold/maru-800\.jpg">` +
+			// preferred
 			`<amp-img\s+layout="responsive"\s+src="scottish_fold/maru-400\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w"\s+` +
 			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">\s*` +
+			// fallback
 			`<amp-img\s+fallback\s+layout="responsive"\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box"></amp-img>\s*` +
+			// placeholder
+			`<amp-img\s+placeholder\s+layout="responsive"\s+class="thumb"\s+` +
+			`src="data:image/gif;base64,[^"]+"\s+` +
 			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box"></amp-img>\s*` +
 			`</amp-img>` +
 			`</a>\s*` +
 			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
-		`<amp-img\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.webp"\s+sizes="61px"\s+` + // <image>
+		// inline <image>
+		`<amp-img\s+layout="fixed"\s+class="inline"\s+src="scottish_fold/nyan\.webp"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.webp 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">\s*` +
-			`<amp-img\s+fallback\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
+			// fallback
+			`<amp-img\s+fallback\s+layout="fixed"\s+class="inline"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>\s*` +
+			// (too small for placeholder)
 			`</amp-img>`,
-		`<figure>\s*` + // "image" code block for WebP image
+		// "image" code block for WebP image
+		`<figure>\s*` +
 			`<amp-img\s+layout="responsive"\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/christmas\.webp 400w"\s+width="400"\s+height="300"\s+` +
-			`alt="Scottish Fold cat under a Christmas tree">\s*</amp-img>\s*` +
+			`alt="Scottish Fold cat under a Christmas tree">\s*` +
+			// fallback
+			`<amp-img\s+placeholder\s+layout="responsive"\s+class="thumb"\s+` +
+			`src="data:image/gif;base64,[^"]+"\s+` +
+			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">\s*</amp-img>\s*` +
+			`</amp-img>\s*` +
 			`</figure>`,
 		`(?s)viewing\s+the\s+AMP\s+version`,                                             // <only-amp>
 		`<a href="https://www\.example\.org/scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp

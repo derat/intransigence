@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"html/template"
 	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,6 +18,11 @@ import (
 	"strings"
 
 	_ "golang.org/x/image/webp"
+)
+
+const (
+	thumbnailSize       = 4   // width/height in pixels for image thumbnails
+	minSizeForThumbnail = 200 // min original image width/height to be thumbnailed
 )
 
 // imgInfo holds information used by img.tmpl.
@@ -26,11 +34,13 @@ type imgInfo struct {
 	Lazy   bool   `html:"lazy" yaml:"lazy"`     // whether image should be lazy-loaded
 
 	// These fields are set programatically, mostly by finishImgInfo.
-	ID   string              // DOM ID for image
-	Attr []template.HTMLAttr // additional attrs to include (can be modified before/after finishImgInfo)
+	ID      string              // DOM ID for image
+	Classes []string            // CSS classes (can be modified before/after finishImgInfo)
+	Attr    []template.HTMLAttr // additional attrs to include (can be modified before/after finishImgInfo)
 
-	Src, Srcset                 string // attr values for preferred image
-	FallbackSrc, FallbackSrcset string // attr values for fallback image (if any)
+	Src, Srcset                 string       // attr values for preferred image
+	FallbackSrc, FallbackSrcset string       // attr values for fallback image (if any)
+	PlaceholderSrc              template.URL // attr value for placeholder image (if any)
 
 	Sizes      string // 'sizes' attr value (set by finishImgInfo but can be modified after)
 	biggestSrc string // highest-res version of image (set by finishImgInfo)
@@ -147,6 +157,22 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 	if err := si.CheckStatic(info.biggestSrc); err != nil {
 		return err
 	}
+
+	// Generate inline thumbnail. Ignore "webp: invalid format" errors that the webp package
+	// seems to return when passed animated images.
+	if info.Width >= minSizeForThumbnail && info.Height >= minSizeForThumbnail {
+		origSrc := info.Src
+		if info.FallbackSrc != "" {
+			origSrc = info.FallbackSrc
+		}
+		if thumb, err := genThumb(filepath.Join(si.StaticDir(), origSrc),
+			thumbnailSize, thumbnailSize); err == nil {
+			info.PlaceholderSrc = template.URL("data:image/gif;base64," + thumb)
+		} else if err.Error() != "webp: invalid format" {
+			return fmt.Errorf("failed generating thumbnail for %v: %v", origSrc, err)
+		}
+	}
+
 	return nil
 }
 

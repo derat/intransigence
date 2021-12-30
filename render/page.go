@@ -8,9 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -301,7 +298,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		ID:   "nav-toggle-img",
 	}
 	if len(r.pi.NavItem.Children) == 0 {
-		r.pi.NavToggle.Attr = append(r.pi.NavToggle.Attr, template.HTMLAttr(`class="expand"`))
+		r.pi.NavToggle.Classes = append(r.pi.NavToggle.Classes, "expand")
 	}
 	if err := r.pi.NavToggle.finish(r.si, r.amp); err != nil {
 		r.setErrorf("nav toggle failed: %v", err)
@@ -638,8 +635,8 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.
 		case "image":
 			if token.Type == html.StartTagToken {
 				var info = imgInfo{
-					Attr:   []template.HTMLAttr{template.HTMLAttr(`class="inline"`)},
-					layout: "fixed",
+					Classes: []string{"inline"},
+					layout:  "fixed",
 				}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
