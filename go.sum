@@ -1,6 +1,8 @@
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/derat/htmlpretty v0.0.0-20211119154049-a05b52733e02 h1:PutVdUfI5WHdE6/0i2/WBhZwKvRkELcqhIdps12yn+w=
 github.com/derat/htmlpretty v0.0.0-20211119154049-a05b52733e02/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
+github.com/derat/htmlpretty v0.0.0-20211230184550-9bc35fbcfdd5 h1:HZYtO9Wce8ahrhFWUiNyMGAbenMBjl0KM0nnoqisOao=
+github.com/derat/htmlpretty v0.0.0-20211230184550-9bc35fbcfdd5/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
 github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d h1:hexjqhmInawS5op2oQfb/PncaBBWVk9/tTVdI5xmOZk=
 github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d/go.mod h1:XIsNjtvbFMEpOGI1LbGxJtm0taqh3TWJRobJjpeJ0EU=
 github.com/gorilla/feeds v1.1.1 h1:HwKXxqzcRNg9to+BbvJog4+f3s/xzvtZXICcQGutYfY=

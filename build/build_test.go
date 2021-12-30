@@ -76,27 +76,27 @@ func TestBuild_Full(t *testing.T) {
 		`(?s)<div class="title">\s*Scottish\s+Fold\s*</div>`,       // box created by level-1 heading
 		`<figure class="desktop-left mobile-center custom-class">\s*` + // "image" code block
 			`<a href="scottish_fold/maru-800\.jpg">` +
-			`<picture>` +
+			`<picture>\s*` +
 			`<source\s+type="image/webp"\s+sizes="400px"\s+` +
-			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w">` +
+			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w">\s*` +
 			`<img\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
-			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">\s*` +
 			`</picture>` +
 			`</a>\s*` +
 			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
 		`<div class="clear"></div>`, // "clear" code block
-		`<picture>` + // <image>
-			`<source\s+type="image/webp"\s+sizes="61px"\s+srcset="scottish_fold/nyan\.webp 61w">` +
+		`<picture>\s*` + // <image>
+			`<source\s+type="image/webp"\s+sizes="61px"\s+srcset="scottish_fold/nyan\.webp 61w">\s*` +
 			`<img\s+class="inline"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
-			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">` +
+			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">\s*` +
 			`</picture>`,
 		`<figure>\s*` + // "image" code block for WebP image
-			`<picture>` +
+			`<picture>\s*` +
 			`<img\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/christmas.webp 400w"\s+` +
-			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">` +
+			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">\s*` +
 			`</picture>\s*` +
 			`</figure>`,
 		`(?s)viewing\s+the\s+non-AMP\s+version`,                       // <only-nonamp>
@@ -123,18 +123,18 @@ func TestBuild_Full(t *testing.T) {
 			`<a href="https://www\.example\.org/scottish_fold/maru-800\.jpg">` +
 			`<amp-img\s+layout="responsive"\s+src="scottish_fold/maru-400\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w"\s+` +
-			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">\s*` +
 			`<amp-img\s+fallback\s+layout="responsive"\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
-			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box"></amp-img>` +
+			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box"></amp-img>\s*` +
 			`</amp-img>` +
 			`</a>\s*` +
 			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
 		`<amp-img\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.webp"\s+sizes="61px"\s+` + // <image>
-			`srcset="scottish_fold/nyan\.webp 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">` +
+			`srcset="scottish_fold/nyan\.webp 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">\s*` +
 			`<amp-img\s+fallback\s+class="inline"\s+layout="fixed"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
-			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>` +
+			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat"></amp-img>\s*` +
 			`</amp-img>`,
 		`<figure>\s*` + // "image" code block for WebP image
 			`<amp-img\s+layout="responsive"\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
