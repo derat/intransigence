@@ -158,13 +158,24 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 		return err
 	}
 
-	// Generate inline thumbnail. Ignore "webp: invalid format" errors that the webp package
-	// seems to return when passed animated images.
-	if info.Width >= minSizeForThumbnail && info.Height >= minSizeForThumbnail {
+	// Generate inline thumbnail.
+	// TODO: We currently avoid doing this if there's already a "placeholder" attribute,
+	// which we add to placeholder images for iframes. Decide if there's a better way to
+	// handle this.
+	alreadyPlaceholder := false
+	for _, attr := range info.Attr {
+		if attr == "placeholder" {
+			alreadyPlaceholder = true
+			break
+		}
+	}
+	if !alreadyPlaceholder && info.Width >= minSizeForThumbnail && info.Height >= minSizeForThumbnail {
 		origSrc := info.Src
 		if info.FallbackSrc != "" {
 			origSrc = info.FallbackSrc
 		}
+		// Ignore "webp: invalid format" errors that the webp package seems to return when passed
+		// animated images.
 		if thumb, err := genThumb(filepath.Join(si.StaticDir(), origSrc),
 			thumbnailSize, thumbnailSize); err == nil {
 			info.PlaceholderSrc = template.URL("data:image/gif;base64," + thumb)
