@@ -22,7 +22,7 @@ import (
 
 const (
 	thumbnailSize       = 4   // width/height in pixels for image thumbnails
-	minSizeForThumbnail = 200 // min original image width/height to be thumbnailed
+	minSizeForThumbnail = 100 // min original image width/height to be thumbnailed
 )
 
 // imgInfo holds information used by img.tmpl.
