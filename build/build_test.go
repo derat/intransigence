@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,12 +23,23 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
+var validateTest bool
+
+func init() {
+	// Make it easy to skip validation when iterating to try to fix failures.
+	flag.BoolVar(&validateTest, "validate", true, "Validate generated pages")
+}
+
 func TestBuild_Full(t *testing.T) {
 	dir, err := newTestSiteDir()
 	if err != nil {
 		t.Fatal("Failed creating site dir:", err)
 	}
-	if err := Build(context.Background(), dir, "", PrettyPrint|Validate); err != nil {
+	flags := PrettyPrint
+	if validateTest {
+		flags |= Validate
+	}
+	if err := Build(context.Background(), dir, "", flags); err != nil {
 		os.RemoveAll(dir)
 		t.Fatal("Build failed:", err)
 	}
@@ -74,8 +86,11 @@ func TestBuild_Full(t *testing.T) {
 		`(?s)<title>\s*Scottish Fold\s+-\s+example.org\s*</title>`, // suffix added to title
 		`<li><span\s+class="selected">Scottish\s+Fold</span>`,      // nav item selected
 		`(?s)<div class="title">\s*Scottish\s+Fold\s*</div>`,       // box created by level-1 heading
-		`<figure class="desktop-left mobile-center custom-class">\s*` + // "image" code block
+		// "image" code block
+		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="scottish_fold/maru-800\.jpg">` +
+			`<span class="img-wrapper">` +
+			`<img\s+src="data:image/gif;base64,[^"]+"\s+width="400"\s+height="250"\s+alt="\[placeholder\]">` +
 			`<picture>\s*` +
 			`<source\s+type="image/webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w">\s*` +
@@ -83,21 +98,27 @@ func TestBuild_Full(t *testing.T) {
 			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
 			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">\s*` +
 			`</picture>` +
+			`</span>` +
 			`</a>\s*` +
 			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
 		`<div class="clear"></div>`, // "clear" code block
-		`<picture>\s*` + // <image>
+		// inline <image>
+		`<picture>\s*` +
 			`<source\s+type="image/webp"\s+sizes="61px"\s+srcset="scottish_fold/nyan\.webp 61w">\s*` +
 			`<img\s+class="inline"\s+src="scottish_fold/nyan\.gif"\s+sizes="61px"\s+` +
 			`srcset="scottish_fold/nyan\.gif 61w"\s+width="61"\s+height="24"\s+alt="Nyan Cat">\s*` +
 			`</picture>`,
-		`<figure>\s*` + // "image" code block for WebP image
+		// "image" code block for WebP image
+		`<figure>\s*` +
+			`<span\s+class="img-wrapper">` +
+			`<img\s+src="data:image/gif;base64,[^"]+"\s+width="400"\s+height="300"\s+alt="\[placeholder\]">` +
 			`<picture>\s*` +
 			`<img\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/christmas.webp 400w"\s+` +
 			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">\s*` +
-			`</picture>\s*` +
+			`</picture>` +
+			`</span>\s*` +
 			`</figure>`,
 		`(?s)viewing\s+the\s+non-AMP\s+version`,                       // <only-nonamp>
 		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
@@ -341,13 +362,13 @@ func checkPageContents(t *testing.T, p string, pats, negPats []string) {
 	for _, pat := range pats {
 		re := regexp.MustCompile(pat)
 		if !re.Match(b) {
-			t.Errorf("Page %v not matched by %q", filepath.Base(p), pat)
+			t.Errorf("Page %v not matched by %v", filepath.Base(p), pat)
 		}
 	}
 	for _, pat := range negPats {
 		re := regexp.MustCompile(pat)
 		if re.Match(b) {
-			t.Errorf("Page %v unexpectedly matched by %q", filepath.Base(p), pat)
+			t.Errorf("Page %v unexpectedly matched by %v", filepath.Base(p), pat)
 		}
 	}
 }

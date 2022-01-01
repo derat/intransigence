@@ -417,6 +417,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		csp.add(cspDefault, cspNone)
 		csp.add(cspChild, cspSelf)
 		csp.add(cspImg, cspSelf)
+		csp.add(cspImg, "data:") // needed for inline image thumbnails
 
 		if r.si.CloudflareAnalyticsToken != "" {
 			csp.add(cspScript, cspSource(r.si.CloudflareAnalyticsScriptURL))

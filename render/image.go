@@ -40,7 +40,7 @@ type imgInfo struct {
 
 	Src, Srcset                 string       // attr values for preferred image
 	FallbackSrc, FallbackSrcset string       // attr values for fallback image (if any)
-	PlaceholderSrc              template.URL // attr value for placeholder image (if any)
+	ThumbSrc                    template.URL // attr value for thumbnail placeholder image (if any)
 
 	Sizes      string // 'sizes' attr value (set by finishImgInfo but can be modified after)
 	biggestSrc string // highest-res version of image (set by finishImgInfo)
@@ -178,7 +178,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 		// animated images.
 		if thumb, err := genThumb(filepath.Join(si.StaticDir(), origSrc),
 			thumbnailSize, thumbnailSize); err == nil {
-			info.PlaceholderSrc = template.URL("data:image/gif;base64," + thumb)
+			info.ThumbSrc = template.URL("data:image/gif;base64," + thumb)
 		} else if err.Error() != "webp: invalid format" {
 			return fmt.Errorf("failed generating thumbnail for %v: %v", origSrc, err)
 		}

@@ -1,7 +1,19 @@
-{{/* Writes <picture> containing <source> and <img>. */}}
-{{/* If rendering for AMP, calls the amp-img template instead. */}}
+{{/* Writes an image using either the amp-img or nonamp-img template. */}}
 {{define "img" -}}
-{{if amp}}{{template "amp-img" .}}{{else -}}
+{{if amp}}{{template "amp-img" .}}{{else}}{{template "nonamp-img" .}}{{end -}}
+{{end}}
+
+{{/* Writes a <picture> containing the regular and fallback images, possibly wrapped
+     in a <span> with a thumbnail placeholder. Setting the background-image property
+     on the real <img> would far simpler, but we'd need to use inline 'style'
+     attributes to do that, which is forbidden by CSP. Using a second <img> lets us
+     just set its 'src' attribute, but man, figuring out the CSS for this (see
+     nonamp.scss) was painful. */}}
+{{define "nonamp-img" -}}
+{{if .ThumbSrc -}}
+<span class="img-wrapper">
+  <img src="{{.ThumbSrc}}" width="{{.Width}}" height="{{.Height}}" alt="[placeholder]">
+{{end -}}
 <picture>{{/**/ -}}
   {{if .FallbackSrc -}}
   <source type="image/webp" sizes="{{.Sizes}}" srcset="{{.Srcset}}">{{/**/ -}}
@@ -11,10 +23,11 @@
       src="{{or .FallbackSrc .Src}}" sizes="{{.Sizes}}" {{/**/ -}}
       srcset="{{or .FallbackSrcset .Srcset}}" {{/**/ -}}
       width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
-</picture>{{end -}}
+</picture>{{/**/ -}}
+{{if .ThumbSrc}}</span>{{end -}}
 {{end}}
 
-{{/* Writes <amp-img></amp-img> and a fallback. */}}
+{{/* Writes <amp-img></amp-img> and a fallback (and maybe a thumbnail placeholder). */}}
 {{define "amp-img" -}}
 <amp-img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end -}}
     {{if .Classes}}class="{{range .Classes}}{{.}} {{end}}" {{end -}}
@@ -26,10 +39,10 @@
     src="{{.FallbackSrc}}" sizes="{{.Sizes}}" srcset="{{.FallbackSrcset}}" {{/**/ -}}
     width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}"></amp-img>{{/**/ -}}
 {{end -}}
-{{if .PlaceholderSrc -}}
+{{if .ThumbSrc -}}
 <amp-img placeholder {{range .Attr}}{{.}} {{end -}}
     class="thumb{{range .Classes}} {{.}}{{end}}" {{/**/ -}}
-    src="{{.PlaceholderSrc}}" width="{{.Width}}" height="{{.Height}}" {{/**/ -}}
+    src="{{.ThumbSrc}}" width="{{.Width}}" height="{{.Height}}" {{/**/ -}}
     alt="{{.Alt}}"></amp-img>{{/**/ -}}
 {{end -}}
 </amp-img>{{/**/ -}}

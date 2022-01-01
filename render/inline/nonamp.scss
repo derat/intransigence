@@ -1,0 +1,14 @@
+.img-wrapper {
+  display: inline-block;
+  overflow: hidden; // clip blurred thumbnail
+  position: relative; // needed since thumbnail is absolute
+  width: fit-content; // <figure> can make us bigger otherwise
+  & > img:first-child {
+    filter: blur(12px); // avoid ugly linear interpolation
+    max-height: 100%; // override intrinsic aspect ratio
+    max-width: 100%;
+    position: absolute; // same position as real image
+    transform: scale(1.1); // avoid blurry borders
+    z-index: -1; // draw under real image
+  }
+}
