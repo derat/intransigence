@@ -5,12 +5,12 @@
   width: fit-content; // <figure> can make us bigger otherwise
   & > img { // thumbnail
     filter: blur(12px); // avoid ugly linear interpolation
-    height: 100%; // seems to be needed to override intrinsic aspect ratio
+    max-height: 100%; // seems to be needed to override intrinsic aspect ratio
+    max-width: 100%;
     min-height: 100%;
     min-width: 100%;
     position: absolute; // same position as real image
     transform: scale(1.1); // avoid blurry borders
-    width: 100%;
   }
   & > picture { // real image
     position: relative; // draw over thumbnail
