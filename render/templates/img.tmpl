@@ -12,7 +12,7 @@
 {{define "nonamp-img" -}}
 {{if .ThumbSrc -}}
 <span class="img-wrapper">
-<svg width="{{.Width}}" height="{{.Height}}">{{/**/ -}}
+<svg width="100%" height="100%" viewBox="0 0 {{.Width}} {{.Height}}">{{/**/ -}}
   {{/* The ID namespace is unfortunately shared across all SVG images on the page,
        so only define it in the first image that uses it. */ -}}
   {{if .DefineThumbFilter -}}

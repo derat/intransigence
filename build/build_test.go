@@ -91,7 +91,7 @@ func TestBuild_Full(t *testing.T) {
 			`<a href="scottish_fold/maru-800\.jpg">` +
 			`<span class="img-wrapper">` +
 			// placeholder
-			`<svg width="400"\s+height="250">\s*` +
+			`<svg\s+width="100%"\s+height="100%"\s+viewBox="0 0 400 250">\s*` +
 			`<filter\s+id="thumb-filter">\s*` +
 			`<feGaussianBlur[^>]*></feGaussianBlur>\s*` +
 			`<feComponentTransfer>\s*<feFuncA[^>]*></feFuncA>\s*</feComponentTransfer>\s*` +
@@ -120,7 +120,7 @@ func TestBuild_Full(t *testing.T) {
 		`<figure>\s*` +
 			`<span\s+class="img-wrapper">` +
 			// placeholder
-			`<svg width="400"\s+height="300">\s*` +
+			`<svg\s+width="100%"\s+height="100%"\s+viewBox="0 0 400 300">\s*` +
 			`<image\s+href="data:image/gif;base64,[^"]+"\s+width="400"\s+height="300"\s+` +
 			`filter="url\(#thumb-filter\)"\s+preserveAspectRatio="none"></image>\s*` +
 			`</svg>` +
