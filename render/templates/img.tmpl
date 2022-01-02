@@ -6,13 +6,25 @@
 {{/* Writes a <picture> containing the regular and fallback images, possibly wrapped
      in a <span> with a thumbnail placeholder. Setting the background-image property
      on the real <img> would far simpler, but we'd need to use inline 'style'
-     attributes to do that, which is forbidden by CSP. Using a second <img> lets us
-     just set its 'src' attribute, but man, figuring out the CSS for this (see
-     nonamp.scss) was painful. */}}
+     attributes to do that, which is forbidden by CSP. Using an <svg> lets us
+     just set its image's href attribute and also gives us more control over the blur
+     effect than a separate placeholder <img> with the CSS filter property. */}}
 {{define "nonamp-img" -}}
 {{if .ThumbSrc -}}
 <span class="img-wrapper">
-  <img src="{{.ThumbSrc}}" width="{{.Width}}" height="{{.Height}}" alt="[placeholder]">
+<svg width="{{.Width}}" height="{{.Height}}">{{/**/ -}}
+  {{/* The ID namespace is unfortunately shared across all SVG images on the page,
+       so only define it in the first image that uses it. */ -}}
+  {{if .DefineThumbFilter -}}
+  <filter id="thumb-filter">
+    <feGaussianBlur stdDeviation="12"/>
+    {{/* Keep edges at full opacity: https://stackoverflow.com/a/24420004/6882947 */ -}}
+    <feComponentTransfer><feFuncA type="discrete" tableValues="1 1"/></feComponentTransfer>
+  </filter>{{/**/ -}}
+  {{end -}}
+  <image href="{{.ThumbSrc}}" width="{{.Width}}" height="{{.Height}}" {{/**/ -}}
+      filter="url(#thumb-filter)" preserveAspectRatio="none"/>{{/**/ -}}
+</svg>
 {{end -}}
 <picture>{{/**/ -}}
   {{if .FallbackSrc -}}

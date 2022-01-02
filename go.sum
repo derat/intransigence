@@ -1,8 +1,6 @@
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/derat/htmlpretty v0.0.0-20211119154049-a05b52733e02 h1:PutVdUfI5WHdE6/0i2/WBhZwKvRkELcqhIdps12yn+w=
-github.com/derat/htmlpretty v0.0.0-20211119154049-a05b52733e02/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
-github.com/derat/htmlpretty v0.0.0-20211230184550-9bc35fbcfdd5 h1:HZYtO9Wce8ahrhFWUiNyMGAbenMBjl0KM0nnoqisOao=
-github.com/derat/htmlpretty v0.0.0-20211230184550-9bc35fbcfdd5/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
+github.com/derat/htmlpretty v0.0.0-20220102131159-1fc07cc6747f h1:Zv9JcRQ1GnA9WFe4zhiIZE+8QVkCVtV5mhYBncQ3img=
+github.com/derat/htmlpretty v0.0.0-20220102131159-1fc07cc6747f/go.mod h1:LMie0UFooSuhweFx4Fc35KAM43+skuPnOWe0Qmw9qyU=
 github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d h1:hexjqhmInawS5op2oQfb/PncaBBWVk9/tTVdI5xmOZk=
 github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d/go.mod h1:XIsNjtvbFMEpOGI1LbGxJtm0taqh3TWJRobJjpeJ0EU=
 github.com/gorilla/feeds v1.1.1 h1:HwKXxqzcRNg9to+BbvJog4+f3s/xzvtZXICcQGutYfY=
@@ -35,8 +33,13 @@ golang.org/x/image v0.0.0-20211028202545-6944b10bf410 h1:hTftEOvwiOq2+O8k2D5/Q7C
 golang.org/x/image v0.0.0-20211028202545-6944b10bf410/go.mod h1:023OzeP/+EPmXeapQh35lcL3II3LrY8Ic+EFFKVhULM=
 golang.org/x/net v0.0.0-20200506145744-7e3656a0809f h1:QBjCr1Fz5kw158VqdE9JfI9cJnl/ymnJWAdMuinqL7Y=
 golang.org/x/net v0.0.0-20200506145744-7e3656a0809f/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
+golang.org/x/net v0.0.0-20211216030914-fe4d6282115f h1:hEYJvxw1lSnWIl8X9ofsYMklzaDs90JI2az5YMd4fPM=
+golang.org/x/net v0.0.0-20211216030914-fe4d6282115f/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210423082822-04245dca01da/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.6/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=

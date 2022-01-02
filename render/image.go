@@ -35,9 +35,11 @@ type imgInfo struct {
 	Classes []string            // CSS classes (can be modified before/after finishImgInfo)
 	Attr    []template.HTMLAttr // additional attrs to include (can be modified before/after finishImgInfo)
 
-	Src, Srcset                 string       // attr values for preferred image
-	FallbackSrc, FallbackSrcset string       // attr values for fallback image (if any)
-	ThumbSrc                    template.URL // attr value for thumbnail placeholder image (if any)
+	Src, Srcset                 string // attr values for preferred image
+	FallbackSrc, FallbackSrcset string // attr values for fallback image (if any)
+
+	ThumbSrc          template.URL // attr value for thumbnail placeholder image (if any)
+	DefineThumbFilter bool         // true if #thumb-filter SVG filter should be defined
 
 	Sizes      string // 'sizes' attr value (set by finishImgInfo but can be modified after)
 	biggestSrc string // highest-res version of image (set by finishImgInfo)
@@ -48,7 +50,8 @@ type imgInfo struct {
 
 // finish validates info and fills additional fields.
 // amp should be true if the image will be used for an AMP page.
-func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
+// didThumb is used to track whether an image with ThumbSrc has been finished.
+func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	if info.Path == "" {
 		return errors.New("path must be set")
 	}
@@ -170,6 +173,11 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 		} else if err.Error() != "webp: invalid format" {
 			return fmt.Errorf("failed generating thumbnail for %v: %v", origSrc, err)
 		}
+		// Define the SVG filter the first time we create a thumbnail.
+		if !*didThumb && !amp {
+			info.DefineThumbFilter = true
+		}
+		*didThumb = true
 	}
 
 	return nil

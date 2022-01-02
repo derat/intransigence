@@ -90,16 +90,23 @@ func TestBuild_Full(t *testing.T) {
 		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="scottish_fold/maru-800\.jpg">` +
 			`<span class="img-wrapper">` +
-			`<img\s+src="data:image/gif;base64,[^"]+"\s+width="400"\s+height="250"\s+alt="\[placeholder\]">` +
+			// placeholder
+			`<svg width="400"\s+height="250">\s*` +
+			`<filter\s+id="thumb-filter">\s*` +
+			`<feGaussianBlur[^>]*></feGaussianBlur>\s*` +
+			`<feComponentTransfer>\s*<feFuncA[^>]*></feFuncA>\s*</feComponentTransfer>\s*` +
+			`</filter>\s*` +
+			`<image\s+href="data:image/gif;base64,[^"]+"\s+width="400"\s+height="250"\s+` +
+			`filter="url\(#thumb-filter\)"\s+preserveAspectRatio="none"></image>\s*` +
+			`</svg>` +
+			// real image
 			`<picture>\s*` +
 			`<source\s+type="image/webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.webp 400w, scottish_fold/maru-800\.webp 800w">\s*` +
 			`<img\s+src="scottish_fold/maru-400\.jpg"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/maru-400\.jpg 400w, scottish_fold/maru-800\.jpg 800w"\s+` +
 			`width="400"\s+height="250"\s+alt="Maru the cat sitting in a small cardboard box">\s*` +
-			`</picture>` +
-			`</span>` +
-			`</a>\s*` +
+			`</picture></span></a>\s*` +
 			`<figcaption>\s*Maru\s*</figcaption>\s*` +
 			`</figure>`,
 		`<div class="clear"></div>`, // "clear" code block
@@ -112,7 +119,12 @@ func TestBuild_Full(t *testing.T) {
 		// "image" code block for WebP image
 		`<figure>\s*` +
 			`<span\s+class="img-wrapper">` +
-			`<img\s+src="data:image/gif;base64,[^"]+"\s+width="400"\s+height="300"\s+alt="\[placeholder\]">` +
+			// placeholder
+			`<svg width="400"\s+height="300">\s*` +
+			`<image\s+href="data:image/gif;base64,[^"]+"\s+width="400"\s+height="300"\s+` +
+			`filter="url\(#thumb-filter\)"\s+preserveAspectRatio="none"></image>\s*` +
+			`</svg>` +
+			// real image
 			`<picture>\s*` +
 			`<img\s+src="scottish_fold/christmas\.webp"\s+sizes="400px"\s+` +
 			`srcset="scottish_fold/christmas.webp 400w"\s+` +

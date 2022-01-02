@@ -136,6 +136,7 @@ type renderer struct {
 
 	lastFigureAlign string // last "align" value used for a figure
 	numMapMarkers   int    // number of boxes with "map_marker"
+	didThumb        bool   // already rendered an image with a thumbnail placeholder
 }
 
 func newRenderer(si SiteInfo, amp bool) *renderer {
@@ -269,7 +270,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		ID:      "nav-logo",
 		noThumb: true, // looks weird, and absolute positioning conflicts with placeholder CSS
 	}
-	if err := r.pi.LogoHTML.finish(r.si, r.amp); err != nil {
+	if err := r.pi.LogoHTML.finish(r.si, r.amp, &r.didThumb); err != nil {
 		r.setErrorf("logo failed: %v", err)
 		return
 	}
@@ -288,7 +289,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		ID:      "nav-logo",
 		noThumb: true, // looks weird
 	}
-	if err := r.pi.LogoAMP.finish(r.si, r.amp); err != nil {
+	if err := r.pi.LogoAMP.finish(r.si, r.amp, &r.didThumb); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)
 		return
 	}
@@ -303,7 +304,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Classes = append(r.pi.NavToggle.Classes, "expand")
 	}
-	if err := r.pi.NavToggle.finish(r.si, r.amp); err != nil {
+	if err := r.pi.NavToggle.finish(r.si, r.amp, &r.didThumb); err != nil {
 		r.setErrorf("nav toggle failed: %v", err)
 		return
 	}
@@ -319,7 +320,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		},
 		noThumb: true, // tiny
 	}
-	if err := r.pi.MenuButton.finish(r.si, r.amp); err != nil {
+	if err := r.pi.MenuButton.finish(r.si, r.amp, &r.didThumb); err != nil {
 		r.setErrorf("menu button failed: %v", err)
 		return
 	}
@@ -513,7 +514,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
-		if err := info.imgInfo.finish(r.si, r.amp); err != nil {
+		if err := info.imgInfo.finish(r.si, r.amp, &r.didThumb); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -545,7 +546,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
 		info.imgInfo.noThumb = true // already a placeholder
-		if err := info.imgInfo.finish(r.si, r.amp); err != nil {
+		if err := info.imgInfo.finish(r.si, r.amp, &r.didThumb); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
@@ -648,7 +649,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err
 				}
-				if err := info.finish(r.si, r.amp); err != nil {
+				if err := info.finish(r.si, r.amp, &r.didThumb); err != nil {
 					return 0, err
 				}
 				if err := r.tmpl.runNamed(w, []string{"img.tmpl"}, "img", info, nil); err != nil {
