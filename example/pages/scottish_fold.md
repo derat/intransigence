@@ -68,6 +68,15 @@ path: scottish_fold/christmas.webp
 alt: Scottish Fold cat under a Christmas tree
 ```
 
+Ditto for data URLs:
+
+```image
+url: data:image/gif;base64,R0lGODlhBAAEAIMAAHRPLY9uXD5VQ048L5ljR5lmTzVVSD1cTbWnnIJ1VEBXTyhRQ8bGvXp2Sk5fVjRYUCwAAAAABAAEAAAEC4AgFkpqwig3znoiADs=
+alt: A blurry, unintelligible image
+width: 200
+height: 200
+```
+
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
 ### Controversy {#controversy}

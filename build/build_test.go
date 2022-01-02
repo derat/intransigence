@@ -132,6 +132,13 @@ func TestBuild_Full(t *testing.T) {
 			`</picture>` +
 			`</span>\s*` +
 			`</figure>`,
+		// "image" code block for data URL
+		`<figure>\s*` +
+			`<picture>\s*` +
+			`<img\s+src="data:image/gif;base64,[^"]+"\s+` +
+			`width="200"\s+height="200"\s+alt="A blurry, unintelligible image">\s*` +
+			`</picture>\s*` +
+			`</figure>`,
 		`(?s)viewing\s+the\s+non-AMP\s+version`,                       // <only-nonamp>
 		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
 		`<span class="small">makes\s+text\s+small</span>`,             // <text-size small>
@@ -190,6 +197,11 @@ func TestBuild_Full(t *testing.T) {
 			`width="400"\s+height="300"\s+alt="Scottish Fold cat under a Christmas tree">\s*</amp-img>\s*` +
 			`</amp-img>\s*` +
 			`</figure>`,
+		// "image" code block for data URL
+		`<figure>\s*` +
+			`<amp-img\s+layout="responsive"\s+src="data:image/gif;base64,[^"]+"\s+` +
+			`width="200"\s+height="200"\s+alt="A blurry, unintelligible image"></amp-img>\s*` +
+			`</figure>`,
 		`(?s)viewing\s+the\s+AMP\s+version`,                                             // <only-amp>
 		`<a href="https://www\.example\.org/scottish_fold\.html">non-AMP\s+version</a>`, // !force_nonamp
 	}, []string{
@@ -197,8 +209,8 @@ func TestBuild_Full(t *testing.T) {
 	})
 
 	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{}, []string{
-		`Scottish fold`,      // omit_from_menu (don't expand parent)
-		`scottish_fold.html`, // omit_from_menu (don't expand parent)
+		`Scottish fold`,                                // omit_from_menu (don't expand parent)
+		`scottish_fold.html`,                           // omit_from_menu (don't expand parent)
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 

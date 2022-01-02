@@ -32,8 +32,9 @@
   {{end -}}
   <img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end -}}
       {{if .Classes}}class="{{range .Classes}}{{.}} {{end}}" {{end -}}
-      src="{{or .FallbackSrc .Src}}" sizes="{{.Sizes}}" {{/**/ -}}
-      srcset="{{or .FallbackSrcset .Srcset}}" {{/**/ -}}
+      src="{{or .FallbackSrc .Src}}" {{/**/ -}}
+      {{if .Sizes}}sizes="{{.Sizes}}" {{end -}}
+      {{if .Srcset}}srcset="{{or .FallbackSrcset .Srcset}}" {{end -}}
       width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
 </picture>{{/**/ -}}
 {{if .ThumbSrc}}</span>{{end -}}
@@ -43,7 +44,9 @@
 {{define "amp-img" -}}
 <amp-img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end -}}
     {{if .Classes}}class="{{range .Classes}}{{.}} {{end}}" {{end -}}
-    src="{{.Src}}" sizes="{{.Sizes}}" srcset="{{.Srcset}}" {{/**/ -}}
+    src="{{.Src}}" {{/**/ -}}
+    {{if .Sizes}}sizes="{{.Sizes}}" {{end -}}
+    {{if .Srcset}}srcset="{{.Srcset}}" {{end -}}
     width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}">{{/**/ -}}
 {{if .FallbackSrc -}}
 <amp-img fallback {{range .Attr}}{{.}} {{end -}}

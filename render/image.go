@@ -25,6 +25,7 @@ const thumbnailSize = 4 // width/height in pixels for image thumbnails
 // imgInfo holds information used by img.tmpl.
 type imgInfo struct {
 	Path   string `html:"path" yaml:"path"`     // path, e.g. "files/img.png" or "files/img-*.png"
+	URL    string `html:"url" yaml:"url"`       // URL, e.g. "data:image/gif;base64,..."
 	Width  int    `html:"width" yaml:"width"`   // 100% width in pixels; inferred if empty
 	Height int    `html:"height" yaml:"height"` // 100% height in pixels; inferred if empty
 	Alt    string `html:"alt" yaml:"alt"`       // alt text
@@ -52,8 +53,8 @@ type imgInfo struct {
 // amp should be true if the image will be used for an AMP page.
 // didThumb is used to track whether an image with ThumbSrc has been finished.
 func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
-	if info.Path == "" {
-		return errors.New("path must be set")
+	if (info.Path == "" && info.URL == "") || (info.Path != "" && info.URL != "") {
+		return errors.New("exactly one of path or url must be set")
 	}
 	if info.Alt == "" {
 		return errors.New("alt must be set")
@@ -66,6 +67,14 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	}
 	if info.Lazy && !amp { // <amp-img> already lazy-loads
 		info.Attr = append(info.Attr, template.HTMLAttr(`loading="lazy"`))
+	}
+
+	if info.URL != "" {
+		if info.Width == 0 || info.Height == 0 {
+			return errors.New("width and height must be set for URLs")
+		}
+		info.Src = info.URL
+		return nil
 	}
 
 	if wc := strings.IndexByte(info.Path, '*'); wc == -1 {
