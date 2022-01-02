@@ -264,9 +264,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	}
 
 	r.pi.LogoHTML = imgInfo{
-		Path: r.si.LogoPathHTML,
-		Alt:  r.si.LogoAlt,
-		ID:   "nav-logo",
+		Path:    r.si.LogoPathHTML,
+		Alt:     r.si.LogoAlt,
+		ID:      "nav-logo",
+		noThumb: true, // looks weird, and absolute positioning conflicts with placeholder CSS
 	}
 	if err := r.pi.LogoHTML.finish(r.si, r.amp); err != nil {
 		r.setErrorf("logo failed: %v", err)
@@ -282,9 +283,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	}
 
 	r.pi.LogoAMP = imgInfo{
-		Path: r.si.LogoPathAMP,
-		Alt:  r.si.LogoAlt,
-		ID:   "nav-logo",
+		Path:    r.si.LogoPathAMP,
+		Alt:     r.si.LogoAlt,
+		ID:      "nav-logo",
+		noThumb: true, // looks weird
 	}
 	if err := r.pi.LogoAMP.finish(r.si, r.amp); err != nil {
 		r.setErrorf("AMP logo failed: %v", err)
@@ -293,9 +295,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	// On mobile, collapse the navbox if the page doesn't have subpages.
 	r.pi.NavToggle = imgInfo{
-		Path: r.si.NavTogglePath,
-		Alt:  "[toggle navigation]",
-		ID:   "nav-toggle-img",
+		Path:    r.si.NavTogglePath,
+		Alt:     "[toggle navigation]",
+		ID:      "nav-toggle-img",
+		noThumb: true, // tiny
 	}
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Classes = append(r.pi.NavToggle.Classes, "expand")
@@ -314,6 +317,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			template.HTMLAttr(`role="button"`),
 			template.HTMLAttr(`on="tap:sidebar.open"`),
 		},
+		noThumb: true, // tiny
 	}
 	if err := r.pi.MenuButton.finish(r.si, r.amp); err != nil {
 		r.setErrorf("menu button failed: %v", err)
@@ -540,6 +544,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		info.imgInfo.layout = "fill"
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
+		info.imgInfo.noThumb = true // already a placeholder
 		if err := info.imgInfo.finish(r.si, r.amp); err != nil {
 			r.setErrorf("bad data in %q: %v", node.Literal, err)
 			return bf.Terminate
@@ -638,6 +643,7 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.
 				var info = imgInfo{
 					Classes: []string{"inline"},
 					layout:  "fixed",
+					noThumb: true, // probably small
 				}
 				if err := unmarshalAttrs(token.Attr, &info); err != nil {
 					return 0, err

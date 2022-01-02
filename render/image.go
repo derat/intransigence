@@ -20,10 +20,7 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-const (
-	thumbnailSize       = 4   // width/height in pixels for image thumbnails
-	minSizeForThumbnail = 100 // min original image width/height to be thumbnailed
-)
+const thumbnailSize = 4 // width/height in pixels for image thumbnails
 
 // imgInfo holds information used by img.tmpl.
 type imgInfo struct {
@@ -46,6 +43,7 @@ type imgInfo struct {
 	biggestSrc string // highest-res version of image (set by finishImgInfo)
 	widths     []int  // ascending widths in pixels of images if multi-res (set by finishImgInfo)
 	layout     string // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
+	noThumb    bool   // avoid generating a thumbnail (consumed by finishImgInfo)
 }
 
 // finish validates info and fills additional fields.
@@ -159,17 +157,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool) error {
 	}
 
 	// Generate inline thumbnail.
-	// TODO: We currently avoid doing this if there's already a "placeholder" attribute,
-	// which we add to placeholder images for iframes. Decide if there's a better way to
-	// handle this.
-	alreadyPlaceholder := false
-	for _, attr := range info.Attr {
-		if attr == "placeholder" {
-			alreadyPlaceholder = true
-			break
-		}
-	}
-	if !alreadyPlaceholder && info.Width >= minSizeForThumbnail && info.Height >= minSizeForThumbnail {
+	if !info.noThumb {
 		origSrc := info.Src
 		if info.FallbackSrc != "" {
 			origSrc = info.FallbackSrc
