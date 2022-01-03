@@ -1,6 +1,5 @@
 ```page
 title: Cheshire Cat
-id: cheshire
 created: 2021-09-07
 modified: 2021-09-07
 ```

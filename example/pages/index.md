@@ -1,6 +1,5 @@
 ```page
 title: Welcome to an example site
-id: index
 desc: Provides a high-level overview of features
 image_path: scottish_fold/maru-800.jpg
 created: 2020-05-19

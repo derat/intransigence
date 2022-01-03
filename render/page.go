@@ -36,10 +36,11 @@ const (
 )
 
 // Page renders and returns the page described by the supplied Markdown data.
+// The id parameter specifies the page's default ID, although this can be overriden in the page block.
 // The amp parameter specifies whether the AMP or non-AMP version of the page should be rendered.
 // The returned feed info is nil if the page should not be included in the Atom feed.
-func Page(si SiteInfo, markdown []byte, amp bool) ([]byte, *PageFeedInfo, error) {
-	r := newRenderer(si, amp)
+func Page(si SiteInfo, id string, markdown []byte, amp bool) ([]byte, *PageFeedInfo, error) {
+	r := newRenderer(si, id, amp)
 	b := bf.Run(markdown, bf.WithRenderer(r),
 		bf.WithExtensions((bf.CommonExtensions&^bf.Autolink)|bf.Footnotes))
 	if r.err != nil {
@@ -75,7 +76,7 @@ type PageFeedInfo struct {
 // pageInfo holds information about the current page that is used by page.tmpl.
 type pageInfo struct {
 	Title           string `yaml:"title"`             // original title
-	ID              string `yaml:"id"`                // NavItem.ID to highlight in navbox
+	ID              string `yaml:"id"`                // NavItem.ID to highlight in navbox (inferred from filename if empty)
 	Desc            string `yaml:"desc"`              // meta description
 	ImagePath       string `yaml:"image_path"`        // path to structured data image in static dir
 	Created         string `yaml:"created"`           // creation date as 'YYYY-MM-DD'
@@ -139,15 +140,16 @@ type renderer struct {
 	didThumb        bool   // already rendered an image with a thumbnail placeholder
 }
 
-func newRenderer(si SiteInfo, amp bool) *renderer {
+func newRenderer(si SiteInfo, id string, amp bool) *renderer {
 	r := renderer{
 		si: &si,
-		pi: pageInfo{SiteInfo: &si, Desc: si.DefaultDesc},
+		pi: pageInfo{ID: id, SiteInfo: &si, Desc: si.DefaultDesc},
 		hr: bf.NewHTMLRenderer(bf.HTMLRendererParameters{
 			Flags: bf.FootnoteReturnLinks,
 		}),
 		amp: amp,
 	}
+
 	r.tmpl = newTemplater(filepath.Join(si.TemplateDir()), template.FuncMap{
 		"amp": func() bool {
 			return r.amp

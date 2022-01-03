@@ -1,6 +1,5 @@
 ```page
 title: Cats
-id: cats
 created: 2020-05-20
 modified: 2020-05-20
 ```

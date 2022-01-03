@@ -52,7 +52,7 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []re
 
 		build := func(dest string, amp bool) error {
 			outPaths = append(outPaths, dest)
-			b, fi, err := render.Page(*si, md, amp)
+			b, fi, err := render.Page(*si, base, md, amp)
 			if err != nil {
 				return fmt.Errorf("failed to render %s: %v", filepath.Base(dest), err)
 			}
