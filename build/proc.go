@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -21,7 +23,6 @@ import (
 // It seems like it'd be cleaner to write the minified files into a temporary dir instead
 // of alongside the source files, but yui-compressor is slow (1 second for a 9 KB JS file!)
 // so it seems better to skip unnecessary calls.
-// TODO: Delete this? No customizable JS right now.
 func minifyInline(dir string) error {
 	ps, err := filepath.Glob(filepath.Join(dir, "*.js"))
 	if err != nil {
@@ -42,8 +43,8 @@ func minifyInline(dir string) error {
 		}
 		// Minify if the minimized version doesn't exist or has an mtime before the original file's.
 		if err != nil || mi.ModTime().Before(pi.ModTime()) {
-			if err := exec.Command("yui-compressor", "--type", "js", "-o", mp, p).Run(); err != nil {
-				return err
+			if out, err := exec.Command("yui-compressor", "--type", "js", "-o", mp, p).CombinedOutput(); err != nil {
+				return fmt.Errorf("minifying %v: %v (%v)", p, err, strings.Split(string(out), "\n")[0])
 			}
 		}
 	}

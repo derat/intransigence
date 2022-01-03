@@ -412,10 +412,13 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css.min")) +
 			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
 				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css.min")) +
-			r.pi.PageStyle)
+			r.si.ReadInline("page_"+r.pi.ID+".css.min") + r.pi.PageStyle)
 		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js.min"))}
 		if r.pi.HasMap {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js.min")))
+		}
+		if js := r.si.ReadInline("page_" + r.pi.ID + ".js.min"); js != "" {
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(js))
 		}
 
 		csp := cspBuilder{}
@@ -509,6 +512,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			figureInfo `yaml:",inline"`
 			imgInfo    `yaml:",inline"`
 			Href       string `yaml:"href"`
+			NoLink     bool   `yaml:"no_link"`
 		}
 		if err := unmarshalYAML(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse image info from %q: %v", node.Literal, err)
@@ -519,10 +523,10 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			return bf.Terminate
 		}
 		info.figureInfo.Align = figureAlign(info.figureInfo.Align)
-		if len(info.Href) == 0 && info.imgInfo.biggestSrc != info.imgInfo.Src {
+		if info.Href == "" && !info.NoLink && info.imgInfo.biggestSrc != info.imgInfo.Src {
 			info.Href = info.imgInfo.biggestSrc
 		}
-		if len(info.Href) > 0 {
+		if info.Href != "" {
 			var err error
 			if info.Href, err = r.rewriteLink(info.Href); err != nil {
 				r.setError(err)

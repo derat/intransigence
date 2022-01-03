@@ -23,7 +23,7 @@ website from Markdown files. Various features are included (and hardcoded):
     web server via [rsync].
 *   Page display is (somewhat) configurable via custom [Sass] SCSS files.
 *   A [Sitemap] XML file listing the site's pages is automatically created.
-*   An [RSS]\ (actually [Atom]) feed listing new pages is automatically created.
+*   An [RSS] \(actually [Atom]) feed listing new pages is automatically created.
 *   When regenerating the site, a web server is started to allow viewing the new
     pages and a diff is displayed to make it easy to see changes from the
     previous version.
@@ -95,12 +95,14 @@ A site is defined via a directory with the following structure:
     navigation menu.
 *   `pages/` - Subdirectory containing Markdown files specifying the content of
     individual pages. These files are described in more detail below.
-*   `inline/` - Subdirectory containing `.scss` files with custom CSS rules:
+*   `inline/` - Subdirectory containing custom '.js' and `.scss` files:
     *   `base.scss` - Rules included in all generated pages.
     *   `desktop.scss` - Rules applying only to large screen sizes.
     *   `mobile.scss` - Rules applying only to small screen sizes.
     *   `amp.scss` - Rules included only in AMP pages.
     *   `nonamp.scss` - Rules included only in non-AMP pages.
+    *   `page_foo.scss` - Rules included only for the page with ID `foo`.
+    *   `page_foo.js` - JS included only for the page with ID `foo`.
 *   `static/` - Subdirectory containing files that are copied unchanged to the
     top level of the output directory (e.g. images).
 
