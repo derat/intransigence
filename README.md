@@ -95,7 +95,7 @@ A site is defined via a directory with the following structure:
     navigation menu.
 *   `pages/` - Subdirectory containing Markdown files specifying the content of
     individual pages. These files are described in more detail below.
-*   `inline/` - Subdirectory containing custom '.js' and `.scss` files:
+*   `inline/` - Subdirectory containing custom `.js` and `.scss` files:
     *   `base.scss` - Rules included in all generated pages.
     *   `desktop.scss` - Rules applying only to large screen sizes.
     *   `mobile.scss` - Rules applying only to small screen sizes.
