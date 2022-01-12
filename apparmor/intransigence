@@ -9,7 +9,7 @@
 
   @{SITEDIRS}/ ar,
   @{SITEDIRS}/** r,
-  @{SITEDIRS}/inline/**.min w,
+  @{SITEDIRS}/inline/**.css w,
   @{SITEDIRS}/static/**.webp w,
   @{SITEDIRS}/.out.*/ rw,
   @{SITEDIRS}/.out.*/** rw,
@@ -36,5 +36,6 @@
   /usr/bin/sassc ix,
 
   # Unfortunately needed for performing validation and serving generated sites.
-  network tcp,
+  network inet dgram,
+  network inet6 dgram,
 }
