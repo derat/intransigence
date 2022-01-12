@@ -24,6 +24,7 @@
 
   # Automatically-opened files.
   /dev/tty r, # less
+  /etc/mime.types r, # ?
   /etc/ssl/certs/java/ r, # ?
   /proc/sys/net/core/somaxconn r, # go
   /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r, # go
