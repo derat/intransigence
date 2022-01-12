@@ -4,30 +4,32 @@
 package render
 
 import (
-	"strings"
-
 	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
+)
+
+const (
+	cssType = "text/css"
+	jsType  = "application/javascript"
 )
 
 var minifier *minify.M
 
-const jsType = "application/javascript"
-
 func init() {
 	minifier = minify.New()
+	minifier.AddFunc(cssType, css.Minify)
 	minifier.AddFunc(jsType, js.Minify)
 }
 
-// minifyData minifies in based on its extension.
-func minifyData(in, ext string) (string, error) {
+// minifyData minifies data based on its extension.
+func minifyData(data, ext string) (string, error) {
 	switch ext {
 	case ".css":
-		// sassc already minifies, but it doesn't remove trailing newlines.
-		return strings.TrimSpace(in), nil
+		return minifier.String(cssType, data)
 	case ".js":
-		return minifier.String(jsType, in)
+		return minifier.String(jsType, data)
 	default:
-		return in, nil
+		return data, nil
 	}
 }

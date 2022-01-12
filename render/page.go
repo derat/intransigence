@@ -31,6 +31,8 @@ const (
 
 	dateLayout = "2006-01-02"
 
+	ampBoilerplatePre = "amp-boilerplate"
+
 	// WebPExt is the extension for generated WebP image files.
 	WebPExt = ".webp"
 )
@@ -87,6 +89,7 @@ type pageInfo struct {
 	OmitFromFeed    bool   `yaml:"omit_from_feed"`    // omit page from RSS feed
 	HasMap          bool   `yaml:"has_map"`           // page contains a map
 	HasGraph        bool   `yaml:"has_graph"`         // page contains one or more graphs
+	HighlightCode   bool   `yaml:"highlight_code"`    // perform syntax highlighting on tagged code blocks
 	PageStyle       string `yaml:"page_style"`        // optional custom page-specific CSS
 
 	SiteInfo *SiteInfo `yaml:"-"` // site-level information
@@ -389,6 +392,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 				r.si.ReadInline("base.css") + r.si.ReadInline("mobile.css") +
 				r.si.ReadInline("amp.css") + r.si.ReadInline("page_"+r.pi.ID+".css") +
 				r.pi.PageStyle)
+		if r.pi.HighlightCode {
+			r.pi.AMPCustomStyle += template.CSS(r.si.codeCSS)
+		}
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -416,6 +422,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
 				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css")) +
 			r.si.ReadInline("page_"+r.pi.ID+".css") + r.pi.PageStyle)
+		if r.pi.HighlightCode {
+			r.pi.HTMLStyle += template.CSS(r.si.codeCSS)
+		}
+
 		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js"))}
 		if r.pi.HasMap {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js")))
@@ -565,6 +575,18 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 	case "page":
 		return bf.SkipChildren // handled in RenderHeader
 	default:
+		if lang := string(node.CodeBlockData.Info); lang != "" {
+			if !r.pi.HighlightCode {
+				r.setError(errors.New("highlight_code must be set to true"))
+				return bf.Terminate
+			}
+
+			code := strings.TrimRight(string(node.Literal), "\n")
+			if r.setError(writeCode(w, code, lang, r.si.CodeStyle)) != nil {
+				return bf.Terminate
+			}
+			return bf.SkipChildren
+		}
 		node.CodeBlockData.Info = nil // prevent Blackfriday from adding e.g. "language-html" CSS class
 		return r.mangleOutput(w, node, entering, unescapeQuotes|removeCodeNewline|wrapNoSelect)
 	}
@@ -847,6 +869,13 @@ func getStdInline(fn string) string {
 	if !ok {
 		panic(fmt.Sprintf("No standard inline file %q", fn))
 	}
+
+	// Preserve the official AMP boilerplate (minus trailing newline):
+	// https://amp.dev/documentation/guides-and-tutorials/learn/spec/amp-boilerplate/
+	if strings.HasPrefix(fn, ampBoilerplatePre) {
+		return strings.TrimSpace(data)
+	}
+
 	min, err := minifyData(data, filepath.Ext(fn))
 	if err != nil {
 		panic(fmt.Sprintf("Failed minifying %v: %v", fn, err))

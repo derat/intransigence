@@ -73,6 +73,9 @@ type SiteInfo struct {
 	// ExtraStaticDirs contains extra dirs to copy into the output dir.
 	// Keys are paths relative to the site dir and values are paths relative to the output dir.
 	ExtraStaticDirs map[string]string `yaml:"extra_static_dirs"`
+	// CodeStyle contains the Chroma style to use when highlighting code.
+	// See https://xyproto.github.io/splash/docs/all.html for available styles.
+	CodeStyle string `yaml:"code_style"`
 
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
@@ -90,6 +93,8 @@ type SiteInfo struct {
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
 	dir string
+
+	codeCSS string // CSS class definitions for code syntax highlighting
 }
 
 // NewSiteInfo constructs a new SiteInfo from the YAML file at p.
@@ -101,6 +106,8 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	defer f.Close()
 
 	si := SiteInfo{
+		CodeStyle:                         "github",
+		D3ScriptURL:                       "https://d3js.org/d3.v3.min.js",
 		CloudflareAnalyticsScriptURL:      "https://static.cloudflareinsights.com/beacon.min.js",
 		CloudflareAnalyticsConnectPattern: "https://cloudflareinsights.com",
 		dir:                               filepath.Dir(p),
@@ -116,8 +123,8 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		return nil, err
 	}
 
-	if si.D3ScriptURL == "" {
-		si.D3ScriptURL = "https://d3js.org/d3.v3.min.js"
+	if si.codeCSS, err = codeCSS(si.CodeStyle); err != nil {
+		return nil, err
 	}
 
 	if si.FaviconPath != "" {

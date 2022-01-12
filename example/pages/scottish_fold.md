@@ -1,6 +1,7 @@
 ```page
 title: Scottish Fold
 id: scottish
+highlight_code: true
 created: 2020-05-20
 modified: 2020-05-21
 ```
@@ -108,3 +109,17 @@ trigger wrapping. You can accomplish this by using `<code-url>`, as seen here:
 ```
 Text can also be ‹marked as non-selectable› within a code block.
 ```
+
+Syntax highlighting of code blocks is supported using the [Chroma] package:
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+```
+
+[Chroma]: https://github.com/alecthomas/chroma

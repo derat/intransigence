@@ -32,6 +32,14 @@ var cssIgnore = []*regexp.Regexp{
 	regexp.MustCompile(`^Parse Error  @(|-moz-|-ms-|-o-)keyframes -amp-start\{from\{visibility:hidden\}to\{visibility:visible\}\}$`),
 	// Permit styling scrollbars for WebKit-based browsers.
 	regexp.MustCompile(`-webkit-scrollbar is a vendor extended pseudo-element$`),
+	// The W3C recommends quoting font families with spaces,
+	// but this isn't required: https://stackoverflow.com/a/13752149/6882947
+	// The minify package removes quotes and lowercases families:
+	// https://github.com/tdewolff/minify#css
+	regexp.MustCompile(`^Family names containing whitespace should be quoted\. ` +
+		`If quoting is omitted, any whitespace characters before and after the ` +
+		`name are ignored and any sequence of whitespace characters inside the ` +
+		`name is converted to a single space.$`),
 }
 
 // validateFiles validates files at the supplied paths.

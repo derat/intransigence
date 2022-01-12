@@ -3,6 +3,7 @@ module github.com/derat/intransigence
 go 1.14
 
 require (
+	github.com/alecthomas/chroma v0.9.4
 	github.com/derat/htmlpretty v0.0.0-20220108220318-171a23389704
 	github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d
 	github.com/gorilla/feeds v1.1.1
