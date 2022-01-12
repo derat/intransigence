@@ -183,12 +183,6 @@ attributes on the opening tag. See the `"image"` case in `renderHTMLSpan` in
 Left and right floats can be cleared using an empty fenced code block of type
 `clear`.
 
-### URLs
-
-URLs can be placed within `<code-url></code-url>` to let them wrap on mobile
-even if they don't contain characters that would usually trigger wrapping. The
-contents are not escaped. Add a backslash in the scheme to prevent auto-linking.
-
 ### Text size
 
 `<text-size></text-size>` can be used to change the size of the contained text.

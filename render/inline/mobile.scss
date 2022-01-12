@@ -32,12 +32,5 @@
       margin-left: auto; // matches 'center' in base.scss
       margin-right: auto;
     }
-
-    // URLs might not contain hyphens, in which case they can't be broken using
-    // 'normal' (which tends to need to happen a lot on narrow mobile screens).
-    // Let them be broken anywhere instead.
-    .url {
-      word-break: break-all;
-    }
   }
 }

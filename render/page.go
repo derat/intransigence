@@ -661,13 +661,6 @@ func (r *renderer) renderHTMLSpan(w io.Writer, node *bf.Node, entering bool) bf.
 		}
 
 		switch token.Data {
-		case "code-url":
-			if token.Type == html.StartTagToken {
-				io.WriteString(w, `<code class="url">`)
-			} else if token.Type == html.EndTagToken {
-				io.WriteString(w, "</code>")
-			}
-			return bf.SkipChildren, nil
 		case "image":
 			if token.Type == html.StartTagToken {
 				var info = imgInfo{

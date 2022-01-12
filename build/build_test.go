@@ -143,8 +143,6 @@ func TestBuild_Full(t *testing.T) {
 		`<a href="scottish_fold\.amp\.html">AMP\s+version</a>`,        // !force_amp
 		`<span class="small">makes\s+text\s+small</span>`,             // <text-size small>
 		`<span class="real-small">makes\s+it\s+even\s+smaller</span>`, // <text-size tiny>
-		`<code class="url">https://www.example.org/a/quite/long/url` + // <code-url>
-			`/that/should/be/wrapped</code>`,
 		`Text can also be <span class="no-select">marked as ` + // ‹...›
 			`non-selectable</span> within a code block`,
 		`<a href="#top">Back\s+to\s+top</a>`,
@@ -209,8 +207,8 @@ func TestBuild_Full(t *testing.T) {
 	})
 
 	checkPageContents(t, filepath.Join(out, "cheshire.html"), []string{}, []string{
-		`Scottish fold`,                                // omit_from_menu (don't expand parent)
-		`scottish_fold.html`,                           // omit_from_menu (don't expand parent)
+		`Scottish fold`,      // omit_from_menu (don't expand parent)
+		`scottish_fold.html`, // omit_from_menu (don't expand parent)
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 
