@@ -1,0 +1,8 @@
+# vim:syntax=apparmor
+
+# @{SITEDIRS} is a space-separated list of all intransigence site directories.
+@{SITEDIRS}=
+
+# @{EXTRASTATICDIRS} is a space-separated list of directories listed in sites'
+# "extra_static_dirs" properties.
+@{EXTRASTATICDIRS}=

@@ -98,6 +98,7 @@ func showDiff(ctx context.Context, a, b, header string) error {
 	}
 	pagerCmd.Stdout = os.Stdout
 	pagerCmd.Stderr = os.Stderr
+	pagerCmd.Env = append(os.Environ(), "LESSHISTFILE=-") // avoid reading ~/.lesshst
 	if err := pagerCmd.Start(); err != nil {
 		return fmt.Errorf("failed starting %q: %v", strings.Join(pagerCmd.Args, " "), err)
 	}

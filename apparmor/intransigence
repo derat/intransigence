@@ -1,0 +1,41 @@
+# vim:syntax=apparmor
+
+#include <tunables/global>
+#include <tunables/intransigence>
+
+/home/user/go/bin/intransigence {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  @{SITEDIRS}/ ar,
+  @{SITEDIRS}/** r,
+  @{SITEDIRS}/inline/**.min w,
+  @{SITEDIRS}/static/**.webp w,
+  @{SITEDIRS}/.out.*/ rw,
+  @{SITEDIRS}/.out.*/** rw,
+  @{SITEDIRS}/out/ w,
+
+  # TODO: Why do both of these seem to be needed?
+  # https://gitlab.com/apparmor/apparmor/-/wikis/AppArmor_Core_Policy_Reference
+  # says that ** will "match 0 or more characters over multiple directory
+  # levels."
+  @{EXTRASTATICDIRS}/ r,
+  @{EXTRASTATICDIRS}/** r,
+
+  # Automatically-opened files.
+  /dev/tty r, # less
+  /etc/ssl/certs/java/ r, # ?
+  /proc/sys/net/core/somaxconn r, # go
+  /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r, # go
+
+  # Helper programs.
+  /usr/bin/cwebp ix,
+  /usr/bin/diff ix,
+  /usr/bin/gif2webp ix,
+  /usr/bin/less ix,
+  /usr/bin/sassc ix,
+  /usr/bin/yui-compressor ix,
+
+  # Unfortunately needed for performing validation and serving generated sites.
+  network tcp,
+}
