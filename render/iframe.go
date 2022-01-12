@@ -62,10 +62,10 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		}{
 			ScriptURLs: []string{si.D3ScriptURL},
 			InlineScripts: []template.JS{
-				template.JS(getStdInline("graph-iframe.js.min")),
+				template.JS(getStdInline("graph-iframe.js")),
 				template.JS("var dataSets = " + string(jsonData) + ";"),
 			},
-			InlineStyle: template.CSS(getStdInline("graph-iframe.css") + si.ReadInline("graph-iframe.css.min")),
+			InlineStyle: template.CSS(getStdInline("graph-iframe.css") + si.ReadInline("graph-iframe.css")),
 		}
 
 		csp := cspBuilder{}
@@ -100,9 +100,9 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey},
 			InlineScripts: []template.JS{
 				template.JS("var points = " + string(jsonData) + ";"),
-				template.JS(getStdInline("map-iframe.js.min")),
+				template.JS(getStdInline("map-iframe.js")),
 			},
-			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css.min") +
+			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css") +
 				"body{background-image:url('" + data.MapPlaceholder + "')}"),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.

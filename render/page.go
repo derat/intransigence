@@ -386,8 +386,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		r.pi.AMPNoscriptStyle = template.CSS(getStdInline("amp-boilerplate-noscript.css"))
 		r.pi.AMPCustomStyle = template.CSS(
 			getStdInline("base.css") + getStdInline("mobile.css") + getStdInline("amp.css") +
-				r.si.ReadInline("base.css.min") + r.si.ReadInline("mobile.css.min") +
-				r.si.ReadInline("amp.css.min") + r.si.ReadInline("page_"+r.pi.ID+".css.min") +
+				r.si.ReadInline("base.css") + r.si.ReadInline("mobile.css") +
+				r.si.ReadInline("amp.css") + r.si.ReadInline("page_"+r.pi.ID+".css") +
 				r.pi.PageStyle)
 
 		// TODO: It looks like AMP runs
@@ -410,17 +410,17 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		}
 
 		r.pi.HTMLStyle = template.CSS(getStdInline("base.css") + getStdInline("nonamp.css") +
-			r.si.ReadInline("base.css.min") + r.si.ReadInline("nonamp.css.min") +
+			r.si.ReadInline("base.css") + r.si.ReadInline("nonamp.css") +
 			fmt.Sprintf("@media(min-width:%dpx){%s%s}",
-				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css.min")) +
+				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css")) +
 			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
-				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css.min")) +
-			r.si.ReadInline("page_"+r.pi.ID+".css.min") + r.pi.PageStyle)
-		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js.min"))}
+				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css")) +
+			r.si.ReadInline("page_"+r.pi.ID+".css") + r.pi.PageStyle)
+		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js"))}
 		if r.pi.HasMap {
-			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js.min")))
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js")))
 		}
-		if js := r.si.ReadInline("page_" + r.pi.ID + ".js.min"); js != "" {
+		if js := r.si.ReadInline("page_" + r.pi.ID + ".js"); js != "" {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(js))
 		}
 
@@ -847,7 +847,11 @@ func getStdInline(fn string) string {
 	if !ok {
 		panic(fmt.Sprintf("No standard inline file %q", fn))
 	}
-	return strings.TrimSpace(data) // sassc doesn't remove trailing newline
+	min, err := minifyData(data, filepath.Ext(fn))
+	if err != nil {
+		panic(fmt.Sprintf("Failed minifying %v: %v", fn, err))
+	}
+	return min
 }
 
 // unmarshalYAML decodes a YAML document within b into out.

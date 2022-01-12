@@ -14,12 +14,11 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-// Process inline/*.scss into inline/*.css and inline/*.js into inline/*.js.min.
+// Process inline/*.scss into inline/*.css.
 //go:generate gen/gen_css.sh
-//go:generate gen/gen_js_min.sh
 
 // Generate an std_inline.go file that defines a map[string]string named stdInline.
-//go:generate sh -c "go run gen/gen_filemap.go stdInline inline/*.css inline/*.js.min | gofmt -s >std_inline.go"
+//go:generate sh -c "go run gen/gen_filemap.go stdInline inline/*.css inline/*.js | gofmt -s >std_inline.go"
 
 // SiteInfo specifies high-level information about the site.
 type SiteInfo struct {
@@ -104,7 +103,7 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	si := SiteInfo{
 		CloudflareAnalyticsScriptURL:      "https://static.cloudflareinsights.com/beacon.min.js",
 		CloudflareAnalyticsConnectPattern: "https://cloudflareinsights.com",
-		dir: filepath.Dir(p),
+		dir:                               filepath.Dir(p),
 	}
 	dec := yaml.NewDecoder(f)
 	dec.KnownFields(true)
@@ -140,7 +139,11 @@ func (si *SiteInfo) ReadInline(fn string) string {
 	} else if err != nil {
 		panic(fmt.Sprint("Failed reading file: ", err))
 	}
-	return strings.TrimSpace(string(b)) // sassc doesn't remove trailing newline
+	min, err := minifyData(string(b), filepath.Ext(fn))
+	if err != nil {
+		panic(fmt.Sprintf("Failed minifying %v: %v", fn, err))
+	}
+	return min
 }
 
 // CheckStatic returns an error if p (e.g. "foo/bar.png") doesn't exist

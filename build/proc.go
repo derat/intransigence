@@ -7,49 +7,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
-	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strings"
 	"syscall"
 	"time"
 )
-
-// minifyInline updates the minified versions of JS files within dir if needed.
-// It seems like it'd be cleaner to write the minified files into a temporary dir instead
-// of alongside the source files, but yui-compressor is slow (1 second for a 9 KB JS file!)
-// so it seems better to skip unnecessary calls.
-func minifyInline(dir string) error {
-	ps, err := filepath.Glob(filepath.Join(dir, "*.js"))
-	if err != nil {
-		return err
-	}
-
-	defer clearStatus()
-	for i, p := range ps {
-		statusf("Minifying files: [%d/%d]", i, len(ps))
-		pi, err := os.Stat(p)
-		if err != nil {
-			return err
-		}
-		mp := p + minSuffix
-		mi, err := os.Stat(mp)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		// Minify if the minimized version doesn't exist or has an mtime before the original file's.
-		if err != nil || mi.ModTime().Before(pi.ModTime()) {
-			if out, err := exec.Command("yui-compressor", "--type", "js", "-o", mp, p).CombinedOutput(); err != nil {
-				return fmt.Errorf("minifying %v: %v (%v)", p, err, strings.Split(string(out), "\n")[0])
-			}
-		}
-	}
-	return nil
-}
 
 // compressDir writes compressed versions of textual files within dir (including in subdirs).
 func compressDir(dir string) error {

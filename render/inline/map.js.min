@@ -1,1 +1,0 @@
-document.addEventListener("DOMContentLoaded",function(){var d=document.getElementById("map");var e=document.getElementsByClassName("map-link");for(var c=0;c<e.length;c++){var b=e[c];var h=b.parentElement.parentElement.id;var g=d.contentWindow.postMessage.bind(d.contentWindow,{id:h},"*",[]);b.addEventListener("click",g,false)}},false);

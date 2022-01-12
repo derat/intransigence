@@ -135,9 +135,8 @@ func prettyPrintDoc(r io.Reader) ([]byte, error) {
 }
 
 // generateCSS runs sassc to generate minified CSS files from all .scss files within dir.
-// The .scss extension is replaced with .css.min.
+// The .scss extension is replaced with .css.
 func generateCSS(dir string) error {
-	// TODO: Also minify *.css?
 	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
 	if err != nil {
 		return err
@@ -146,7 +145,7 @@ func generateCSS(dir string) error {
 	defer clearStatus()
 	for i, p := range ps {
 		statusf("Generating CSS: [%d/%d]", i, len(ps))
-		dp := p[:len(p)-4] + "css" + minSuffix
+		dp := p[:len(p)-4] + "css"
 		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
 			return fmt.Errorf("failed running sassc on %v: %v", p, err)
 		}

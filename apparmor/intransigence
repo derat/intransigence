@@ -34,7 +34,6 @@
   /usr/bin/gif2webp ix,
   /usr/bin/less ix,
   /usr/bin/sassc ix,
-  /usr/bin/yui-compressor ix,
 
   # Unfortunately needed for performing validation and serving generated sites.
   network tcp,

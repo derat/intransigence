@@ -22,7 +22,6 @@ const (
 	tmpOutPrefix = ".out."       // prefix passed to ioutil.TempDir for temp output dir
 	oldOutSubdir = ".out.old"    // subdir under site dir containing previous generated site
 	sitemapFile  = "sitemap.xml" // generated XML file containing sitemap data
-	minSuffix    = ".min"        // suffix for minified CSS and JS files
 )
 
 // Flags specifies details of how the site should be built.
@@ -60,12 +59,9 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
 
-	// Generate and minify inline files before they get included in pages and iframes.
+	// Generate inline CSS files before they get included in pages and iframes.
 	// Also create WebP images so that their existence can be checked when generating pages.
 	if err := generateCSS(si.InlineDir()); err != nil {
-		return err
-	}
-	if err := minifyInline(si.InlineDir()); err != nil {
 		return err
 	}
 	if err := generateWebP(si.StaticDir()); err != nil {

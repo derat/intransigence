@@ -63,8 +63,8 @@ func checkGenerated(file string, globs []string) error {
 }
 
 func TestStdInline(t *testing.T) {
-	// TODO: Figure out some way to check that gen_css.sh and gen_js_min.sh have been run.
-	if err := checkGenerated("std_inline.go", []string{"inline/*.css", "inline/*.js.min"}); err != nil {
+	// TODO: Figure out some way to check that gen_css.sh has been run.
+	if err := checkGenerated("std_inline.go", []string{"inline/*.css", "inline/*.js"}); err != nil {
 		t.Error("Checking generated inline files failed:", err)
 	}
 }

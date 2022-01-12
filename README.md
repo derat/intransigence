@@ -79,10 +79,9 @@ The following tools must be available in `$PATH`:
 
 *   `cwebp` and `gif2webp` to create WebP images.
 *   `sassc` to process SASS `.scss` files into standard CSS files.
-*   `yui-compressor` to minify JavaScript files.
 
 These tools can be installed on a Debian system by running `apt install sassc
-webp yui-compressor` as root.
+webp` as root.
 
 ### Site directory
 

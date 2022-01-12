@@ -7,6 +7,6 @@ steps:
       - "-c"
       - |
         apt-get update
-        apt-get install -y npm sassc webp yui-compressor
+        apt-get install -y npm sassc webp
         npm install -g amphtml-validator
         go test -v ./...

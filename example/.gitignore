@@ -2,8 +2,8 @@
 /out
 /.out.*
 
-# Generated minified CSS files.
-/inline/*.css.min
+# Generated CSS files.
+/inline/*.css
 
 # Generated WebP images.
 *.webp
