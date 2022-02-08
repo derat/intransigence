@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/alecthomas/chroma v0.9.4
 	github.com/derat/htmlpretty v0.0.0-20220117212008-ceb9bd5cb678
-	github.com/derat/validate v0.0.0-20200529171527-7827fa68a82d
+	github.com/derat/validate v0.0.0-20220207210801-9c9d0eb6729e
 	github.com/gorilla/feeds v1.1.1
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/otiai10/copy v1.1.1
@@ -14,6 +14,6 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/tdewolff/minify/v2 v2.9.27
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
-	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )

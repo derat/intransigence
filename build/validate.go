@@ -6,6 +6,7 @@ package build
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -69,9 +70,9 @@ func validateFiles(ctx context.Context, paths []string) error {
 	}
 
 	// Perform validation tasks in parallel.
-	htmlCh := startValidation(ctx, htmlPaths, validateHTML)
-	ampCh := startValidation(ctx, ampPaths, validate.AMP)
-	cssCh := startValidation(ctx, cssPaths, validateCSS)
+	htmlCh := startValidation(ctx, htmlPaths, &htmlValidator{})
+	ampCh := startValidation(ctx, ampPaths, &ampValidator{})
+	cssCh := startValidation(ctx, cssPaths, &cssValidator{})
 
 	var failed bool
 	var htmlRes, ampRes, cssRes int
@@ -129,20 +130,38 @@ func printValidateResult(vname, baseDir string, res validateResult, ignore []*re
 	return good
 }
 
-// validateFunc validates the supplied data and returns a list of issues.
+// streamValidator validates the supplied data and returns a list of issues.
 // The returned error is non-nil if the validation process itself fails.
-type validateFunc func(context.Context, io.Reader) ([]validate.Issue, error)
+type streamValidator interface {
+	validateStream(context.Context, io.Reader) ([]validate.Issue, error)
+}
 
-// validateHTML is a validateFunc for running validate.HTML.
-func validateHTML(ctx context.Context, r io.Reader) ([]validate.Issue, error) {
+// htmlValidator is a streamValidator for running validate.HTML.
+type htmlValidator struct{}
+
+func (v *htmlValidator) validateStream(ctx context.Context, r io.Reader) ([]validate.Issue, error) {
 	issues, _, err := validate.HTML(ctx, r)
 	return issues, err
 }
 
-// validateCSS is a validateFunc for running validate.CSS.
-func validateCSS(ctx context.Context, r io.Reader) ([]validate.Issue, error) {
+// cssValidator is a streamValidator for running validate.CSS.
+type cssValidator struct{}
+
+func (v *cssValidator) validateStream(ctx context.Context, r io.Reader) ([]validate.Issue, error) {
 	issues, _, err := validate.CSS(ctx, r, validate.HTMLDoc)
 	return issues, err
+}
+
+// filesValidator validates multiple files in parallel.
+type filesValidator interface {
+	validateFiles(context.Context, []string) (map[string][]validate.Issue, error)
+}
+
+// ampValidator is a filesValidator for running validate.AMPFiles.
+type ampValidator struct{}
+
+func (v *ampValidator) validateFiles(ctx context.Context, files []string) (map[string][]validate.Issue, error) {
+	return validate.AMPFiles(ctx, files)
 }
 
 // validateResult contains the results of a validation task.
@@ -153,28 +172,39 @@ type validateResult struct {
 }
 
 // startValidation asynchronously validates the supplied paths.
+// v is a streamValidator or filesValidator.
 // Results are streamed to the returned channel.
-func startValidation(ctx context.Context, paths []string, vf validateFunc) <-chan validateResult {
+func startValidation(ctx context.Context, paths []string, v interface{}) <-chan validateResult {
 	ch := make(chan validateResult, len(paths))
 	go func() {
-		for _, p := range paths {
-			if ctx.Err() != nil {
-				break
+		switch tv := v.(type) {
+		case streamValidator:
+			for _, p := range paths {
+				if ctx.Err() != nil {
+					break
+				}
+				issues, err := validateFile(ctx, p, tv)
+				ch <- validateResult{p, issues, err}
 			}
-			issues, err := validateFile(ctx, p, vf)
-			ch <- validateResult{p, issues, err}
+		case filesValidator:
+			fileIssues, err := tv.validateFiles(ctx, paths)
+			for _, p := range paths {
+				ch <- validateResult{p, fileIssues[p], err}
+			}
+		default:
+			panic(fmt.Sprintf("Invalid validator type %T", tv))
 		}
 		// Avoid closing the channel so the select in validateFiles won't get zero values.
 	}()
 	return ch
 }
 
-// validateFile validates the file at the supplied path using vf.
-func validateFile(ctx context.Context, p string, vf validateFunc) ([]validate.Issue, error) {
+// validateFile validates the file at the supplied path using v.
+func validateFile(ctx context.Context, p string, v streamValidator) ([]validate.Issue, error) {
 	f, err := os.Open(p)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return vf(ctx, f)
+	return v.validateStream(ctx, f)
 }

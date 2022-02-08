@@ -55,6 +55,10 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		if out, err = ioutil.TempDir(dir, tmpOutPrefix); err != nil {
 			return fmt.Errorf("failed to create temp output dir: %v", err)
 		}
+		// Make the temp directory world-readable in case amphtml-validator runs as another user.
+		if err := os.Chmod(out, 0755); err != nil {
+			return err
+		}
 		buildToSiteDir = true
 		defer os.RemoveAll(out) // clean up temp dir on failure
 	}
