@@ -378,6 +378,21 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		}
 	}
 
+	// CSS used by both AMP and non-AMP versions of the page.
+	commonStyle := getStdInline("base.css") +
+		r.si.ReadInline("base.css") +
+		r.si.ReadInline("page_"+r.pi.ID+".css") +
+		r.pi.PageStyle
+	if r.pi.HasGraph {
+		commonStyle += getStdInline("graph.css")
+	}
+	if r.pi.HasMap {
+		commonStyle += getStdInline("map.css")
+	}
+	if r.pi.HighlightCode {
+		commonStyle += r.si.codeCSS
+	}
+
 	if r.amp {
 		r.pi.LinkRel = "canonical"
 		if r.pi.LinkHref, err = r.si.AbsURL(r.pi.NavItem.URL); err != nil {
@@ -387,14 +402,11 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 		r.pi.AMPStyle = template.CSS(getStdInline("amp-boilerplate.css"))
 		r.pi.AMPNoscriptStyle = template.CSS(getStdInline("amp-boilerplate-noscript.css"))
-		r.pi.AMPCustomStyle = template.CSS(
-			getStdInline("base.css") + getStdInline("mobile.css") + getStdInline("amp.css") +
-				r.si.ReadInline("base.css") + r.si.ReadInline("mobile.css") +
-				r.si.ReadInline("amp.css") + r.si.ReadInline("page_"+r.pi.ID+".css") +
-				r.pi.PageStyle)
-		if r.pi.HighlightCode {
-			r.pi.AMPCustomStyle += template.CSS(r.si.codeCSS)
-		}
+		r.pi.AMPCustomStyle = template.CSS(commonStyle +
+			getStdInline("mobile.css") + // used for all viewport sizes in AMP pages
+			getStdInline("amp.css") +
+			r.si.ReadInline("mobile.css") +
+			r.si.ReadInline("amp.css"))
 
 		// TODO: It looks like AMP runs
 		// https://raw.githubusercontent.com/ampproject/amphtml/1476486609642/src/style-installer.js,
@@ -415,16 +427,13 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			return
 		}
 
-		r.pi.HTMLStyle = template.CSS(getStdInline("base.css") + getStdInline("nonamp.css") +
-			r.si.ReadInline("base.css") + r.si.ReadInline("nonamp.css") +
-			fmt.Sprintf("@media(min-width:%dpx){%s%s}",
-				desktopMinWidth, getStdInline("desktop.css"), r.si.ReadInline("desktop.css")) +
-			fmt.Sprintf("@media(max-width:%dpx){%s%s}",
-				mobileMaxWidth, getStdInline("mobile.css"), r.si.ReadInline("mobile.css")) +
-			r.si.ReadInline("page_"+r.pi.ID+".css") + r.pi.PageStyle)
-		if r.pi.HighlightCode {
-			r.pi.HTMLStyle += template.CSS(r.si.codeCSS)
-		}
+		r.pi.HTMLStyle = template.CSS(commonStyle +
+			getStdInline("nonamp.css") +
+			r.si.ReadInline("nonamp.css") +
+			fmt.Sprintf("@media(min-width:%dpx){%s}",
+				desktopMinWidth, getStdInline("desktop.css")+r.si.ReadInline("desktop.css")) +
+			fmt.Sprintf("@media(max-width:%dpx){%s}",
+				mobileMaxWidth, getStdInline("mobile.css")+r.si.ReadInline("mobile.css")))
 
 		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js"))}
 		if r.pi.HasMap {
