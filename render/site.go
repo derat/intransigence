@@ -17,8 +17,14 @@ import (
 // Process inline/*.scss into inline/*.css.
 //go:generate gen/gen_css.sh
 
+// Process inline/*.js into inline/*.js.min.
+// This is unfortunately circular, as we use the intransigence executable to
+// generate the .js.min files that are included in the std_inline.go file that
+// ultimately ends up back in the intransigence executable. :-/
+//go:generate gen/gen_js.sh
+
 // Generate an std_inline.go file that defines a map[string]string named stdInline.
-//go:generate sh -c "go run gen/gen_filemap.go stdInline inline/*.css inline/*.js | gofmt -s >std_inline.go"
+//go:generate sh -c "go run gen/gen_filemap.go stdInline inline/*.css inline/*.js.min | gofmt -s >std_inline.go"
 
 // SiteInfo specifies high-level information about the site.
 type SiteInfo struct {
@@ -146,7 +152,7 @@ func (si *SiteInfo) ReadInline(fn string) string {
 	} else if err != nil {
 		panic(fmt.Sprint("Failed reading file: ", err))
 	}
-	min, err := minifyData(string(b), filepath.Ext(fn))
+	min, err := MinifyData(string(b), filepath.Ext(fn))
 	if err != nil {
 		panic(fmt.Sprintf("Failed minifying %v: %v", fn, err))
 	}

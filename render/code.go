@@ -26,7 +26,7 @@ func codeCSS(style string) (string, error) {
 	if err := chromaFmt.WriteCSS(&b, cs); err != nil {
 		return "", err
 	}
-	return minifyData(b.String(), ".css")
+	return MinifyData(b.String(), ".css")
 }
 
 // writeCode performs syntax highlighting on the supplied code and writes the corresponding HTML
