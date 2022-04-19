@@ -22,8 +22,8 @@ func init() {
 	minifier.AddFunc(jsType, js.Minify)
 }
 
-// MinifyData minifies data based on its extension.
-func MinifyData(data, ext string) (string, error) {
+// minifyData minifies data based on its extension.
+func minifyData(data, ext string) (string, error) {
 	switch ext {
 	case ".css":
 		return minifier.String(cssType, data)

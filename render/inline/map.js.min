@@ -1,1 +1,0 @@
-document.addEventListener('DOMContentLoaded',function(){for(var t=document.getElementById('map'),s,o,i,n=document.getElementsByClassName('map-link'),e=0;e<n.length;e++)s=n[e],o=s.parentElement.parentElement.id,i=t.contentWindow.postMessage.bind(t.contentWindow,{id:o},'*',[]),s.addEventListener('click',i,!1)},!1)

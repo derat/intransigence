@@ -435,9 +435,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			fmt.Sprintf("@media(max-width:%dpx){%s}",
 				mobileMaxWidth, getStdInline("mobile.css")+r.si.ReadInline("mobile.css")))
 
-		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js.min"))}
+		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js"))}
 		if r.pi.HasMap {
-			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js.min")))
+			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js")))
 		}
 		if js := r.si.ReadInline("page_" + r.pi.ID + ".js"); js != "" {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(js))
@@ -878,7 +878,7 @@ func getStdInline(fn string) string {
 		return strings.TrimSpace(data)
 	}
 
-	min, err := MinifyData(data, filepath.Ext(fn))
+	min, err := minifyData(data, filepath.Ext(fn))
 	if err != nil {
 		panic(fmt.Sprintf("Failed minifying %v: %v", fn, err))
 	}
