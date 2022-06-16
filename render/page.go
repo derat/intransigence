@@ -272,7 +272,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.LogoHTML = imgInfo{
 		Path:    r.si.LogoPathHTML,
 		Alt:     r.si.LogoAlt,
-		ID:      "nav-logo",
+		Classes: []string{"logo"},
 		noThumb: true, // looks weird, and absolute positioning conflicts with placeholder CSS
 	}
 	if err := r.pi.LogoHTML.finish(r.si, r.amp, &r.didThumb); err != nil {
@@ -291,7 +291,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.LogoAMP = imgInfo{
 		Path:    r.si.LogoPathAMP,
 		Alt:     r.si.LogoAlt,
-		ID:      "nav-logo",
+		Classes: []string{"logo"},
 		noThumb: true, // looks weird
 	}
 	if err := r.pi.LogoAMP.finish(r.si, r.amp, &r.didThumb); err != nil {
@@ -303,7 +303,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	r.pi.NavToggle = imgInfo{
 		Path:    r.si.NavTogglePath,
 		Alt:     "[toggle navigation]",
-		ID:      "nav-toggle-img",
+		Classes: []string{"toggle"},
 		noThumb: true, // tiny
 	}
 	if len(r.pi.NavItem.Children) == 0 {
@@ -315,9 +315,9 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	}
 
 	r.pi.MenuButton = imgInfo{
-		Path: r.si.MenuButtonPath,
-		Alt:  "[toggle menu]",
-		ID:   "menu-button",
+		Path:    r.si.MenuButtonPath,
+		Alt:     "[toggle menu]",
+		Classes: []string{"menu"},
 		Attr: []template.HTMLAttr{
 			template.HTMLAttr(`tabindex="0"`),
 			template.HTMLAttr(`role="button"`),

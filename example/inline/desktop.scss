@@ -1,26 +1,28 @@
-#nav-wrapper {
+nav {
   bottom: 0;
   left: 8px;
   overflow: scroll;
   position: fixed;
   top: 0;
   width: 160px;
-}
-#nav-logo {
-  height: 64px;
-  left: 8px;
-  position: absolute;
-  top: 0;
-  width: auto;
-}
-#nav-box {
-  left: 0;
-  position: absolute;
-  top: 64px;
-  width: 100%;
+
+  .logo {
+    height: 64px;
+    left: 8px;
+    position: absolute;
+    top: 0;
+    width: auto;
+  }
+
+  .box {
+    left: 0;
+    position: absolute;
+    top: 64px;
+    width: 100%;
+  }
 }
 
-.box.content {
+main .box {
   position: relative;
   margin-left: 168px;
   max-width: 600px;
@@ -31,4 +33,4 @@
 
 footer {
   margin-left: 174px;
-} // based on .box-content margin-left
+} // based on 'main .box' margin-left

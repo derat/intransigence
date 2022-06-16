@@ -4,30 +4,28 @@
   display: none;
 }
 
-#nav-box {
-  > .body {
+nav {
+  .toggle {
+    cursor: pointer;
+    &.expand {
+      transform: rotate(180deg);
+      transform-origin: 50% 50%;
+    }
+  }
+  .box > .body {
     overflow: hidden;
+    > ul {
+      max-height: 8192px; // arbitrary but needs to be large enough to fit contents
+      opacity: 1;
+      &.collapsed-mobile {
+        max-height: 0;
+        opacity: 0;
+      }
+    }
   }
 }
 
-#nav-toggle-img {
-  cursor: pointer;
-  &.expand {
-    transform: rotate(180deg);
-    transform-origin: 50% 50%;
-  }
-}
-
-#nav-list {
-  max-height: 8192px; // arbitrary but needs to be large enough to fit contents
-  opacity: 1;
-  &.collapsed-mobile {
-    max-height: 0;
-    opacity: 0;
-  }
-}
-
-.box.content {
+main .box {
   width: 100%;
   > .body {
     figure.mobile-center {

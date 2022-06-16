@@ -5,15 +5,17 @@ body {
   line-height: 1.4;
 }
 
-#nav-box > {
-  .body {
-    padding: 4px 2px;
-    ul { // ul instead of #nav-list to match nested lists
-      margin: 2px;
-      padding-left: 16px;
-    }
-    .selected { font-weight: bold; }
-    a { text-decoration: none; }
+nav .box > .body {
+  padding: 4px 2px;
+  ul {
+    margin: 2px;
+    padding-left: 16px;
+  }
+  .selected {
+    font-weight: bold;
+  }
+  a {
+    text-decoration: none;
   }
 }
 
@@ -22,7 +24,9 @@ body {
     background-color: #eee;
     border: solid 1px #ddd;
     color: black;
+    font-size: 1em;
     font-weight: bold;
+    margin: 0;
     padding: 4px 8px;
   }
 
@@ -37,7 +41,8 @@ body {
       margin-bottom: 0.2em;
     }
 
-    pre, code {
+    pre,
+    code {
       background-color: #eee;
       font-family: 'Andale Mono', monospace;
       font-size: 12px;
@@ -46,6 +51,6 @@ body {
   }
 }
 
-.box.content {
+main .box {
   margin-bottom: 8px;
 }

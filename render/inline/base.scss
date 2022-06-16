@@ -1,78 +1,76 @@
 // Included in AMP and non-AMP (non-iframe) pages to declare common rules.
 
-.box.content {
-  > .body {
-    &:after {
-      clear: both; // clear floating content before ending box
-      content: '';
-      display: block;
+main .box > .body {
+  &:after {
+    clear: both; // clear floating content before ending box
+    content: '';
+    display: block;
+  }
+
+  > *:first-child,
+  > *:first-child > h3:first-child {
+    margin-top: 0;
+  }
+  > *:last-child {
+    margin-bottom: 0;
+  }
+
+  figure {
+    &.left {
+      float: left;
+    }
+    &.right {
+      float: right;
+    }
+    &.center {
+      margin-left: auto; // explicitly-set width is needed when using this
+      margin-right: auto;
     }
 
-    > *:first-child,
-    > *:first-child > h3:first-child {
-      margin-top: 0;
-    }
-    > *:last-child {
-      margin-bottom: 0;
-    }
-
-    figure {
-      &.left {
-        float: left;
-      }
-      &.right {
-        float: right;
-      }
-      &.center {
-        margin-left: auto; // explicitly-set width is needed when using this
-        margin-right: auto;
-      }
-
-      * {
-        max-width: 100%;
-      }
-
-      img {
-        border: 0;
-        display: block;
-        height: auto;
-      }
-    }
-
-    img,
-    amp-img {
-      &.inline {
-        vertical-align: middle;
-      }
-      &.pixelated {
-        image-rendering: pixelated;
-      }
-    }
-    img.inline {
-      display: inline;
-    }
-
-    pre {
+    * {
       max-width: 100%;
-      white-space: pre-wrap;
-      word-wrap: break-word;
     }
 
-    table {
-      border-collapse: collapse;
+    img {
+      border: 0;
+      display: block;
+      height: auto;
     }
+  }
 
-    .clear {
-      clear: both;
+  img,
+  amp-img {
+    &.inline {
+      vertical-align: middle;
     }
-    .small {
-      font-size: 90%;
+    &.pixelated {
+      image-rendering: pixelated;
     }
-    .real-small {
-      font-size: 80%;
-    }
-    .no-select {
-      user-select: none;
-    }
+  }
+  img.inline {
+    display: inline;
+  }
+
+  pre {
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  .clear {
+    clear: both;
+  }
+  .small {
+    font-size: 90%;
+  }
+  .real-small {
+    font-size: 80%;
+  }
+  .no-select {
+    user-select: none;
   }
 }

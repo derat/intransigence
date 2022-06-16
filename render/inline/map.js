@@ -1,12 +1,12 @@
 // Wire up links to post messages to the iframe to activate markers.
-document.addEventListener('DOMContentLoaded', function() {
-  var iframe = document.getElementById('map');
-  var anchors = document.getElementsByClassName('map-link');
-  for (var i = 0; i < anchors.length; i++) {
-    var a = anchors[i];
-    var id = a.parentElement.parentElement.id;
-    var f = iframe.contentWindow.postMessage.bind(
-        iframe.contentWindow, {id: id}, '*', []);
-    a.addEventListener('click', f, false);
+document.addEventListener('DOMContentLoaded', () => {
+  const iframe = document.getElementById('map');
+  const anchors = document.getElementsByClassName('map-link');
+  for (let i = 0; i < anchors.length; i++) {
+    const a = anchors[i];
+    const id = a.parentElement.parentElement.id;
+    a.addEventListener('click', () =>
+      iframe.contentWindow.postMessage({ id }, '*', [])
+    );
   }
-}, false);
+});

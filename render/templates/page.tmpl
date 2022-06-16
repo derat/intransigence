@@ -39,27 +39,26 @@
     {{end}}
   </head>
 
-  <body id="top">
-    {{if amp}}{{template "header_amp" .}}{{end}}
-    <div id="container">
-    {{if not amp}}{{template "header_html" .}}{{end}}
+  <body>
+    {{if amp}}{{template "header_amp" .}}{{else}}{{template "header_html" .}}{{end}}
+    <main>
 {{end}}
 
-{{/* Writes top-of-<body> data for non-AMP pages. */}}
+{{/* Writes start-of-<body> data for non-AMP pages. */}}
 {{/* For desktop and responsive mobile, the logo and navbox are at the top of the page. */}}
 {{define "header_html"}}
 <header>
-  <nav id="nav-wrapper">
+  <nav>
     {{template "img" .LogoHTML}}
     {{/* This mirrors the box_header and box_footer templates. */ -}}
-    <div id="nav-box" class="box">
-      <div id="nav-title" class="title">
+    <div class="box">
+      <div class="title">
         {{.SiteInfo.NavText}}
         {{template "img" .NavToggle}}
       </div>
       <div class="body">
         {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
-        <ul id="nav-list"{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
+        <ul{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
           {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
         </ul>
       </div>
@@ -92,39 +91,39 @@
 
 <amp-sidebar id="sidebar" layout="nodisplay" side="right">
   {{/* This mirrors the box_header and box_footer templates. */ -}}
-  <nav id="nav-box" class="box">
-    <div id="nav-title" class="title">
-      {{.SiteInfo.NavText}}
-    </div>
-    <div class="body">
-      <ul id="nav-list">
-        {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
-      </ul>
+  <nav>
+    <div class="box">
+      <div class="title">
+        {{.SiteInfo.NavText}}
+      </div>
+      <div class="body">
+        <ul>
+          {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
+        </ul>
+      </div>
     </div>
   </nav>
 </amp-sidebar>
 
 <header>
-  <div id="top-container">
-    {{template "img" .LogoAMP}}
-    {{template "img" .MenuButton}}
-  </div>
+  {{template "img" .LogoAMP}}
+  {{template "img" .MenuButton}}
 </header>
 {{end}}
 
 {{/* Writes the bottom of a normal page. */}}
 {{define "end" -}}
-      {{if or (not .HideBackToTop) (and (not .HideDates) (or .Created .Modified)) -}}
-      <footer>
-        {{/* TODO: Make text configurable. */ -}}
-        {{if not .HideBackToTop}}<div class="back-to-top"><a href="#top">Back to top</a></div>{{end}}
-        {{if not .HideDates}}<div class="dates">
-          {{if .Created}}<div class="created">Page created in {{formatDate .Created "2006"}}.</div>{{end}}
-          {{if .Modified}}<div class="modified"> Last modified {{formatDate .Modified "Jan 2, 2006"}}.</div>{{end}}
-        </div>{{end}}
-      </footer>{{/**/ -}}
-      {{end}}
-    </div>{{/* #container */}}
+    </main>
+    {{if or (not .HideBackToTop) (and (not .HideDates) (or .Created .Modified)) -}}
+    <footer>
+      {{/* TODO: Make text configurable. */ -}}
+      {{if not .HideBackToTop}}<div class="back-to-top"><a href="#top">Back to top</a></div>{{end}}
+      {{if not .HideDates}}<div class="dates">
+        {{if .Created}}<div class="created">Page created in {{formatDate .Created "2006"}}.</div>{{end}}
+        {{if .Modified}}<div class="modified"> Last modified {{formatDate .Modified "Jan 2, 2006"}}.</div>{{end}}
+      </div>{{end}}
+    </footer>{{/**/ -}}
+    {{end}}
     {{if and .SiteInfo.CloudflareAnalyticsToken (not amp)}}<!-- Cloudflare Web Analytics --><script defer src="{{.SiteInfo.CloudflareAnalyticsScriptURL}}" data-cf-beacon="{&quot;token&quot;:&quot;{{.SiteInfo.CloudflareAnalyticsToken}}&quot;}"></script><!-- End Cloudflare Web Analytics -->
     {{end}}
   </body>

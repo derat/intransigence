@@ -4,25 +4,23 @@
   display: none;
 }
 
-#nav-toggle-img {
+nav .toggle {
   display: none;
 }
 
-.box.content {
-  > .body {
-    figure {
-      &.desktop-left {
-        float: left; // matches 'left' in base.scss
-      }
-      &.desktop-right {
-        float: right; // matches 'right' in base.scss
-      }
+main .box > .body {
+  > figure {
+    &.desktop-left {
+      float: left; // matches 'left' in base.scss
     }
+    &.desktop-right {
+      float: right; // matches 'right' in base.scss
+    }
+  }
 
-    // Avoid extra margin before paragraphs following floated divs.
-    > figure.desktop-left:first-child + p,
-    > figure.desktop-right:first-child + p {
-      margin-top: 0;
-    }
+  // Avoid extra margin before paragraphs following floated divs.
+  > figure.desktop-left:first-child + p,
+  > figure.desktop-right:first-child + p {
+    margin-top: 0;
   }
 }

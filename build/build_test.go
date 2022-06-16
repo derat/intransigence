@@ -85,7 +85,7 @@ func TestBuild_Full(t *testing.T) {
 	checkPageContents(t, filepath.Join(out, "scottish_fold.html"), []string{
 		`(?s)<title>\s*Scottish Fold\s+-\s+example.org\s*</title>`, // suffix added to title
 		`<li><span\s+class="selected">Scottish\s+Fold</span>`,      // nav item selected
-		`(?s)<div class="title">\s*Scottish\s+Fold\s*</div>`,       // box created by level-1 heading
+		`(?s)<h2 class="title">\s*Scottish\s+Fold\s*</h2>`,         // box created by level-1 heading
 		// "image" code block
 		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="scottish_fold/maru-800\.jpg">` +

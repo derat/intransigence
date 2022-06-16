@@ -1,8 +1,13 @@
-#nav-logo {
-  height: 32px;
-  width: auto;
+nav {
+  .logo {
+    height: 32px;
+    width: auto;
+  }
+  .box {
+    margin-bottom: 12px;
+  }
 }
 
-#nav-box { margin-bottom: 12px; }
-
-footer { margin-left: 4px; }
+footer {
+  margin-left: 4px;
+}

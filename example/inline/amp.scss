@@ -1,19 +1,33 @@
-#sidebar { background: transparent; }
+amp-sidebar {
+  background: transparent;
+  height: auto;
+}
 
-#top-container {
+header {
   align-items: center;
   display: flex;
   justify-content: space-between;
   width: 100%;
+
+  .logo {
+    margin: 4px 8px;
+  }
+  .menu {
+    margin-right: 8px;
+  }
 }
 
-#nav-logo { margin: 4px 8px; }
-
-#menu-button { margin-right: 8px; }
-
-#nav-box {
+nav .box {
   margin: 10px;
-  .body { background-color: white; }
+  .body {
+    background-color: white;
+  }
 }
 
-#container { margin: 0 8px; }
+main {
+  margin: 0 8px;
+}
+
+footer {
+  margin: 0 12px;
+}

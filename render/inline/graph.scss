@@ -1,11 +1,7 @@
 // Included in AMP and non-AMP pages that embed graph iframes.
 
-.box.content {
-  > .body {
-    .graph {
-      background-color: transparent;
-      overflow: hidden;
-      padding: 0;
-    }
-  }
+main .box > .body .graph {
+  background-color: transparent;
+  overflow: hidden;
+  padding: 0;
 }
