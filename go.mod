@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/alecthomas/chroma v0.9.4
-	github.com/derat/htmlpretty v0.0.0-20220117212008-ceb9bd5cb678
+	github.com/derat/htmlpretty v0.0.0-20220617151937-72210e608e0f
 	github.com/derat/validate v0.0.0-20220207210801-9c9d0eb6729e
 	github.com/gorilla/feeds v1.1.1
 	github.com/kr/pretty v0.3.0 // indirect
