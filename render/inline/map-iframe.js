@@ -1,7 +1,7 @@
-var pageUrl = null;
-var mapDiv = null;
-var map = null;
-var infoWindow = null;
+let pageUrl = null;
+let mapDiv = null;
+let map = null;
+let infoWindow = null;
 
 function initializeMap() {
   // AMP effectively doesn't let us use allow-same-origin (see
@@ -23,59 +23,56 @@ function initializeMap() {
   // www.google.com/amp URL here.
   pageUrl = document.referrer.split('#', 1)[0];
 
-  var mapOptions = {
+  const mapOptions = {
     mapTypeId: google.maps.MapTypeId.ROADMAP,
     // Disable scrollwheel zooming; it's too easy to trigger while scrolling the
     // page up or down.
-    scrollwheel: false
+    scrollwheel: false,
   };
   mapDiv = document.getElementById('map-div');
   map = new google.maps.Map(mapDiv, mapOptions);
   infoWindow = new google.maps.InfoWindow();
 
   // Only show the map once it's fully loaded.
-  google.maps.event.addListenerOnce(map, 'idle', function() {
+  google.maps.event.addListenerOnce(map, 'idle', () => {
     mapDiv.className = 'loaded';
   });
 
-  var bounds = new google.maps.LatLngBounds();
-  for (var i = 0; i < points.length; i++) {
-    var p = points[i];
+  const bounds = new google.maps.LatLngBounds();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
     p.latLong = new google.maps.LatLng(p.latLong[0], p.latLong[1]);
     bounds.extend(p.latLong);
 
-    var letter = String.fromCharCode(65 + i);
-    var markerOptions = {
+    const letter = String.fromCharCode(65 + i);
+    const markerOptions = {
       position: p.latLong,
       title: p.name,
-      icon: 'https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=' + letter + '|8cf|000',
-      map: map
+      icon: `https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=${letter}|8cf|000`,
+      map,
     };
     p.marker = new google.maps.Marker(markerOptions);
-    google.maps.event.addListener(p.marker, 'click', selectPoint.bind(null, p.id, false));
+    google.maps.event.addListener(
+      p.marker,
+      'click',
+      selectPoint.bind(null, p.id, false)
+    );
   }
 
   map.fitBounds(bounds);
 }
 
 function selectPoint(id, center) {
-  var point = null;
-  for (var i = 0; i < points.length; ++i) {
-    if (points[i].id == id) {
-      point = points[i];
-      break;
-    }
-  }
+  const point = points.find((p) => p.id == id);
   if (!point) {
     console.log('Unable to find point with ID ' + id);
     return;
   }
 
-  var a = document.createElement('a');
-  var f = function() { window.top.location = pageUrl + '#' + id };
+  const a = document.createElement('a');
   a.appendChild(document.createTextNode(point.name));
   a.className = 'location';
-  a.addEventListener('click', f, false);
+  a.addEventListener('click', () => (window.top.location = `${pageUrl}#${id}`));
   infoWindow.setContent(a);
   infoWindow.open(map, point.marker);
 
@@ -85,5 +82,5 @@ function selectPoint(id, center) {
   }
 }
 
-google.maps.event.addDomListener(window, 'load', initializeMap);
-window.addEventListener('message', function(e) { selectPoint(e.data.id, true) }, false);
+window.addEventListener('load', () => initializeMap());
+window.addEventListener('message', (e) => selectPoint(e.data.id, true));
