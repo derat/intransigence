@@ -136,7 +136,7 @@ type renderer struct {
 
 	startingBox bool         // currently in the middle of a level-1 header
 	boxTitle    bytes.Buffer // text seen while startingBox is true
-	inBox       bool         // currently rendering a box
+	boxLevel    int          // box title level (1 or greater) while rendering box
 
 	lastFigureAlign string // last "align" value used for a figure
 	numMapMarkers   int    // number of boxes with "map_marker"
@@ -469,10 +469,13 @@ func (r *renderer) RenderFooter(w io.Writer, ast *bf.Node) {
 	if r.err != nil {
 		return
 	}
-	if r.inBox {
-		if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", nil, nil)) != nil {
+	if r.boxLevel > 0 {
+		if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", &struct {
+			Level int
+		}{r.boxLevel}, nil)) != nil {
 			return
 		}
+		r.boxLevel = 0
 	}
 	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "end", &r.pi, nil))
 }
@@ -604,8 +607,9 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 // Renders a node of type bf.Heading and returns the appropriate walk status.
 // Sets r.err and returns bf.Terminate if an error is encountered.
 func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	// Let Blackfriday render everything apart from level-1 headings, which we hijack toplevel headings to render boxes.
-	if node.HeadingData.Level != 1 {
+	// Let Blackfriday render everything apart from level-1 and level-2 headings, which we hijack to
+	// render boxes.
+	if node.HeadingData.Level != 1 && node.HeadingData.Level != 2 {
 		return r.hr.RenderNode(w, node, entering)
 	}
 
@@ -613,11 +617,12 @@ func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.W
 	// leaving the heading node, and we grab it literally to pass to the
 	// template. The box is rendered when we leave the heading node.
 	if entering {
-		if r.inBox {
-			if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", nil, nil)) != nil {
+		if r.boxLevel > 0 {
+			if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end",
+				&struct{ Level int }{r.boxLevel}, nil)) != nil {
 				return bf.Terminate
 			}
-			r.inBox = false
+			r.boxLevel = 0
 		}
 		r.startingBox = true
 		r.boxTitle.Reset()
@@ -629,11 +634,15 @@ func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.W
 	var info = struct {
 		ID          string // value for id attribute
 		Title       template.HTML
+		Level       int
 		DesktopOnly bool   // only display on desktop
 		MobileOnly  bool   // only display on mobile
 		Narrow      bool   // make the box narrow
 		MapLabel    string // letter label for map marker
-	}{Title: template.HTML(r.boxTitle.String())}
+	}{
+		Title: template.HTML(r.boxTitle.String()),
+		Level: node.HeadingData.Level,
+	}
 	for i, v := range strings.Split(node.HeadingData.HeadingID, "/") {
 		switch {
 		case i == 0:
@@ -651,7 +660,7 @@ func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.W
 	}
 
 	r.startingBox = false
-	r.inBox = true
+	r.boxLevel = node.HeadingData.Level
 	if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "start", &info, nil)) != nil {
 		return bf.Terminate
 	}

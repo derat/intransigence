@@ -66,7 +66,9 @@ func TestBuild_Full(t *testing.T) {
 			`"image":{"@type":"ImageObject","url":"https://www\.example\.org/scottish_fold/maru-800\.jpg","width":800,"height":500}}` +
 			`</script>`,
 		`<meta name="description" content="Provides a high-level overview of features">`, // desc
-		`Welcome`, // from heading
+		`<h1 class="title">\s*Welcome\s*</h1>`,
+		`<section\s+class="box mobile-only">\s*<h2 class="title">\s*Mobile-only\s*</h2>`,
+		`<section\s+class="box desktop-only desktop-narrow">\s*<h2 class="title">\s*Desktop-only\s*</h2>`,
 		`This is the site's landing page\.`,
 	}, []string{
 		`class="collapsed-mobile"`, // navbox shouldn't be collapsed for index
@@ -85,7 +87,8 @@ func TestBuild_Full(t *testing.T) {
 	checkPageContents(t, filepath.Join(out, "scottish_fold.html"), []string{
 		`(?s)<title>\s*Scottish Fold\s+-\s+example.org\s*</title>`, // suffix added to title
 		`<li><span\s+class="selected">Scottish\s+Fold</span>`,      // nav item selected
-		`(?s)<h2 class="title">\s*Scottish\s+Fold\s*</h2>`,         // box created by level-1 heading
+		`(?s)<h1 class="title">\s*Scottish\s+Fold\s*</h1>`,         // box created by level-1 heading
+		`(?s)<h3 id="chars">\s*Characteristics\s*</h3>`,            // h3 created by level-3 heading
 		// "image" code block
 		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="scottish_fold/maru-800\.jpg">` +

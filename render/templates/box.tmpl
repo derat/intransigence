@@ -1,23 +1,22 @@
 {{/* Writes <section> for "box" code block. */}}
 {{define "start" -}}
-<section class="box
+{{if eq .Level 1}}<div{{else}}<section{{end}} class="box
 {{- if .DesktopOnly}} desktop-only{{end}}
 {{- if .MobileOnly}} mobile-only{{end}}
 {{- if .Narrow}} desktop-narrow{{end -}}
 "
 {{- if .ID}} id="{{.ID}}"{{end}}>
-  {{/* TODO: Use h1 for the first box on each page? */ -}}
-  <h2 class="title">
+  <h{{.Level}} class="title">
     {{- if .MapLabel}}<span class="location-label">{{.MapLabel}}</span> {{end}}
     {{- .Title -}}
     {{- /* For non-AMP, a click handler is added on page load instead. */ -}}
     {{- if .MapLabel}} (<a class="map-link"{{if amp}} href="#map"{{end}}>map</a>){{end}}
-  </h2>
+  </h{{.Level}}>
   <div class="body">
 {{end}}
 
 {{/* Writes </section> for end of box created by "box" code block. */}}
 {{define "end" -}}
   </div>
-</section>
+{{if eq .Level 1}}</div>{{else}}</section>{{end}}
 {{end}}

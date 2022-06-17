@@ -149,7 +149,8 @@ modified: 2020-05-20
 
 ### Boxes
 
-Boxes are started by defining level-1 headings:
+Boxes are started by defining level-1 or level-2 headings (corresponding to
+`<h1>` and `<h2>` elements):
 
 ```md
 # Box title {#id/desktop_only/narrow}
@@ -160,6 +161,9 @@ customize the box. See `renderHeading` in [render/page.go](render/page.go) for
 available arguments.
 
 The box is automatically closed when a new box is started or the document ends.
+
+A level-3 heading (`###`) inserts an `<h3>` element but does not start a new
+box.
 
 ### Iframes
 
