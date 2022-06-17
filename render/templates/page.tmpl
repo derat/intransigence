@@ -39,7 +39,7 @@
     {{end}}
   </head>
 
-  <body>
+  <body{{if amp}} data-amp-auto-lightbox-disable{{end}}>
     {{if amp}}{{template "header_amp" .}}{{else}}{{template "header_html" .}}{{end}}
     <main>
 {{end}}
