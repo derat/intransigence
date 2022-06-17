@@ -119,8 +119,10 @@
       {{/* TODO: Make text configurable. */ -}}
       {{if not .HideBackToTop}}<div class="back-to-top"><a href="#top">Back to top</a></div>{{end}}
       {{if not .HideDates}}<div class="dates">
-        {{if .Created}}<div class="created">Page created in {{formatDate .Created "2006"}}.</div>{{end}}
-        {{if .Modified}}<div class="modified"> Last modified {{formatDate .Modified "Jan 2, 2006"}}.</div>{{end}}
+        {{if .Created}}<div class="created">Page created in {{/**/ -}}
+          <time datetime="{{formatDate .Created "2006"}}">{{formatDate .Created "2006"}}</time>.</div>{{end}}
+        {{if .Modified}}<div class="modified">Last modified {{/**/ -}}
+          <time datetime="{{formatDate .Modified "2006-01-02"}}">{{formatDate .Modified "Jan 2, 2006"}}</time>.</div>{{end}}
       </div>{{end}}
     </footer>{{/**/ -}}
     {{end}}

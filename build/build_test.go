@@ -146,8 +146,8 @@ func TestBuild_Full(t *testing.T) {
 		`Text can also be <span class="no-select">marked as ` + // ‹...›
 			`non-selectable</span> within a code block`,
 		`<a href="#top">Back\s+to\s+top</a>`,
-		`Page created in 2020\.`,
-		`Last modified May 21, 2020\.`,
+		`Page created in\s+<time datetime="2020">2020</time>\.`,
+		`Last modified\s+<time datetime="2020-05-21">May 21, 2020</time>\.`,
 	}, []string{
 		`class="collapsed-mobile"`,          // navbox shouldn't be collapsed due to children
 		`Cheshire`,                          // omit_from_menu
