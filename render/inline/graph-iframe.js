@@ -74,11 +74,9 @@ function appendGraph(selector, size, title, timeseries, noteData, units, valueRa
       .attr("width", 6)
       .attr("height", height);
   notes.on("mouseover", function(d, i) {
-    d3.select(this).transition().duration(150).style("fill", "#eee").style("stroke", "#ddd");
     d3.select(noteLabels[0][i]).transition().duration(150).style("opacity", 1);
   });
   notes.on("mouseout", function(d, i) {
-    d3.select(this).transition().duration(300).style("fill", "#f5f5f5").style("stroke", "#eee");
     d3.select(noteLabels[0][i]).transition().duration(150).style("opacity", 0);
   });
 
@@ -172,11 +170,9 @@ function appendGraph(selector, size, title, timeseries, noteData, units, valueRa
       .attr("cy", function(d) { return yScale(d.value); })
       .attr("r", 3.5);
   circles.on("mouseover", function(d, i) {
-    d3.select(this).transition().duration(150).style("fill", "steelblue");
     d3.select(dataLabels[0][i]).transition().duration(150).style("opacity", 1);
   });
   circles.on("mouseout", function(d, i) {
-    d3.select(this).transition().duration(300).style("fill", "white");
     d3.select(dataLabels[0][i]).transition().duration(150).style("opacity", 0);
   });
 

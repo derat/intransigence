@@ -17,6 +17,9 @@ circle.line {
   fill: white;
   stroke: steelblue;
   stroke-width: 1.5px;
+  &:hover {
+    fill: steelblue;
+  }
 }
 
 path.line {
@@ -30,6 +33,10 @@ rect.note {
   shape-rendering: crispEdges;
   stroke: #eee;
   stroke-width: 1px;
+  &:hover {
+    fill: #eee;
+    stroke: #ddd;
+  }
 }
 
 text.title {
@@ -54,6 +61,7 @@ text.title {
 
 .rule {
   line {
+    pointer-events: none;
     shape-rendering: crispEdges;
     stroke: #eee;
   }
