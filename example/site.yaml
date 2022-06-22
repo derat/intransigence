@@ -16,28 +16,28 @@ author_email: user@example.org
 publisher_name: example.org
 publisher_logo_path: resources/logo-460.png
 extra_static_dirs:
-  "extra": other
+  'extra': other
 nav_items:
-- name: Welcome
-  url: index.html
-  id: index
-- name: Cats
-  url: cats.html
-  id: cats
-  children:
-  - name: Scottish Fold
-    url: scottish_fold.html
-    id: scottish
+  - name: Welcome
+    url: index.html
+    id: index
+  - name: Cats
+    url: cats.html
+    id: cats
     children:
-    - name: Characteristics
-      url: scottish_fold.html#chars
-    - name: Fame
-      url: scottish_fold.html#fame
-    - name: Controversy
-      url: scottish_fold.html#controversy
-  - name: Cheshire
-    url: cheshire.html
-    id: cheshire
-    omit_from_menu: true
-- name: Email me
-  url: mailto:user@example.org
+      - name: Scottish Fold
+        url: scottish_fold.html
+        id: scottish
+        children:
+          - name: Characteristics
+            url: scottish_fold.html#chars
+          - name: Fame
+            url: scottish_fold.html#fame
+          - name: Controversy
+            url: scottish_fold.html#controversy
+      - name: Cheshire
+        url: cheshire.html
+        id: cheshire
+        omit_from_menu: true
+  - name: Email me
+    url: mailto:user@example.org
