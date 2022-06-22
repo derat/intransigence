@@ -73,9 +73,13 @@ type SiteInfo struct {
 	// ExtraStaticDirs contains extra dirs to copy into the output dir.
 	// Keys are paths relative to the site dir and values are paths relative to the output dir.
 	ExtraStaticDirs map[string]string `yaml:"extra_static_dirs"`
+
 	// CodeStyle contains the Chroma style to use when highlighting code.
 	// See https://xyproto.github.io/splash/docs/all.html for available styles.
 	CodeStyle string `yaml:"code_style"`
+	// CodeStyleDark is like CodeStyle, but used for dark mode.
+	// If non-empty, the corresponding CSS is included via a "prefers-color-scheme: dark" media query.
+	CodeStyleDark string `yaml:"code_style_dark"`
 
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
@@ -125,6 +129,13 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 
 	if si.codeCSS, err = codeCSS(si.CodeStyle); err != nil {
 		return nil, err
+	}
+	if si.CodeStyleDark != "" {
+		css, err := codeCSS(si.CodeStyleDark)
+		if err != nil {
+			return nil, err
+		}
+		si.codeCSS += "@media (prefers-color-scheme: dark) {" + css + "}"
 	}
 
 	if si.FaviconPath != "" {
