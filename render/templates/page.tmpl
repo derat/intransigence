@@ -48,8 +48,8 @@
 {{/* For desktop and responsive mobile, the logo and navbox are at the top of the page. */}}
 {{define "header_html"}}
 <header>
+  {{template "img" .LogoHTML}}
   <nav>
-    {{template "img" .LogoHTML}}
     {{/* This mirrors the box_header and box_footer templates. */ -}}
     <div class="box">
       <div class="title">
