@@ -1,4 +1,4 @@
-header {
+header nav {
   bottom: 0;
   left: 8px;
   overflow: scroll;
@@ -13,13 +13,13 @@ header {
     top: 0;
     width: auto;
   }
-}
 
-nav .box {
-  left: 0;
-  position: absolute;
-  top: 64px;
-  width: 100%;
+  .box {
+    left: 0;
+    position: absolute;
+    top: 64px;
+    width: 100%;
+  }
 }
 
 main .box {
