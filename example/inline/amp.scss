@@ -12,6 +12,12 @@ header {
   .logo {
     margin: 4px 8px;
   }
+  .spacer {
+    flex-grow: 1;
+  }
+  .dark {
+    margin-right: 16px;
+  }
   .menu {
     margin-right: 8px;
   }
@@ -30,4 +36,10 @@ main {
 
 footer {
   margin: 0 12px;
+}
+
+body.dark {
+  nav .box > .body {
+    background-color: #222;
+  }
 }

@@ -101,13 +101,15 @@ type pageInfo struct {
 	LogoAMP    imgInfo `yaml:"-"` // header logo for AMP
 	NavToggle  imgInfo `yaml:"-"` // nav toggle icon for non-AMP
 	MenuButton imgInfo `yaml:"-"` // menu button for AMP
+	DarkButton imgInfo `yaml:"-"` // dark mode button for both non-AMP and AMP
 
 	LinkRel  string `yaml:"-"` // rel attribute for AMP/non-AMP <link>, e.g. "canonical"
 	LinkHref string `yaml:"-"` // href attribute for AMP/non-AMP <link>
 	FeedHref string `yaml:"-"` // href attribute for Atom feed <link>
 
 	HTMLStyle        template.CSS  `yaml:"-"` // inline CSS for non-AMP page
-	HTMLScripts      []template.JS `yaml:"-"` // inline JS for non-AMP page
+	HTMLScripts      []template.JS `yaml:"-"` // inline JS in <head> for non-AMP page
+	HTMLBodyScript   template.JS   `yaml:"-"` // inline JS at top of <body> for non-AMP page
 	AMPStyle         template.CSS  `yaml:"-"` // inline boilerplate CSS for AMP page
 	AMPNoscriptStyle template.CSS  `yaml:"-"` // inline boilerplate <noscript> CSS for AMP page
 	AMPCustomStyle   template.CSS  `yaml:"-"` // inline custom CSS for AMP page
@@ -330,6 +332,25 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		return
 	}
 
+	r.pi.DarkButton = imgInfo{
+		Path:    r.si.DarkButtonPath,
+		Alt:     "[toggle theme]",
+		Classes: []string{"dark"},
+		Attr: []template.HTMLAttr{
+			template.HTMLAttr(`tabindex="0"`),
+			template.HTMLAttr(`role="button"`),
+		},
+		noThumb: true, // tiny
+	}
+	if r.amp {
+		r.pi.DarkButton.Attr = append(r.pi.DarkButton.Attr,
+			template.HTMLAttr(`on="tap:AMP.toggleTheme()"`))
+	}
+	if err := r.pi.DarkButton.finish(r.si, r.amp, &r.didThumb); err != nil {
+		r.setErrorf("dark button failed: %v", err)
+		return
+	}
+
 	var err error
 	if r.pi.FeedHref, err = r.si.AbsURL(FeedFile); err != nil {
 		r.setError(err)
@@ -442,6 +463,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		if js := r.si.ReadInline("page_" + r.pi.ID + ".js"); js != "" {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(js))
 		}
+		r.pi.HTMLBodyScript = template.JS(getStdInline("base-body.js"))
 
 		csp := cspBuilder{}
 		csp.add(cspDefault, cspNone)
@@ -458,6 +480,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		for _, s := range r.pi.HTMLScripts {
 			csp.hash(cspScript, string(s))
 		}
+		csp.hash(cspScript, string(r.pi.HTMLBodyScript))
 		r.pi.CSPMeta = template.HTML(csp.tag())
 	}
 

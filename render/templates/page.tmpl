@@ -39,7 +39,7 @@
     {{end}}
   </head>
 
-  <body{{if amp}} data-amp-auto-lightbox-disable{{end}}>
+  <body{{if amp}} data-amp-auto-lightbox-disable data-prefers-dark-mode-class="dark"{{end}}>
     {{if amp}}{{template "header_amp" .}}{{else}}{{template "header_html" .}}{{end}}
     <main>
 {{end}}
@@ -47,6 +47,7 @@
 {{/* Writes start-of-<body> data for non-AMP pages. */}}
 {{/* For desktop and responsive mobile, the logo and navbox are at the top of the page. */}}
 {{define "header_html"}}
+<script>{{.HTMLBodyScript}}</script>
 <header>
   <nav>
     {{template "img" .LogoHTML}}
@@ -64,6 +65,8 @@
       </div>
     </div>
   </nav>
+  {{/* Outside <nav> so it can have its own positioning. */ -}}
+  {{template "img" .DarkButton}}
 </header>
 {{end}}
 
@@ -107,6 +110,8 @@
 
 <header>
   {{template "img" .LogoAMP}}
+  <div class="spacer"></div>
+  {{template "img" .DarkButton}}
   {{template "img" .MenuButton}}
 </header>
 {{end}}

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
@@ -16,8 +17,9 @@ import (
 
 var chromaFmt = html.New(html.WithClasses(true), html.WithPreWrapper(&preWrapper{}))
 
-// codeCSS generates CSS class definitions for the named Chroma style.
-func codeCSS(style string) (string, error) {
+// getCodeCSS generates CSS class definitions for the named Chroma style.
+// If selPrefix is non-empty (e.g. "body.dark "), it will be prefixed to each selector.
+func getCodeCSS(style, selPrefix string) (string, error) {
 	cs := styles.Get(style)
 	if cs == nil {
 		return "", fmt.Errorf("couldn't find chroma style %q", style)
@@ -26,7 +28,16 @@ func codeCSS(style string) (string, error) {
 	if err := chromaFmt.WriteCSS(&b, cs); err != nil {
 		return "", err
 	}
-	return minifyData(b.String(), ".css")
+	s := b.String()
+	if selPrefix != "" {
+		// The unminified CSS consists of lines like
+		// "/* Background */ .chroma { color: #f8f8f2; ...".
+		// Adding prefixes like this is awful, but wrapping the whole thing in a selector
+		// and then shelling out to sassc feels gross too (especially since we'll be doing
+		// this once per page).
+		s = strings.ReplaceAll(s, " .chroma ", selPrefix+" .chroma ")
+	}
+	return minifyData(s, ".css")
 }
 
 // writeCode performs syntax highlighting on the supplied code and writes the corresponding HTML

@@ -49,6 +49,8 @@ type SiteInfo struct {
 	NavTogglePath string `yaml:"nav_toggle_path"`
 	// MenuButtonPath is the image used to show the menu on AMP.
 	MenuButtonPath string `yaml:"menu_button_path"`
+	// DarkButtonPath is the image used to toggle between light and dark mode.
+	DarkButtonPath string `yaml:"dark_button_path"`
 
 	// The following fields are used in structured data.
 	AuthorName        string `yaml:"author_name"`
@@ -127,15 +129,15 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		return nil, err
 	}
 
-	if si.codeCSS, err = codeCSS(si.CodeStyle); err != nil {
+	if si.codeCSS, err = getCodeCSS(si.CodeStyle, ""); err != nil {
 		return nil, err
 	}
 	if si.CodeStyleDark != "" {
-		css, err := codeCSS(si.CodeStyleDark)
+		css, err := getCodeCSS(si.CodeStyleDark, "body.dark ")
 		if err != nil {
 			return nil, err
 		}
-		si.codeCSS += "@media (prefers-color-scheme: dark) {" + css + "}"
+		si.codeCSS += css
 	}
 
 	if si.FaviconPath != "" {

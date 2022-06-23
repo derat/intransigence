@@ -1,5 +1,9 @@
 // Included in AMP and non-AMP (non-iframe) pages to declare common rules.
 
+header .dark {
+  cursor: pointer;
+}
+
 main .box {
   display: block; // for browsers that don't understand <section>
 
