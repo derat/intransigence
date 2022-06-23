@@ -4,7 +4,7 @@ amp-sidebar {
 }
 
 header {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -15,11 +15,9 @@ header {
   .spacer {
     flex-grow: 1;
   }
-  .dark {
-    margin-right: 16px;
-  }
+  .dark,
   .menu {
-    margin-right: 8px;
+    margin: 10px;
   }
 }
 

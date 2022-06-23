@@ -215,14 +215,15 @@ function appendGraph(selector, size, title, timeseries, noteData, units, valueRa
       .attr("height", function(d) { return d.getBBox().height + 2 * labelPaddingY; });
 }
 
-// |dataSets| is an object of objects with the following properties:
-// title:  string
-// points: array of { time: epoch_time, value: num } objects
-// notes:  array of { time: epoch_time, text: string } objects
-// range:  [min, max]
-// units:  string
-function initPage() {
+
+document.addEventListener('DOMContentLoaded', () => {
   // Get the data for the requested graph.
+  // |dataSets| is an object of objects with the following properties:
+  // title:  string
+  // points: array of { time: epoch_time, value: num } objects
+  // notes:  array of { time: epoch_time, text: string } objects
+  // range:  [min, max]
+  // units:  string
   var name = window.location.search.substring(1);
   d = dataSets[name];
   if (!d) {
@@ -230,6 +231,15 @@ function initPage() {
   }
   appendGraph('#graph-node', [window.innerWidth, window.innerHeight],
               d.title, d.points, d.notes, d.units, d.range);
-}
 
-document.addEventListener('DOMContentLoaded', initPage, false);
+  // Handle dark/light mode using code defined in dark.js.
+  // AMP doesn't let us access localStorage in all cases (since it might be
+  // served from the cache), so use document.domain to check that we aren't
+  // sandboxed: https://stackoverflow.com/a/34073811
+  // We'll just use the light theme for AMP.
+  if (document.domain) {
+    applyTheme();
+    darkQuery.addEventListener('change', () => applyTheme());
+    window.addEventListener('storage', () => applyTheme());
+  }
+});

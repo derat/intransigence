@@ -62,6 +62,7 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		}{
 			ScriptURLs: []string{si.D3ScriptURL},
 			InlineScripts: []template.JS{
+				template.JS(getStdInline("dark.js")), // used by graph-iframe.js
 				template.JS(getStdInline("graph-iframe.js")),
 				template.JS("var dataSets = " + string(jsonData) + ";"),
 			},

@@ -1,1 +1,1 @@
-applyTheme(); // defined in base.js
+applyTheme(); // defined in dark.js

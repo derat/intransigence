@@ -456,7 +456,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			fmt.Sprintf("@media(max-width:%dpx){%s}",
 				mobileMaxWidth, getStdInline("mobile.css")+r.si.ReadInline("mobile.css")))
 
-		r.pi.HTMLScripts = []template.JS{template.JS(getStdInline("base.js"))}
+		r.pi.HTMLScripts = []template.JS{
+			template.JS(getStdInline("dark.js")), // used by base.js
+			template.JS(getStdInline("base.js")),
+		}
 		if r.pi.HasMap {
 			r.pi.HTMLScripts = append(r.pi.HTMLScripts, template.JS(getStdInline("map.js")))
 		}
