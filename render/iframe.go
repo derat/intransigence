@@ -19,8 +19,9 @@ const IframeOutDir = "iframes"
 func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 	var data struct {
 		// Map-specific data.
-		MapPlaceholder string `yaml:"map_placeholder"` // placeholder image path (relative to iframe)
-		MapPoints      []struct {
+		MapPlaceholder     string `yaml:"map_placeholder"`      // placeholder image path (relative to iframe)
+		MapPlaceholderDark string `yaml:"map_placeholder_dark"` // placeholder for dark theme
+		MapPoints          []struct {
 			Name    string     `json:"name" yaml:"name"`        // name displayed on label
 			LatLong [2]float64 `json:"latLong" yaml:"lat_long"` // [latitude, longitude]
 			ID      string     `json:"id" yaml:"id"`            // matches anchor ID on page
@@ -87,7 +88,10 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		// The generated page will be in a subdir, so make sure that the placeholder path takes
 		// that into account.
 		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholder)); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("map_placeholder: %v", err)
+		}
+		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholderDark)); err != nil {
+			return nil, fmt.Errorf("map_placeholder_dark: %v", err)
 		}
 		jsonData, err := json.MarshalIndent(data.MapPoints, "", "  ")
 		if err != nil {
@@ -96,15 +100,20 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		var td = struct {
 			ScriptURLs    []string
 			InlineScripts []template.JS
+			BodyScript    template.JS
 			InlineStyle   template.CSS
 		}{
 			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey},
 			InlineScripts: []template.JS{
 				template.JS("const points = " + string(jsonData) + ";"),
+				template.JS(getStdInline("dark.js")), // used by map-iframe.js
 				template.JS(getStdInline("map-iframe.js")),
 			},
+			BodyScript: template.JS(getStdInline("map-iframe-body.js")),
 			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css") +
-				"body{background-image:url('" + data.MapPlaceholder + "')}"),
+				"body{background-image:url('" + data.MapPlaceholder + "')}" +
+				"body.dark{background-image:url('" + data.MapPlaceholderDark + "')}",
+			),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.
 		if err := tmpl.run(&b, []string{"map_page.tmpl"}, td, nil); err != nil {
