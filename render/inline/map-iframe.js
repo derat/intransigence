@@ -28,6 +28,11 @@ function initializeMap() {
     // Disable scrollwheel zooming; it's too easy to trigger while scrolling the
     // page up or down.
     scrollwheel: false,
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+      position: google.maps.ControlPosition.LEFT_TOP,
+    },
   };
   mapDiv = document.getElementById('map-div');
   map = new google.maps.Map(mapDiv, mapOptions);

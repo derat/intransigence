@@ -64,7 +64,7 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			InlineScripts: []template.JS{
 				template.JS(getStdInline("dark.js")), // used by graph-iframe.js
 				template.JS(getStdInline("graph-iframe.js")),
-				template.JS("var dataSets = " + string(jsonData) + ";"),
+				template.JS("const dataSets = " + string(jsonData) + ";"),
 			},
 			InlineStyle: template.CSS(getStdInline("graph-iframe.css") + si.ReadInline("graph-iframe.css")),
 		}
@@ -100,7 +100,7 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 		}{
 			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey},
 			InlineScripts: []template.JS{
-				template.JS("var points = " + string(jsonData) + ";"),
+				template.JS("const points = " + string(jsonData) + ";"),
 				template.JS(getStdInline("map-iframe.js")),
 			},
 			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css") +
