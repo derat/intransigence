@@ -1,11 +1,15 @@
 // Included in AMP and non-AMP pages that embed map iframes.
 
 // https://fettblog.eu/blog/2013/06/16/preserving-aspect-ratio-for-embedded-iframes/
+//
+// TODO: Switch to aspect-ratio and remove the wrapper div at some point:
+// https://gomakethings.com/responsive-iframes-with-the-css-aspect-ratio-property/
+// https://caniuse.com/mdn-css_properties_aspect-ratio says that global support
+// for aspect-ratio is only at 86.51% as of 20220629.
 main .box > .body .mapbox {
-  position: relative;
-  width: 100%;
   height: 0;
   padding: 0 0 75% 0;
+  position: relative;
   iframe {
     border: none;
     height: 100%;
