@@ -405,10 +405,10 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		r.si.ReadInline("page_"+r.pi.ID+".css") +
 		r.pi.PageStyle
 	if r.pi.HasGraph {
-		commonStyle += getStdInline("graph.css")
+		commonStyle += getStdInline("graph.css") + r.si.ReadInline("graph.css")
 	}
 	if r.pi.HasMap {
-		commonStyle += getStdInline("map.css")
+		commonStyle += getStdInline("map.css") + r.si.ReadInline("map.css")
 	}
 	if r.pi.HighlightCode {
 		commonStyle += r.si.codeCSS
