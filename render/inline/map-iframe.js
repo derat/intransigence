@@ -38,9 +38,14 @@ function initializeMap() {
   map = new google.maps.Map(mapDiv, mapOptions);
   infoWindow = new google.maps.InfoWindow();
 
-  // Only show the map once it's fully loaded.
+  // Show the map after the tiles have fully loaded, but also watch for the
+  // 'idle' event (which often fires earlier) as a fallback for slow
+  // connections.
+  google.maps.event.addListenerOnce(map, 'tilesloaded', () => {
+    mapDiv.classList.add('loaded');
+  });
   google.maps.event.addListenerOnce(map, 'idle', () => {
-    mapDiv.className = 'loaded';
+    window.setTimeout(() => mapDiv.classList.add('loaded'), 5000);
   });
 
   const bounds = new google.maps.LatLngBounds();
