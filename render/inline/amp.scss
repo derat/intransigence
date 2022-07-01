@@ -4,7 +4,8 @@ amp-img.thumb {
   filter: blur(12px);
 }
 main .box > .body .mapbox amp-img[placeholder] {
-  // I hate this. AMP seems to programatically set amp-iframe placeholders'
-  // widths to 640px, which results in the images being stretched horizontally.
-  width: auto !important;
+  // AMP appears to programatically set placeholders' widths to 640px, so
+  // constrain them to avoid stretching images horizontally. ('!important'
+  // is disallowed by AMP, so we can't use it to override the width.)
+  max-width: 100%;
 }

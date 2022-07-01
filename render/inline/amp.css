@@ -1,1 +1,1 @@
-amp-img.thumb{filter:blur(12px)}main .box>.body .mapbox amp-img[placeholder]{width:auto !important}
+amp-img.thumb{filter:blur(12px)}main .box>.body .mapbox amp-img[placeholder]{max-width:100%}
