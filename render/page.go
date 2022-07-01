@@ -597,7 +597,6 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
 			return bf.Terminate
 		}
-		info.imgInfo.layout = "fill"
 		info.imgInfo.Attr = append(info.imgInfo.Attr, template.HTMLAttr("placeholder"))
 		info.imgInfo.Alt = "[map placeholder]"
 		info.imgInfo.noThumb = true // already a placeholder
