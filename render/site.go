@@ -76,11 +76,10 @@ type SiteInfo struct {
 	// Keys are paths relative to the site dir and values are paths relative to the output dir.
 	ExtraStaticDirs map[string]string `yaml:"extra_static_dirs"`
 
-	// CodeStyle contains the Chroma style to use when highlighting code.
+	// CodeStyleLight contains the Chroma style to use when highlighting code in the light theme.
 	// See https://xyproto.github.io/splash/docs/all.html for available styles.
-	CodeStyle string `yaml:"code_style"`
-	// CodeStyleDark is like CodeStyle, but used for dark mode.
-	// If non-empty, the corresponding CSS is included via a "prefers-color-scheme: dark" media query.
+	CodeStyleLight string `yaml:"code_style_light"`
+	// CodeStyleDark is like CodeStyleLight, but used for the dark theme.
 	CodeStyleDark string `yaml:"code_style_dark"`
 
 	// NavItems specifies the site's navigation hierarchy.
@@ -112,7 +111,8 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	defer f.Close()
 
 	si := SiteInfo{
-		CodeStyle:                         "github",
+		CodeStyleLight:                    "github",
+		CodeStyleDark:                     "dracula",
 		D3ScriptURL:                       "https://d3js.org/d3.v3.min.js",
 		CloudflareAnalyticsScriptURL:      "https://static.cloudflareinsights.com/beacon.min.js",
 		CloudflareAnalyticsConnectPattern: "https://cloudflareinsights.com",
@@ -129,14 +129,12 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		return nil, err
 	}
 
-	if si.codeCSS, err = getCodeCSS(si.CodeStyle, ""); err != nil {
+	if si.codeCSS, err = getCodeCSS(si.CodeStyleLight, ""); err != nil {
 		return nil, err
 	}
-	if si.CodeStyleDark != "" {
-		css, err := getCodeCSS(si.CodeStyleDark, "body.dark ")
-		if err != nil {
-			return nil, err
-		}
+	if css, err := getCodeCSS(si.CodeStyleDark, "body.dark "); err != nil {
+		return nil, err
+	} else {
 		si.codeCSS += css
 	}
 

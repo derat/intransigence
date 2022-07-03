@@ -77,22 +77,22 @@ type PageFeedInfo struct {
 
 // pageInfo holds information about the current page that is used by page.tmpl.
 type pageInfo struct {
-	Title              string `yaml:"title"`                // original title
-	ID                 string `yaml:"id"`                   // NavItem.ID to highlight in navbox (inferred from filename if empty)
-	Desc               string `yaml:"desc"`                 // meta description
-	ImagePath          string `yaml:"image_path"`           // path to structured data image in static dir
-	Created            string `yaml:"created"`              // creation date as 'YYYY-MM-DD'
-	Modified           string `yaml:"modified"`             // last-modified date as 'YYYY-MM-DD'
-	HideTitleSuffix    bool   `yaml:"hide_title_suffix"`    // don't append SiteInfo.TitleSuffix
-	HideBackToTop      bool   `yaml:"hide_back_to_top"`     // hide footer link to jump to top
-	HideDates          bool   `yaml:"hide_dates"`           // hide footer created and modified dates
-	OmitFromFeed       bool   `yaml:"omit_from_feed"`       // omit page from RSS feed
-	HasMap             bool   `yaml:"has_map"`              // page contains a map
-	MapPlaceholder     string `yaml:"map_placeholder"`      // placeholder image path (relative to page)
-	MapPlaceholderDark string `yaml:"map_placeholder_dark"` // placeholder for dark theme
-	HasGraph           bool   `yaml:"has_graph"`            // page contains one or more graphs
-	HighlightCode      bool   `yaml:"highlight_code"`       // perform syntax highlighting on tagged code blocks
-	PageStyle          string `yaml:"page_style"`           // optional custom page-specific CSS
+	Title               string `yaml:"title"`                 // original title
+	ID                  string `yaml:"id"`                    // NavItem.ID to highlight in navbox (inferred from filename if empty)
+	Desc                string `yaml:"desc"`                  // meta description
+	ImagePath           string `yaml:"image_path"`            // path to structured data image in static dir
+	Created             string `yaml:"created"`               // creation date as 'YYYY-MM-DD'
+	Modified            string `yaml:"modified"`              // last-modified date as 'YYYY-MM-DD'
+	HideTitleSuffix     bool   `yaml:"hide_title_suffix"`     // don't append SiteInfo.TitleSuffix
+	HideBackToTop       bool   `yaml:"hide_back_to_top"`      // hide footer link to jump to top
+	HideDates           bool   `yaml:"hide_dates"`            // hide footer created and modified dates
+	OmitFromFeed        bool   `yaml:"omit_from_feed"`        // omit page from RSS feed
+	HasMap              bool   `yaml:"has_map"`               // page contains a map
+	MapPlaceholderLight string `yaml:"map_placeholder_light"` // placeholder image path (relative to page)
+	MapPlaceholderDark  string `yaml:"map_placeholder_dark"`  // placeholder for dark theme
+	HasGraph            bool   `yaml:"has_graph"`             // page contains one or more graphs
+	HighlightCode       bool   `yaml:"highlight_code"`        // perform syntax highlighting on tagged code blocks
+	PageStyle           string `yaml:"page_style"`            // optional custom page-specific CSS
 
 	SiteInfo *SiteInfo `yaml:"-"` // site-level information
 	NavItem  *NavItem  `yaml:"-"` // nav item corresponding to current page
@@ -410,12 +410,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		commonStyle += getStdInline("graph.css") + r.si.ReadInline("graph.css")
 	}
 	if r.pi.HasMap {
-		if err := r.si.CheckStatic(r.pi.MapPlaceholder); err != nil {
-			r.setErrorf("map_placeholder: %v", err)
+		if err := r.si.CheckStatic(r.pi.MapPlaceholderLight); err != nil {
+			r.setErrorf("map_placeholder_light: %v", err)
 			return
 		}
 		commonStyle += getStdInline("map.css") + r.si.ReadInline("map.css") +
-			fmt.Sprintf("body .mapbox iframe{background-image:url(%s)}", r.pi.MapPlaceholder)
+			fmt.Sprintf("body .mapbox iframe{background-image:url(%s)}", r.pi.MapPlaceholderLight)
 	}
 	if r.pi.HighlightCode {
 		commonStyle += r.si.codeCSS
@@ -637,7 +637,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 			}
 
 			code := strings.TrimRight(string(node.Literal), "\n")
-			if r.setError(writeCode(w, code, lang, r.si.CodeStyle)) != nil {
+			if r.setError(writeCode(w, code, lang, r.si.CodeStyleLight)) != nil {
 				return bf.Terminate
 			}
 			return bf.SkipChildren

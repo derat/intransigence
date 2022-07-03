@@ -19,9 +19,9 @@ const IframeOutDir = "iframes"
 func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 	var data struct {
 		// Map-specific data.
-		MapPlaceholder     string `yaml:"map_placeholder"`      // placeholder image path (relative to iframe)
-		MapPlaceholderDark string `yaml:"map_placeholder_dark"` // placeholder for dark theme
-		MapPoints          []struct {
+		MapPlaceholderLight string `yaml:"map_placeholder_light"` // placeholder image path (relative to iframe)
+		MapPlaceholderDark  string `yaml:"map_placeholder_dark"`  // placeholder for dark theme
+		MapPoints           []struct {
 			Name    string     `json:"name" yaml:"name"`        // name displayed on label
 			LatLong [2]float64 `json:"latLong" yaml:"lat_long"` // [latitude, longitude]
 			ID      string     `json:"id" yaml:"id"`            // matches anchor ID on page
@@ -87,8 +87,8 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 	case data.MapPoints != nil:
 		// The generated page will be in a subdir, so make sure that the placeholder path takes
 		// that into account.
-		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholder)); err != nil {
-			return nil, fmt.Errorf("map_placeholder: %v", err)
+		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholderLight)); err != nil {
+			return nil, fmt.Errorf("map_placeholder_light: %v", err)
 		}
 		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholderDark)); err != nil {
 			return nil, fmt.Errorf("map_placeholder_dark: %v", err)
@@ -111,7 +111,7 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			},
 			BodyScript: template.JS(getStdInline("map-iframe-body.js")),
 			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css") +
-				"body{background-image:url('" + data.MapPlaceholder + "')}" +
+				"body{background-image:url('" + data.MapPlaceholderLight + "')}" +
 				"body.dark{background-image:url('" + data.MapPlaceholderDark + "')}",
 			),
 		}

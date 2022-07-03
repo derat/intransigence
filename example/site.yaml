@@ -18,7 +18,6 @@ publisher_name: example.org
 publisher_logo_path: resources/logo-460.png
 extra_static_dirs:
   'extra': other
-code_style_dark: dracula
 nav_items:
   - name: Welcome
     url: index.html
