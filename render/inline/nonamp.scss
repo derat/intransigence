@@ -10,3 +10,11 @@
     position: relative;
   }
 }
+
+// IE 11 (and below?) don't seem to clip blurred SVG thumbnails, so just disable
+// thumbnails entirely to prevent them from obscuring the surrounding text.
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+  .img-wrapper > svg {
+    display: none;
+  }
+}
