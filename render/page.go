@@ -513,13 +513,8 @@ func (r *renderer) RenderFooter(w io.Writer, ast *bf.Node) {
 	if r.err != nil {
 		return
 	}
-	if r.boxLevel > 0 {
-		if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", &struct {
-			Level int
-		}{r.boxLevel}, nil)) != nil {
-			return
-		}
-		r.boxLevel = 0
+	if r.boxLevel > 0 && r.setError(r.renderBoxEnd(w)) != nil {
+		return
 	}
 	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl"}, "end", &r.pi, nil))
 }
@@ -650,38 +645,32 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 // Renders a node of type bf.Heading and returns the appropriate walk status.
 // Sets r.err and returns bf.Terminate if an error is encountered.
 func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	// Let Blackfriday render everything apart from level-1 and level-2 headings, which we hijack to
-	// render boxes.
-	if node.HeadingData.Level != 1 && node.HeadingData.Level != 2 {
+	// Only level-1 headings or headings with attributes are rendered as boxes.
+	// Let Blackfriday render non-box headings.
+	if node.HeadingData.Level > 1 && !strings.Contains(node.HeadingData.HeadingID, "/") {
 		return r.hr.RenderNode(w, node, entering)
 	}
 
 	// The contents of the heading appear as text between when we enter and
-	// leaving the heading node, and we grab it literally to pass to the
+	// leave the heading node, and we grab it literally to pass to the
 	// template. The box is rendered when we leave the heading node.
 	if entering {
-		if r.boxLevel > 0 {
-			if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "end",
-				&struct{ Level int }{r.boxLevel}, nil)) != nil {
-				return bf.Terminate
-			}
-			r.boxLevel = 0
+		if r.boxLevel > 0 && r.setError(r.renderBoxEnd(w)) != nil {
+			return bf.Terminate
 		}
 		r.startingBox = true
 		r.boxTitle.Reset()
 		return bf.GoToNext
 	}
 
-	// Additional attributes can be passed as slash-separated values in the
-	// ID string, e.g. "# Heading #{myid/desktop_only/narrow}".
+	// Attributes can be passed as slash-separated values in the ID string,
+	// e.g. "# Heading {#myid/narrow}".
 	var info = struct {
-		ID          string // value for id attribute
-		Title       template.HTML
-		Level       int
-		DesktopOnly bool   // only display on desktop
-		MobileOnly  bool   // only display on mobile
-		Narrow      bool   // make the box narrow
-		MapLabel    string // letter label for map marker
+		ID       string        // value for id attribute
+		Title    template.HTML // heading text
+		Level    int           // heading level, e.g. 1, 2, etc.
+		Narrow   bool          // make the box narrow on desktop
+		MapLabel string        // letter label for map marker, e.g. "A"
 	}{
 		Title: template.HTML(r.boxTitle.String()),
 		Level: node.HeadingData.Level,
@@ -690,24 +679,35 @@ func (r *renderer) renderHeading(w io.Writer, node *bf.Node, entering bool) bf.W
 		switch {
 		case i == 0:
 			info.ID = v
-		case v == "desktop_only":
-			info.DesktopOnly = true
-		case v == "mobile_only":
-			info.MobileOnly = true
-		case v == "narrow":
-			info.Narrow = true
+		case v == "":
+			// Ignore empty attributes just used to create boxes, e.g. "{#/}".
 		case v == "map_marker":
 			info.MapLabel = string(rune('A' + r.numMapMarkers))
 			r.numMapMarkers++
+		case v == "narrow":
+			info.Narrow = true
+		default:
+			r.setErrorf("unknown heading attribute %q", v)
+			return bf.Terminate
 		}
 	}
 
 	r.startingBox = false
-	r.boxLevel = node.HeadingData.Level
+	r.boxLevel = node.HeadingData.Level // save for renderBoxEnd
 	if r.setError(r.tmpl.runNamed(w, []string{"box.tmpl"}, "start", &info, nil)) != nil {
 		return bf.Terminate
 	}
 	return bf.GoToNext
+}
+
+// Closes the currently-open box and resets relevant variables.
+func (r *renderer) renderBoxEnd(w io.Writer) error {
+	if r.boxLevel <= 0 {
+		return errors.New("not currently in box")
+	}
+	err := r.tmpl.runNamed(w, []string{"box.tmpl"}, "end", &struct{ Level int }{r.boxLevel}, nil)
+	r.boxLevel = 0
+	return err
 }
 
 // Renders a node of type bf.HTMLSpan and returns the appropriate walk status.

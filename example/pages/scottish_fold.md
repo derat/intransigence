@@ -13,20 +13,20 @@ This page describes the [Scottish Fold] breed of cat.
 It's listed as a child of the [Cats page](cats.html) in `site.yaml`, so it
 appears nested under it in the navigation menu.
 
-### Characteristics {#chars}
+## Characteristics {#chars}
 
 Scottish Folds possess a genetic mutation that makes their ears bend forward,
 giving them what the [Cat Fanciers' Association] describes as an owl-like
 appearance.
 
-The "Characteristics" title up there was created using a third-level heading,
+The "Characteristics" title up there was created using a second-level heading,
 and an anchor was assigned to it so that an entry in the navigation menu can
 link directly to it.
 
 [Scottish Fold]: https://en.wikipedia.org/wiki/Scottish_Fold
 [Cat Fanciers' Association]: https://cfa.org/scottish-fold/scottish-fold-article/
 
-### Fame {#fame}
+## Fame {#fame}
 
 The most famous Scottish Fold on the Internet is probably [Maru]. Maru lives in
 Japan and is fascinated by cardboard boxes:
@@ -80,11 +80,13 @@ height: 200
 
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
-### Controversy {#controversy}
+## Controversy {#controversy/}
 
 [This BBC article](https://www.bbc.com/news/uk-scotland-39717634) reports on
 arguments that breeding of Scottish Folds should be banned due to concerns about
 ear disorders and hearing problems. I have no opinion on this topic.
+
+### Some inline tags
 
 Instead, I'll use this space to describe how `<only-amp>` and `<only-nonamp>`
 tags can be used to wrap content that's only relevant for the AMP or non-AMP

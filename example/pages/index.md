@@ -23,11 +23,7 @@ The "Welcome" box was creating using a Markdown first-level heading, i.e.
 
 Additional attributes can be included after a first-level heading's name.
 
-## Mobile-only {#/mobile_only}
+## Narrow {#/narrow}
 
-This box only displays at mobile resolutions.
-
-## Desktop-only {#/desktop_only/narrow}
-
-This box only displays at "desktop" (i.e. bigger than mobile) resolutions, and
-it is narrower than normal boxes.
+This box is narrower than normal boxes at "desktop" (i.e. bigger than mobile)
+resolutions.

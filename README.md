@@ -147,23 +147,38 @@ modified: 2020-05-20
 
 [fenced code block]: https://www.markdownguide.org/extended-syntax/#fenced-code-blocks
 
-### Boxes
+### Headings and boxes
 
-Boxes are started by defining level-1 or level-2 headings (corresponding to
-`<h1>` and `<h2>` elements):
+A level-1 heading starts a box with an `<h1>` element in its title:
 
 ```md
-# Box title {#id/desktop_only/narrow}
+# Text for the box's title
+
+Text for the box's body.
 ```
 
-The (optional) ID can be followed with slash-separated arguments to further
-customize the box. See `renderHeading` in [render/page.go](render/page.go) for
-available arguments.
+Level-2 or higher headings create `<h2>`, `<h3>`, etc. elements.
 
-The box is automatically closed when a new box is started or the document ends.
+`{#...}` can be used to associate an optional ID with the heading:
 
-A level-3 heading (`###`) inserts an `<h3>` element but does not start a new
-box.
+```md
+## Here's the first section {#first-section}
+
+And here's the text.
+```
+
+The ID can be followed by slash-separated attributes to force a box to be
+started and further customize it:
+
+```md
+## This starts a narrow box {#/narrow}
+```
+
+See `renderHeading` in [render/page.go](render/page.go) for available
+attributes.
+
+The current box is automatically closed when a new box is started or the
+document ends.
 
 ### Iframes
 

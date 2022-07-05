@@ -1,8 +1,6 @@
 {{/* Writes <section> for "box" code block. */}}
 {{define "start" -}}
 {{if eq .Level 1}}<div{{else}}<section{{end}} class="box
-{{- if .DesktopOnly}} desktop-only{{end}}
-{{- if .MobileOnly}} mobile-only{{end}}
 {{- if .Narrow}} desktop-narrow{{end -}}
 "
 {{- if .ID}} id="{{.ID}}"{{end}}>
