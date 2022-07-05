@@ -1,1 +1,1 @@
-.mobile-only{display:none}nav .toggle{display:none}main .box>.body>figure.desktop-left{float:left}main .box>.body>figure.desktop-right{float:right}main .box>.body>figure.desktop-left:first-child+p,main .box>.body>figure.desktop-right:first-child+p{margin-top:0}
+.mobile-only{display:none}nav:first-of-type .toggle{display:none}main .box>.body>figure.desktop-left{float:left}main .box>.body>figure.desktop-right{float:right}main .box>.body>figure.desktop-left:first-child+p,main .box>.body>figure.desktop-right:first-child+p{margin-top:0}
