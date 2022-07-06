@@ -1,0 +1,7 @@
+<nav>
+  {{if .Heading}}<h2>{{.Heading}}</h2>
+  {{end -}}
+  <ul>
+    {{range .Sections}}<li><a href="#{{.ID}}">{{.Title}}</a>{{end}}
+  </ul>
+</nav>

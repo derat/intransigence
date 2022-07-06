@@ -88,10 +88,15 @@ func TestBuild_Full(t *testing.T) {
 		`<li><span\s+class="selected">Scottish\s+Fold</span>`,      // nav item selected
 		`(?s)<div\s+class="box">\s*` +
 			`<h1 class="title">\s*Scottish\s+Fold\s*</h1>`, // box created by level-1 heading
+		`(?s)<nav>\s*<h2>\s*Table of contents\s*</h2>\s*<ul>\s*` +
+			`<li>\s*<a\s+href="#chars">Characteristics</a>\s*` +
+			`<li>\s*<a\s+href="#fame">Fame</a>\s*` +
+			`<li>\s*<a\s+href="#controversy">Controversy\s+<em>\(Really!\)</em></a>\s*` +
+			`</ul>\s*</nav>`, // table of contents created by 'contents' code block
 		`(?s)<h2 id="chars">\s*Characteristics\s*</h2>`, // h2 created by level-2 heading
 		`(?s)<h3>\s*Some inline tags\s*</h3>`,           // h3 created by level-3 heading
 		`(?s)<section\s+class="box"\s+id="controversy">\s*` +
-			`<h2\s+class="title">\s*Controversy\s*</h2>`, // box created by level-2 heading
+			`<h2\s+class="title">\s*Controversy\s+<em>\(Really!\)</em>\s*</h2>`, // box created by level-2 heading
 		// "image" code block
 		`<figure class="desktop-left mobile-center custom-class">\s*` +
 			`<a href="scottish_fold/maru-800\.jpg">` +

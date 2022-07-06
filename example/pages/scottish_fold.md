@@ -12,6 +12,12 @@ This page describes the [Scottish Fold] breed of cat.
 It's listed as a child of the [Cats page](cats.html) in `site.yaml`, so it
 appears nested under it in the navigation menu.
 
+The following table of contents is inserted using a `contents` code block.
+
+```contents
+heading: Table of contents
+```
+
 ## Characteristics {#chars}
 
 Scottish Folds possess a genetic mutation that makes their ears bend forward,
@@ -79,7 +85,7 @@ height: 200
 
 [Maru]: https://en.wikipedia.org/wiki/Maru_(cat)
 
-## Controversy {#controversy/}
+## Controversy _(Really!)_ {#controversy/}
 
 [This BBC article](https://www.bbc.com/news/uk-scotland-39717634) reports on
 arguments that breeding of Scottish Folds should be banned due to concerns about

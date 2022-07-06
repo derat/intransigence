@@ -118,6 +118,13 @@ type pageInfo struct {
 	AMPCustomStyle   template.CSS  `yaml:"-"` // inline custom CSS for AMP page
 	CSPMeta          template.HTML `yaml:"-"` // <meta> tag for Content Security policy
 	StructData       structData    `yaml:"-"` // structured data JSON info
+	Sections         []sectionInfo `yaml:"-"` // sections to include in table of contents
+}
+
+// sectionInfo describes a level-2 heading to include in the table of contents.
+type sectionInfo struct {
+	Title template.HTML
+	ID    string
 }
 
 // figureInfo holds information used by figure.tmpl.
@@ -270,7 +277,11 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	// Walk the full Markdown AST to determine which features the page uses.
 	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
-		if entering && node.Type == bf.CodeBlock {
+		if !entering {
+			return bf.GoToNext
+		}
+		switch node.Type {
+		case bf.CodeBlock:
 			switch string(node.CodeBlockData.Info) {
 			case "graph":
 				r.pi.HasGraph = true
@@ -288,10 +299,25 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 				r.pi.HasMap = true
 				r.pi.MapPlaceholderLight = info.Path
 				r.pi.MapPlaceholderDark = info.PathDark
-			case "clear", "image", "page", "":
+			case "clear", "contents", "image", "page", "":
 				// Skip other special code blocks and untagged blocks.
 			default:
 				r.pi.HighlightCode = true
+			}
+		case bf.Heading:
+			// Collect level-2 headings with IDs for table of contents.
+			id := strings.Split(node.HeadingData.HeadingID, "/")[0]
+			if node.HeadingData.Level == 2 && id != "" {
+				var title bytes.Buffer
+				for c := node.FirstChild; c != nil; c = c.Next {
+					c.Walk(func(n *bf.Node, entering bool) bf.WalkStatus {
+						return r.hr.RenderNode(&title, n, entering)
+					})
+				}
+				r.pi.Sections = append(r.pi.Sections, sectionInfo{
+					Title: template.HTML(title.String()),
+					ID:    id,
+				})
 			}
 		}
 		return bf.GoToNext
@@ -584,6 +610,19 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 	switch string(node.CodeBlockData.Info) {
 	case "clear":
 		if r.setError(r.tmpl.run(w, []string{"clear.tmpl"}, nil, nil)) != nil {
+			return bf.Terminate
+		}
+		return bf.SkipChildren
+	case "contents":
+		info := struct {
+			Heading  string        `yaml:"heading"` // heading text, e.g. "Table of contents"
+			Sections []sectionInfo `yaml:"-"`
+		}{Sections: r.pi.Sections}
+		if err := unmarshalYAML(node.Literal, &info); err != nil {
+			r.setErrorf("failed to parse contents info from %q: %v", node.Literal, err)
+			return bf.Terminate
+		}
+		if r.setError(r.tmpl.run(w, []string{"contents.tmpl"}, info, nil)) != nil {
 			return bf.Terminate
 		}
 		return bf.SkipChildren
