@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Toggle the navbox when the logo or anything in its title are clicked.
   const toggle = () => {
-    document.querySelector('nav ul').classList.toggle('collapsed-mobile');
-    document.querySelector('nav .toggle').classList.toggle('expand');
+    document.querySelector('.sitenav ul').classList.toggle('collapsed-mobile');
+    document.querySelector('.sitenav .toggle').classList.toggle('expand');
   };
   document.querySelector('header .logo').addEventListener('click', toggle);
-  document.querySelector('nav .box .title').addEventListener('click', toggle);
+  document
+    .querySelector('.sitenav .box .title')
+    .addEventListener('click', toggle);
 
   // |darkQuery| and applyTheme() are defined in dark.js.
   // Toggle the theme when the dark-mode icon is clicked.

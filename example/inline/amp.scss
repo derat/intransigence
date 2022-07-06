@@ -21,7 +21,7 @@ header {
   }
 }
 
-nav .box {
+.sitenav .box {
   margin: 10px;
   .body {
     background-color: white;
@@ -37,7 +37,7 @@ footer {
 }
 
 body.dark {
-  nav .box > .body {
+  .sitenav .box > .body {
     background-color: #222;
   }
 }

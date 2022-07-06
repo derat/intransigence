@@ -49,7 +49,7 @@
 {{define "header_html"}}
 <script>{{.HTMLBodyScript}}</script>
 <header>
-  <nav>
+  <nav class="sitenav">
     {{template "img" .LogoHTML}}
     {{/* This mirrors the box_header and box_footer templates. */ -}}
     <div class="box">
@@ -94,7 +94,7 @@
 
 <amp-sidebar id="sidebar" layout="nodisplay" side="right">
   {{/* This mirrors the box_header and box_footer templates. */ -}}
-  <nav>
+  <nav class="sitenav">
     <div class="box">
       <div class="title">
         {{.SiteInfo.NavText}}
