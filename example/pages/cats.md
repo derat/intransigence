@@ -1,6 +1,5 @@
 ```page
 title: Cats
-highlight_code: true
 created: 2020-05-20
 modified: 2020-05-20
 ```

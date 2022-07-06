@@ -77,22 +77,17 @@ type PageFeedInfo struct {
 
 // pageInfo holds information about the current page that is used by page.tmpl.
 type pageInfo struct {
-	Title               string `yaml:"title"`                 // original title
-	ID                  string `yaml:"id"`                    // NavItem.ID to highlight in navbox (inferred from filename if empty)
-	Desc                string `yaml:"desc"`                  // meta description
-	ImagePath           string `yaml:"image_path"`            // path to structured data image in static dir
-	Created             string `yaml:"created"`               // creation date as 'YYYY-MM-DD'
-	Modified            string `yaml:"modified"`              // last-modified date as 'YYYY-MM-DD'
-	HideTitleSuffix     bool   `yaml:"hide_title_suffix"`     // don't append SiteInfo.TitleSuffix
-	HideBackToTop       bool   `yaml:"hide_back_to_top"`      // hide footer link to jump to top
-	HideDates           bool   `yaml:"hide_dates"`            // hide footer created and modified dates
-	OmitFromFeed        bool   `yaml:"omit_from_feed"`        // omit page from RSS feed
-	HasMap              bool   `yaml:"has_map"`               // page contains a map
-	MapPlaceholderLight string `yaml:"map_placeholder_light"` // placeholder image path (relative to page)
-	MapPlaceholderDark  string `yaml:"map_placeholder_dark"`  // placeholder for dark theme
-	HasGraph            bool   `yaml:"has_graph"`             // page contains one or more graphs
-	HighlightCode       bool   `yaml:"highlight_code"`        // perform syntax highlighting on tagged code blocks
-	PageStyle           string `yaml:"page_style"`            // optional custom page-specific CSS
+	Title           string `yaml:"title"`             // original title
+	ID              string `yaml:"id"`                // NavItem.ID to highlight in navbox (inferred from filename if empty)
+	Desc            string `yaml:"desc"`              // meta description
+	ImagePath       string `yaml:"image_path"`        // path to structured data image in static dir
+	Created         string `yaml:"created"`           // creation date as 'YYYY-MM-DD'
+	Modified        string `yaml:"modified"`          // last-modified date as 'YYYY-MM-DD'
+	HideTitleSuffix bool   `yaml:"hide_title_suffix"` // don't append SiteInfo.TitleSuffix
+	HideBackToTop   bool   `yaml:"hide_back_to_top"`  // hide footer link to jump to top
+	HideDates       bool   `yaml:"hide_dates"`        // hide footer created and modified dates
+	OmitFromFeed    bool   `yaml:"omit_from_feed"`    // omit page from RSS feed
+	PageStyle       string `yaml:"page_style"`        // optional custom page-specific CSS
 
 	SiteInfo *SiteInfo `yaml:"-"` // site-level information
 	NavItem  *NavItem  `yaml:"-"` // nav item corresponding to current page
@@ -108,6 +103,12 @@ type pageInfo struct {
 	LinkRel  string `yaml:"-"` // rel attribute for AMP/non-AMP <link>, e.g. "canonical"
 	LinkHref string `yaml:"-"` // href attribute for AMP/non-AMP <link>
 	FeedHref string `yaml:"-"` // href attribute for Atom feed <link>
+
+	HasGraph            bool   `yaml:"-"` // page contains one or more graphs
+	HasMap              bool   `yaml:"-"` // page contains a map
+	MapPlaceholderLight string `yaml:"-"` // placeholder image path (relative to page)
+	MapPlaceholderDark  string `yaml:"-"` // placeholder image for dark theme
+	HighlightCode       bool   `yaml:"-"` // perform syntax highlighting on tagged code blocks
 
 	HTMLStyle        template.CSS  `yaml:"-"` // inline CSS for non-AMP page
 	HTMLScripts      []template.JS `yaml:"-"` // inline JS in <head> for non-AMP page
@@ -265,6 +266,38 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			r.setErrorf("no page with ID %q", r.pi.ID)
 			return
 		}
+	}
+
+	// Walk the full Markdown AST to determine which features the page uses.
+	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
+		if entering && node.Type == bf.CodeBlock {
+			switch string(node.CodeBlockData.Info) {
+			case "graph":
+				r.pi.HasGraph = true
+			case "map":
+				// This is a subset of the full struct parsed by renderCodeBlock.
+				// TODO: Consider supporting multiple maps in a page.
+				var info struct {
+					Path     string `yaml:"path"`
+					PathDark string `yaml:"path_dark"`
+				}
+				if err := yaml.NewDecoder(bytes.NewReader(node.Literal)).Decode(&info); err != nil {
+					r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
+					return bf.Terminate
+				}
+				r.pi.HasMap = true
+				r.pi.MapPlaceholderLight = info.Path
+				r.pi.MapPlaceholderDark = info.PathDark
+			case "clear", "image", "page", "":
+				// Skip other special code blocks and untagged blocks.
+			default:
+				r.pi.HighlightCode = true
+			}
+		}
+		return bf.GoToNext
+	})
+	if r.err != nil {
+		return
 	}
 
 	// Append the title suffix if needed.
@@ -547,6 +580,7 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		return v
 	}
 
+	// These tags also need to be handled in RenderHeader's AST-walking code.
 	switch string(node.CodeBlockData.Info) {
 	case "clear":
 		if r.setError(r.tmpl.run(w, []string{"clear.tmpl"}, nil, nil)) != nil {
@@ -603,8 +637,9 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		return bf.SkipChildren
 	case "map":
 		var info struct {
-			imgInfo `yaml:",inline"` // placeholder image (also used for dimensions)
-			Href    string           `yaml:"href"` // relative path to map iframe page
+			imgInfo  `yaml:",inline"` // placeholder image (also used for dimensions)
+			PathDark string           `yaml:"path_dark"` // dark version of placeholder image
+			Href     string           `yaml:"href"`      // relative path to map iframe page
 		}
 		if err := unmarshalYAML(node.Literal, &info); err != nil {
 			r.setErrorf("failed to parse map info from %q: %v", node.Literal, err)
@@ -626,11 +661,6 @@ func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf
 		return bf.SkipChildren // handled in RenderHeader
 	default:
 		if lang := string(node.CodeBlockData.Info); lang != "" {
-			if !r.pi.HighlightCode {
-				r.setError(errors.New("highlight_code must be set to true"))
-				return bf.Terminate
-			}
-
 			code := strings.TrimRight(string(node.Literal), "\n")
 			if r.setError(writeCode(w, code, lang, r.si.CodeStyleLight)) != nil {
 				return bf.Terminate
