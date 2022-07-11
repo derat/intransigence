@@ -188,6 +188,20 @@ function getStyles() {
       elementType: 'labels.text.stroke',
       stylers: [{ color: '#17263c' }],
     },
+    // Deemphasize POI and road icons since they compete with our markers
+    // otherwise. The styler ominously warns, "The effect of the following
+    // stylers will change whenever Google updates the base map style.
+    // Use with caution."
+    {
+      featureType: 'poi',
+      elementType: 'labels.icon',
+      stylers: [{ saturation: -50 }, { lightness: -30 }],
+    },
+    {
+      featureType: 'road',
+      elementType: 'labels.icon',
+      stylers: [{ saturation: -50 }, { lightness: -30 }],
+    },
   ];
 }
 
