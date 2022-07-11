@@ -9,10 +9,10 @@
 
   @{SITEDIRS}/ ar,
   @{SITEDIRS}/** r,
-  @{SITEDIRS}/inline/**.css w,
-  @{SITEDIRS}/static/**.webp w,
   @{SITEDIRS}/.out.*/ rw,
   @{SITEDIRS}/.out.*/** rw,
+  @{SITEDIRS}/gen/ rw,
+  @{SITEDIRS}/gen/** rw,
   @{SITEDIRS}/out/ w,
 
   # TODO: Why do both of these seem to be needed?
