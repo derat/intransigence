@@ -134,18 +134,22 @@ func prettyPrintDoc(r io.Reader) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// generateCSS runs sassc to generate minified CSS files from all .scss files within dir.
-// The .scss extension is replaced with .css.
-func generateCSS(dir string) error {
-	ps, err := filepath.Glob(filepath.Join(dir, "*.scss"))
+// generateCSS runs sassc to generate minified CSS of all .scss files in src.
+// The files are written under dst with the .scss extension changed to .css.
+func generateCSS(src, dst string) error {
+	ps, err := filepath.Glob(filepath.Join(src, "*.scss"))
 	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dst, 0755); err != nil {
 		return err
 	}
 
 	defer clearStatus()
 	for i, p := range ps {
 		statusf("Generating CSS: [%d/%d]", i, len(ps))
-		dp := p[:len(p)-4] + "css"
+		base := filepath.Base(p)
+		dp := filepath.Join(dst, base[:len(base)-4]+"css")
 		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
 			return fmt.Errorf("failed running sassc on %v: %v", p, err)
 		}
@@ -153,13 +157,12 @@ func generateCSS(dir string) error {
 	return nil
 }
 
-// generateWebP runs cwebp to generate WebP versions of all GIF, JPEG, and PNG images under dir.
-// Existing files are regenerated if needed.
-func generateWebP(dir string) error {
-	// Get mtimes for orig images and WebP files.
+// generateWebP runs cwebp to generate WebP versions of all GIF, JPEG, and PNG images under src.
+// The files are written under dst and are regenerated if stale.
+func generateWebP(src, dst string) error {
+	// Get mtimes for orig images and WebP files. Keys are paths relative to src and dst.
 	imgTimes := make(map[string]time.Time)
-	webPTimes := make(map[string]time.Time)
-	if err := filepath.Walk(dir, func(p string, fi os.FileInfo, err error) error {
+	if err := filepath.Walk(src, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -168,9 +171,23 @@ func generateWebP(dir string) error {
 		}
 		switch filepath.Ext(p) {
 		case ".gif", ".jpg", ".jpeg", ".png":
-			imgTimes[p] = fi.ModTime()
-		case render.WebPExt:
-			webPTimes[p] = fi.ModTime()
+			imgTimes[p[len(src)+1:]] = fi.ModTime()
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+	webPTimes := make(map[string]time.Time)
+	if err := filepath.Walk(dst, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Mode()&os.ModeType == 0 && filepath.Ext(p) == render.WebPExt {
+			webPTimes[p[len(dst)+1:]] = fi.ModTime()
 		}
 		return nil
 	}); err != nil {
@@ -181,14 +198,18 @@ func generateWebP(dir string) error {
 	for ip, it := range imgTimes {
 		wp := ip[:len(ip)-len(filepath.Ext(ip))] + render.WebPExt
 		if wt, ok := webPTimes[wp]; !ok || wt.Before(it) {
-			todo[ip] = wp
+			todo[filepath.Join(src, ip)] = filepath.Join(dst, wp)
 		}
+		delete(webPTimes, wp)
 	}
 
 	num := 0
 	defer clearStatus()
 	for ip, wp := range todo {
 		statusf("Generating WebP images: [%d/%d]", num, len(todo))
+		if err := os.MkdirAll(filepath.Dir(wp), 0755); err != nil {
+			return err
+		}
 		switch filepath.Ext(ip) {
 		case ".gif":
 			if err := exec.Command("gif2webp", ip, "-o", wp).Run(); err != nil {
@@ -206,5 +227,13 @@ func generateWebP(dir string) error {
 		}
 		num++
 	}
+
+	// Delete any WebP files corresponding to no-longer-present images.
+	for p := range webPTimes {
+		if err := os.Remove(filepath.Join(dst, p)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

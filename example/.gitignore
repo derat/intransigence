@@ -2,11 +2,5 @@
 /out
 /.out.*
 
-# Generated CSS files.
-/inline/*.css
-
-# Generated WebP images.
-*.webp
-
-# Checked-in WebP image.
-!/static/scottish_fold/christmas.webp
+# Generated files.
+/gen

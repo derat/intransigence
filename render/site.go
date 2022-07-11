@@ -148,10 +148,13 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	return &si, nil
 }
 
-// ReadInline reads and returns the contents of the named file in the inline dir.
+// ReadInline reads and returns the contents of the named file in si.InlineDir or si.InlineGenDir.
 // It returns an empty string if the file does not exist and panics if the file cannot be read.
 func (si *SiteInfo) ReadInline(fn string) string {
 	b, err := ioutil.ReadFile(filepath.Join(si.InlineDir(), fn))
+	if os.IsNotExist(err) {
+		b, err = ioutil.ReadFile(filepath.Join(si.InlineGenDir(), fn))
+	}
 	if os.IsNotExist(err) {
 		return ""
 	} else if err != nil {
@@ -165,7 +168,7 @@ func (si *SiteInfo) ReadInline(fn string) string {
 }
 
 // CheckStatic returns an error if p (e.g. "foo/bar.png") doesn't exist
-// in si.StaticDir or in the matching si.ExtraStaticDirs source dir.
+// in si.StaticDir, si.StaticGenDir, or in the matching si.ExtraStaticDirs source dir.
 func (si *SiteInfo) CheckStatic(p string) error {
 	for src, dst := range si.ExtraStaticDirs {
 		if p == dst || strings.HasPrefix(dst+"/", p) {
@@ -173,12 +176,18 @@ func (si *SiteInfo) CheckStatic(p string) error {
 			return err
 		}
 	}
+	if _, err := os.Stat(filepath.Join(si.StaticGenDir(), p)); err == nil {
+		return nil
+	}
 	_, err := os.Stat(filepath.Join(si.StaticDir(), p))
 	return err
 }
 
 func (si *SiteInfo) InlineDir() string {
 	return filepath.Join(si.dir, "inline")
+}
+func (si *SiteInfo) InlineGenDir() string {
+	return filepath.Join(si.dir, "gen/inline")
 }
 func (si *SiteInfo) IframeDir() string {
 	return filepath.Join(si.dir, "iframes")
@@ -188,6 +197,9 @@ func (si *SiteInfo) PageDir() string {
 }
 func (si *SiteInfo) StaticDir() string {
 	return filepath.Join(si.dir, "static")
+}
+func (si *SiteInfo) StaticGenDir() string {
+	return filepath.Join(si.dir, "gen/static")
 }
 func (si *SiteInfo) TemplateDir() string {
 	return filepath.Join(si.dir, "templates")

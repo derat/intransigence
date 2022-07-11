@@ -65,10 +65,10 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 
 	// Generate inline CSS files before they get included in pages and iframes.
 	// Also create WebP images so that their existence can be checked when generating pages.
-	if err := generateCSS(si.InlineDir()); err != nil {
+	if err := generateCSS(si.InlineDir(), si.InlineGenDir()); err != nil {
 		return err
 	}
-	if err := generateWebP(si.StaticDir()); err != nil {
+	if err := generateWebP(si.StaticDir(), si.StaticGenDir()); err != nil {
 		return err
 	}
 
@@ -102,6 +102,20 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		if err := copy.Copy(filepath.Join(dir, src), dp); err != nil {
 			return err
 		}
+	}
+
+	// Also copy over generated WebP images.
+	gd := si.StaticGenDir()
+	if err := filepath.Walk(gd, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Mode()&os.ModeType == 0 && filepath.Ext(p) == render.WebPExt {
+			return copy.Copy(p, filepath.Join(out, p[len(gd)+1:]))
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if err := writeSitemap(filepath.Join(out, sitemapFile), si); err != nil {

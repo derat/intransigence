@@ -107,6 +107,11 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 		if srcset, info.widths, err = makeSrcset(si.StaticDir(), pre, suf); err != nil {
 			return err
 		} else if srcset == "" {
+			if srcset, info.widths, err = makeSrcset(si.StaticGenDir(), pre, suf); err != nil {
+				return err
+			}
+		}
+		if srcset == "" {
 			return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, suf)
 		}
 
@@ -145,6 +150,11 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 			if info.Srcset, _, err = makeSrcset(si.StaticDir(), pre, wsuf); err != nil {
 				return err
 			} else if info.Srcset == "" {
+				if info.Srcset, _, err = makeSrcset(si.StaticGenDir(), pre, wsuf); err != nil {
+					return err
+				}
+			}
+			if info.Srcset == "" {
 				return fmt.Errorf("no images matched by prefix %q and suffix %q", pre, wsuf)
 			}
 			info.FallbackSrc = src
@@ -207,6 +217,7 @@ func imageSize(p string) (w, h int, err error) {
 // makeSrcset returns a srcset attribute value corresponding to the
 // images matched by pre and suf under the supplied static dir.
 // The returned slice contains image widths in ascending order.
+// If no files are matched, an empty string is returned.
 func makeSrcset(dir, pre, suf string) (string, []int, error) {
 	glob := filepath.Join(dir, pre+"*"+suf)
 	ps, err := filepath.Glob(glob)
