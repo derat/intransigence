@@ -75,6 +75,11 @@ function initializeMap() {
 }
 
 function selectPoint(id, center) {
+  if (!map) {
+    console.log('Map not initialized');
+    return;
+  }
+
   const point = points.find((p) => p.id == id);
   if (!point) {
     console.log('Unable to find point with ID ' + id);
