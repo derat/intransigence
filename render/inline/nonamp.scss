@@ -3,6 +3,7 @@
 .img-wrapper {
   display: inline-block;
   position: relative; // needed since thumbnail is absolute
+  vertical-align: bottom; // https://stackoverflow.com/a/27999850
   & > svg {
     position: absolute;
   }
