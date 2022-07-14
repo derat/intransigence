@@ -24,3 +24,9 @@ a.location {
   font-family: Arial, Helvetica, sans-serif;
   text-decoration: underline;
 }
+
+// Hide annoying close button focus ring that's sometimes automatically shown
+// after clicking a marker: https://stackoverflow.com/a/68906199
+.gm-style-iw button:focus {
+  outline: 0;
+}
