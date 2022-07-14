@@ -581,14 +581,16 @@ func (r *renderer) RenderFooter(w io.Writer, ast *bf.Node) {
 // Renders a node of type bf.CodeBlock and returns the appropriate walk status.
 // Sets r.err and returns bf.Terminate if an error is encountered.
 func (r *renderer) renderCodeBlock(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	// Rewrites the supplied iframe URL (e.g. iframes/my_map.html) to be either absolute or site-rooted.
-	// The framed page isn't AMP-compliant, so it won't be served by the AMP cache: https://www.erat.org/amp.html#iframes
-	// Absolute URLs could presumably also be used in the non-AMP case, but it makes development harder.
+	// Rewrites the supplied iframe URL (e.g. iframes/my_map.html) to be site-rooted
+	// if r.amp is true. The framed page isn't AMP-compliant, so it won't be served
+	// by the AMP cache: https://www.erat.org/amp.html#iframes
+	// Site-rooted URLs could presumably also be used in the non-AMP case, but it
+	// makes development harder.
 	iframeHref := func(s string) string {
 		if r.amp {
 			return r.si.BaseURL + s
 		}
-		return "/" + s
+		return s
 	}
 
 	// Rewrites the supplied figure "align" value to handle "desktop_alt". Also updates lastFigureAlign.
