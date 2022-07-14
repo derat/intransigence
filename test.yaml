@@ -4,9 +4,15 @@ steps:
   - name: golang
     entrypoint: sh
     args:
-      - "-c"
+      - '-c'
       - |
         apt-get update
         apt-get install -y npm sassc webp
         npm install -g amphtml-validator
         go test -v ./...
+        go build ./cmd/intransigence
+
+artifacts:
+  objects:
+    location: '$_ARTIFACTS_LOCATION'
+    paths: ['intransigence']
