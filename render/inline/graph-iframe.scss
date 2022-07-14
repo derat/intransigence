@@ -70,3 +70,33 @@ text.title {
     font-size: 10px;
   }
 }
+
+body.dark {
+  svg.graph {
+    background-color: #333;
+  }
+  circle.line {
+    fill: #333;
+    &:hover {
+      fill: steelblue;
+    }
+  }
+  rect.note {
+    fill: #383838;
+    stroke: #444;
+    &:hover {
+      fill: #444;
+      stroke: #555;
+    }
+  }
+  text {
+    fill: #ccc;
+  }
+  .label rect {
+    fill: #444;
+    stroke: #555;
+  }
+  .rule line {
+    stroke: #444;
+  }
+}
