@@ -8,7 +8,7 @@ require (
 	github.com/derat/validate v0.0.0-20220207210801-9c9d0eb6729e
 	github.com/gorilla/feeds v1.1.1
 	github.com/kr/pretty v0.3.0 // indirect
-	github.com/otiai10/copy v1.1.1
+	github.com/otiai10/copy v1.7.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect

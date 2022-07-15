@@ -31,7 +31,8 @@ const (
 // generatePages renders non-AMP and AMP versions of all normal pages and writes them
 // to the appropriate subdirectory under out. The generated files' paths are returned.
 // The returned feed info structs are sorted newest-to-oldest.
-func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []render.PageFeedInfo, error) {
+func generatePages(si *render.SiteInfo, out string, pretty bool,
+	exeTime time.Time) ([]string, []render.PageFeedInfo, error) {
 	ps, err := filepath.Glob(filepath.Join(si.PageDir(), "*.md"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to enumerate pages: %v", err)
@@ -43,6 +44,10 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []re
 	for i, p := range ps {
 		statusf("Generating pages: [%d/%d]", i, len(ps))
 		md, err := ioutil.ReadFile(p)
+		if err != nil {
+			return nil, nil, err
+		}
+		pi, err := os.Stat(p)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -64,7 +69,11 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []re
 					return fmt.Errorf("failed to pretty-print %s: %v", filepath.Base(dest), err)
 				}
 			}
-			return ioutil.WriteFile(dest, b, fileMode)
+			if err := ioutil.WriteFile(dest, b, fileMode); err != nil {
+				return err
+			}
+			// Copy the Markdown file's mtime and atime.
+			return os.Chtimes(dest, maxTime(getAtime(pi), exeTime), maxTime(pi.ModTime(), exeTime))
 		}
 
 		if err := build(filepath.Join(out, base+render.HTMLExt), false /* amp */); err != nil {
@@ -84,7 +93,8 @@ func generatePages(si *render.SiteInfo, out string, pretty bool) ([]string, []re
 
 // generateIframes renders all iframe pages and writes them to the appropriate subdirectory under out.
 // The generated files' paths are returned.
-func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, error) {
+func generateIframes(si *render.SiteInfo, out string, pretty bool,
+	exeTime time.Time) ([]string, error) {
 	ps, err := filepath.Glob(filepath.Join(si.IframeDir(), "*.yaml"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to enumerate iframe data: %v", err)
@@ -95,6 +105,10 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, er
 	var outPaths []string
 	for _, p := range ps {
 		data, err := ioutil.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		fi, err := os.Stat(p)
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +130,8 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool) ([]string, er
 		if err := ioutil.WriteFile(dest, b, fileMode); err != nil {
 			return nil, err
 		}
+		// Copy the data file's mtime and atime.
+		return nil, os.Chtimes(dest, maxTime(getAtime(fi), exeTime), maxTime(fi.ModTime(), exeTime))
 	}
 	return outPaths, nil
 }
@@ -152,6 +168,9 @@ func generateCSS(src, dst string) error {
 		dp := filepath.Join(dst, base[:len(base)-4]+"css")
 		if err := exec.Command("sassc", "--style", "compressed", p, dp).Run(); err != nil {
 			return fmt.Errorf("failed running sassc on %v: %v", p, err)
+		}
+		if err := copyTimes(p, dp); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -224,6 +243,9 @@ func generateWebP(src, dst string) error {
 			if err := exec.Command("cwebp", "-preset", preset, ip, "-o", wp).Run(); err != nil {
 				return fmt.Errorf("failed running cwebp on %v: %v", ip, err)
 			}
+		}
+		if err := copyTimes(ip, wp); err != nil {
+			return err
 		}
 		num++
 	}

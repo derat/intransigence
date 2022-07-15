@@ -11,17 +11,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/derat/intransigence/render"
 	"github.com/otiai10/copy"
 )
 
 const (
-	siteFile     = "site.yaml"   // YAML file containing render.SiteInfo data
-	outSubdir    = "out"         // subdir under site dir for generated site
-	tmpOutPrefix = ".out."       // prefix passed to ioutil.TempDir for temp output dir
-	oldOutSubdir = ".out.old"    // subdir under site dir containing previous generated site
-	sitemapFile  = "sitemap.xml" // generated XML file containing sitemap data
+	siteFile     = "site.yaml"     // YAML file containing render.SiteInfo data
+	outSubdir    = "out"           // subdir under site dir for generated site
+	tmpOutPrefix = ".out."         // prefix passed to ioutil.TempDir for temp output dir
+	oldOutSubdir = ".out.old"      // subdir under site dir containing previous generated site
+	sitemapFile  = "sitemap.xml"   // generated XML file containing sitemap data
+	exeName      = "intransigence" // executable filename
 )
 
 // Flags specifies details of how the site should be built.
@@ -72,12 +74,13 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		return err
 	}
 
+	exeTime := getExeTime()
 	var genPaths []string
 	var feedInfos []render.PageFeedInfo
-	if genPaths, feedInfos, err = generatePages(si, out, flags&PrettyPrint != 0); err != nil {
+	if genPaths, feedInfos, err = generatePages(si, out, flags&PrettyPrint != 0, exeTime); err != nil {
 		return err
 	}
-	if ps, err := generateIframes(si, out, flags&PrettyPrint != 0); err != nil {
+	if ps, err := generateIframes(si, out, flags&PrettyPrint != 0, exeTime); err != nil {
 		return err
 	} else {
 		genPaths = append(genPaths, ps...)
@@ -91,7 +94,8 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	}
 
 	// Copy over static content.
-	if err := copy.Copy(si.StaticDir(), out); err != nil {
+	copyOpts := copy.Options{PreserveTimes: true}
+	if err := copy.Copy(si.StaticDir(), out, copyOpts); err != nil {
 		return err
 	}
 	for src, dst := range si.ExtraStaticDirs {
@@ -99,11 +103,10 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		if !strings.HasPrefix(dp, out+"/") {
 			return fmt.Errorf("dest path %v escapes out dir", dp)
 		}
-		if err := copy.Copy(filepath.Join(dir, src), dp); err != nil {
+		if err := copy.Copy(filepath.Join(dir, src), dp, copyOpts); err != nil {
 			return err
 		}
 	}
-
 	// Also copy over generated WebP images.
 	gd := si.StaticGenDir()
 	if err := filepath.Walk(gd, func(p string, fi os.FileInfo, err error) error {
@@ -111,13 +114,14 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 			return err
 		}
 		if fi.Mode()&os.ModeType == 0 && filepath.Ext(p) == render.WebPExt {
-			return copy.Copy(p, filepath.Join(out, p[len(gd)+1:]))
+			return copy.Copy(p, filepath.Join(out, p[len(gd)+1:]), copyOpts)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
 
+	// TODO: Try to preserve sitemap and feed timestamps somehow?
 	if err := writeSitemap(filepath.Join(out, sitemapFile), si); err != nil {
 		return fmt.Errorf("sitemap failed: %v", err)
 	}
@@ -128,6 +132,11 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	// Create gzipped versions of text-based files for the HTTP server to use.
 	if err := compressDir(out); err != nil {
 		return err
+	}
+
+	// Update directory timestamps to improve rsync performance.
+	if _, _, err := updateDirTimes(out); err != nil {
+		return fmt.Errorf("updating dir times failed: %v", err)
 	}
 
 	// If we built into the site dir, rename the temp dir that we used.
@@ -143,10 +152,6 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 				} else if !ok {
 					return errors.New("diff rejected")
 				}
-			}
-			// Copy the existing output dir's atimes and mtimes for dirs and files that didn't change.
-			if err := copyTimes(dest, out); err != nil {
-				return err
 			}
 			// Delete the old backup if present and back up the existing output dir.
 			old := filepath.Join(dir, oldOutSubdir)
@@ -164,4 +169,18 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 		}
 	}
 	return nil
+}
+
+// getExeTime returns the intransigence executable's mtime.
+// The zero time is returned during testing or if an error is encountered.
+func getExeTime() time.Time {
+	exe, err := os.Executable()
+	if err != nil || filepath.Base(exe) != exeName {
+		return time.Time{}
+	}
+	fi, err := os.Stat(exe)
+	if err != nil {
+		return time.Time{}
+	}
+	return fi.ModTime()
 }

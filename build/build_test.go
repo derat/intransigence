@@ -223,11 +223,18 @@ func TestBuild_Full(t *testing.T) {
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 
-	// Static data should be copied into the output directory.
-	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "favicon.ico"), filepath.Join(dir, "static/favicon.ico"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "scottish_fold/nyan.gif"), filepath.Join(dir, "static/scottish_fold/nyan.gif"), contentsEqual)
-	compareFiles(t, filepath.Join(out, "other/extra.html"), filepath.Join(dir, "extra/extra.html"), contentsEqual)
+	// Page mtimes should match that of the original Markdown files.
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(dir, "pages/index.md"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "index.amp.html"), filepath.Join(dir, "pages/index.md"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold.html"), filepath.Join(dir, "pages/scottish_fold.md"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold.amp.html"), filepath.Join(dir, "pages/scottish_fold.md"), mtimeEqual)
+
+	// Static data should be copied into the output directory with mtimes preserved.
+	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "favicon.ico"), filepath.Join(dir, "static/favicon.ico"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "scottish_fold/nyan.gif"), filepath.Join(dir, "static/scottish_fold/nyan.gif"),
+		contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "other/extra.html"), filepath.Join(dir, "extra/extra.html"), contentsEqual|mtimeEqual)
 
 	// Textual files should be gzipped, and the .gz file should have the same mtime as the original file.
 	compareFiles(t, filepath.Join(out, "index.html.gz"), filepath.Join(out, "index.html"), contentsEqual|mtimeEqual)
@@ -341,21 +348,24 @@ func TestBuild_Rebuild(t *testing.T) {
 	out := filepath.Join(dir, outSubdir)
 	oldOut := filepath.Join(dir, oldOutSubdir)
 
-	// Unchanged files' and directories' mtimes should be copied over from the first build.
-	compareFiles(t, out, oldOut, mtimeEqual)
+	// Unchanged files' and directories' mtimes should still be the same.
 	compareFiles(t, filepath.Join(out, "cats.html"), filepath.Join(oldOut, "cats.html"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "cats.html.gz"), filepath.Join(oldOut, "cats.html.gz"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "scottish_fold"), filepath.Join(oldOut, "scottish_fold"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "scottish_fold/maru-400.jpg"),
 		filepath.Join(oldOut, "scottish_fold/maru-400.jpg"), contentsEqual|mtimeEqual)
 	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(oldOut, "static.html"), contentsEqual|mtimeEqual)
+	compareFiles(t, filepath.Join(out, "other"), filepath.Join(oldOut, "other"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "other/extra.html"), filepath.Join(oldOut, "other/extra.html"), contentsEqual|mtimeEqual)
-	compareFiles(t, out, oldOut, mtimeEqual)
 
 	// The new index file should have the newly-added content and an updated mtime.
 	checkPageContents(t, filepath.Join(out, "index.html"), []string{regexp.QuoteMeta(newContent)}, nil)
 	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(oldOut, "index.html"), mtimeAfter)
+	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(dir, "pages/index.md"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(out, "index.html.gz"), contentsEqual|mtimeEqual)
+
+	// The new output directory's mtime should be after the old dir's mtime.
+	compareFiles(t, out, oldOut, mtimeAfter)
 
 	if t.Failed() {
 		fmt.Println("Output is in", out)
@@ -374,8 +384,8 @@ func newTestSiteDir() (string, error) {
 	if err := copy.Copy(src, dir, copy.Options{
 		// Make sure that we don't pick up any random output that happened to be
 		// in the example directory.
-		Skip: func(p string) bool {
-			return strings.HasPrefix(p, src+"/out") || strings.HasPrefix(p, src+"/.out.")
+		Skip: func(p string) (bool, error) {
+			return strings.HasPrefix(p, src+"/out") || strings.HasPrefix(p, src+"/.out."), nil
 		},
 	}); err != nil {
 		os.RemoveAll(dir)
