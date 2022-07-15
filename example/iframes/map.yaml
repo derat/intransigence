@@ -1,0 +1,7 @@
+---
+map_placeholder_light: '../scottish_fold/map_light.png'
+map_placeholder_dark: '../scottish_fold/map_dark.png'
+map_points:
+  - name: Somewhere
+    lat_long: [40.306632, -90.817727]
+    id: somewhere

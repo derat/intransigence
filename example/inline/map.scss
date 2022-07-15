@@ -1,0 +1,7 @@
+main .box > .body .mapbox {
+  margin: 4px 0 0 0;
+  // Percentage-based padding is based on the containing block's width:
+  // https://css-tricks.com/oh-hey-padding-percentage-is-based-on-the-parent-elements-width/
+  padding-bottom: 75%; // 75% of width for 4:3 aspect ratio
+  width: 100%;
+}

@@ -124,4 +124,24 @@ func main() {
 }
 ```
 
+Here's an example map (which won't display since a Google Maps API key is not
+specified):
+
+```map
+href: iframes/map.html
+width: 640
+height: 480
+path: scottish_fold/map_light.png
+path_dark: scottish_fold/map_dark.png
+```
+
+And an example graph:
+
+```graph
+href: iframes/graph.html
+name: line
+width: 300
+height: 200
+```
+
 [Chroma]: https://github.com/alecthomas/chroma

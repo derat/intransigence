@@ -156,6 +156,8 @@ func TestBuild_Full(t *testing.T) {
 		`<span class="real-small">makes\s+it\s+even\s+smaller</span>`, // <text-size tiny>
 		`Text can also be <span class="no-select">marked as ` + // ‹...›
 			`non-selectable</span> within a code block`,
+		`<iframe[^>]+src="iframes/map\.html"`,         // map iframe
+		`<iframe[^>]+src="iframes/graph\.html\?line"`, // graph iframe
 		`<a href="#top">Back\s+to\s+top</a>`,
 		`Page created in\s+<time datetime="2020">2020</time>\.`,
 		`Last modified\s+<time datetime="2020-05-21">May 21, 2020</time>\.`,
@@ -223,11 +225,17 @@ func TestBuild_Full(t *testing.T) {
 		`<li><span\s+class="selected">Cheshire</span>`, // omit_from_menu
 	})
 
-	// Page mtimes should match that of the original Markdown files.
+	// Check that iframe HTML files are generated.
+	checkPageContents(t, filepath.Join(out, "iframes/graph.html"), []string{`<a\s+id="graph-node">\s*</a>`}, []string{})
+	checkPageContents(t, filepath.Join(out, "iframes/map.html"), []string{`<div\s+id="map-div">\s*</div>`}, []string{})
+
+	// Page/iframe mtimes should match those of the original Markdown/YAML files.
 	compareFiles(t, filepath.Join(out, "index.html"), filepath.Join(dir, "pages/index.md"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "index.amp.html"), filepath.Join(dir, "pages/index.md"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "scottish_fold.html"), filepath.Join(dir, "pages/scottish_fold.md"), mtimeEqual)
 	compareFiles(t, filepath.Join(out, "scottish_fold.amp.html"), filepath.Join(dir, "pages/scottish_fold.md"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "iframes/graph.html"), filepath.Join(dir, "iframes/graph.yaml"), mtimeEqual)
+	compareFiles(t, filepath.Join(out, "iframes/map.html"), filepath.Join(dir, "iframes/map.yaml"), mtimeEqual)
 
 	// Static data should be copied into the output directory with mtimes preserved.
 	compareFiles(t, filepath.Join(out, "static.html"), filepath.Join(dir, "static/static.html"), contentsEqual|mtimeEqual)

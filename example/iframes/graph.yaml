@@ -1,0 +1,15 @@
+---
+graphs:
+  line:
+    title: Here's a graph with a line
+    points:
+      - { time: 1311509160, value: 74 }
+      - { time: 1311511260, value: 108 }
+      - { time: 1311513240, value: 140 }
+      - { time: 1311515100, value: 108 }
+      - { time: 1311516960, value: 111 }
+      - { time: 1311518100, value: 121 }
+    notes:
+      - { time: 1311509220, text: 'Something happened here' }
+    range: [50, 150]
+    units: Units

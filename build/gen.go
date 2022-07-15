@@ -131,7 +131,9 @@ func generateIframes(si *render.SiteInfo, out string, pretty bool,
 			return nil, err
 		}
 		// Copy the data file's mtime and atime.
-		return nil, os.Chtimes(dest, maxTime(getAtime(fi), exeTime), maxTime(fi.ModTime(), exeTime))
+		if err := os.Chtimes(dest, maxTime(getAtime(fi), exeTime), maxTime(fi.ModTime(), exeTime)); err != nil {
+			return nil, err
+		}
 	}
 	return outPaths, nil
 }
