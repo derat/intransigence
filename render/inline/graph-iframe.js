@@ -233,13 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
               d.title, d.points, d.notes, d.units, d.range);
 
   // Handle dark/light mode using code defined in dark.js.
-  // AMP doesn't let us access localStorage in all cases (since it might be
-  // served from the cache), so use document.domain to check that we aren't
-  // sandboxed: https://stackoverflow.com/a/34073811
-  // We'll just use the light theme for AMP.
-  if (document.domain) {
-    applyTheme();
-    darkQuery.addEventListener('change', () => applyTheme());
-    window.addEventListener('storage', () => applyTheme());
-  }
+  applyTheme();
+  darkQuery.addEventListener('change', () => applyTheme());
+  window.addEventListener('storage', () => applyTheme());
 });

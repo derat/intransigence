@@ -1,1 +1,1 @@
-if (document.domain) applyTheme(); // defined in dark.js
+applyTheme(); // defined in dark.js
