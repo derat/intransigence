@@ -12,6 +12,7 @@ main .box > .body .mapbox {
   // calc(0.75 * calc(100% - 10px)), depending on the total horizontal
   // margin set on the mapbox wrapper.
   position: relative;
+
   iframe {
     // background-image is set dynamically in page.go.
     background-size: 100% 100%;
