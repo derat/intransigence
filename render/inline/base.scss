@@ -1,5 +1,13 @@
 // Included in AMP and non-AMP (non-iframe) pages to declare common rules.
 
+// Tell the browser to use an appropriate user-agent stylesheet.
+body {
+  color-scheme: light;
+}
+body.dark {
+  color-scheme: dark;
+}
+
 header .dark {
   cursor: pointer;
 }

@@ -3,8 +3,12 @@
 body {
   // background-image set to placeholder in inline style from render/iframe.go
   background-size: 100% 100%;
+  color-scheme: light;
   margin: 0;
   overflow: hidden;
+}
+body.dark {
+  color-scheme: dark;
 }
 
 .loading {

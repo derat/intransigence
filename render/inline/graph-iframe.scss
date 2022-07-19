@@ -1,8 +1,12 @@
 // Included in graph iframes.
 
 body {
+  color-scheme: light;
   margin: 0;
   overflow: hidden;
+}
+body.dark {
+  color-scheme: dark;
 }
 
 svg.graph {

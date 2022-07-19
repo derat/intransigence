@@ -4,4 +4,7 @@ main .box > .body .graph {
   background-color: transparent;
   overflow: hidden;
   padding: 0;
+  iframe {
+    color-scheme: normal; // see comment in map.scss
+  }
 }
