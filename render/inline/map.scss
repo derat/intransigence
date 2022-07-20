@@ -17,14 +17,6 @@ main .box > .body .mapbox {
     // background-image is set dynamically in page.go.
     background-size: 100% 100%;
     border: none;
-    // If an iframe inherits 'color-scheme: dark' from <body>, it gets a light
-    // background instead of being transparent. This seem to be by spec:
-    // https://bugs.chromium.org/p/chromium/issues/detail?id=1150352
-    // If the iframe document's <html> element also has 'color-scheme: dark'
-    // then things work as expected, but we're only able to style the
-    // document's <body> element. So, set iframes to 'color-scheme: normal'
-    // as a hacky workaround.
-    color-scheme: normal;
     height: 100%;
     left: 0;
     overflow: hidden;
