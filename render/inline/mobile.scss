@@ -12,15 +12,19 @@ header {
       transform-origin: 50% 50%;
     }
   }
+  // These selectors only match non-AMP, since AMP puts the nav menu in an
+  // <amp-sidebar> instead of using <header>.
   .box > .body {
     overflow: hidden;
+    // Transitions can be set on max-height and '> ul' opacity.
+    // To animate the height, also set the default max-height to a value
+    // slightly bigger than the largest height actually needed.
+  }
+  .collapsed-mobile .box > .body {
+    max-height: 0;
+    padding-top: 0;
     > ul {
-      max-height: 8192px; // arbitrary but needs to be large enough to fit contents
-      opacity: 1;
-      &.collapsed-mobile {
-        max-height: 0;
-        opacity: 0;
-      }
+      opacity: 0;
     }
   }
 }

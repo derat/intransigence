@@ -49,7 +49,8 @@
 {{define "header_html"}}
 <script>{{.HTMLBodyScript}}</script>
 <header>
-  <nav class="sitenav">
+  {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
+  <nav class="sitenav{{if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} collapsed-mobile{{end}}">
     {{template "img" .LogoHTML}}
     {{/* This mirrors the box_header and box_footer templates. */ -}}
     <div class="box">
@@ -58,8 +59,7 @@
         {{template "img" .NavToggle}}
       </div>
       <div class="body">
-        {{/* On mobile, collapse the navbox if the page isn't the index and doesn't have subpages. */ -}}
-        <ul{{- if and (not .NavItem.IsIndex) (not .NavItem.VisibleChildren)}} class="collapsed-mobile"{{end}}>
+        <ul>
           {{range .SiteInfo.NavItems}}{{template "nav_item" .}}{{end}}
         </ul>
       </div>

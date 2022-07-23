@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Toggle the navbox when the logo or anything in its title are clicked.
   const toggle = () => {
-    document.querySelector('.sitenav ul').classList.toggle('collapsed-mobile');
+    document.querySelector('.sitenav').classList.toggle('collapsed-mobile');
     document.querySelector('.sitenav .toggle').classList.toggle('expand');
   };
   document.querySelector('header .logo').addEventListener('click', toggle);
