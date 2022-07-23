@@ -25,16 +25,14 @@ var htmlIgnore = []*regexp.Regexp{
 var ampIgnore []*regexp.Regexp
 
 var cssIgnore = []*regexp.Regexp{
-	// AMP's inlined styles use these.
-	regexp.MustCompile(`-amp-start.* is a vendor extension`),
+	// Ingore e.g. 'foo is a vendor extension' and 'foo is a vendor extended pseudo-element'.
+	// AMP uses '-amp-start.*' and '-[a-z]+-animation', and other extensions like -webkit-scrollbar,
+	// -ms-high-contrast, etc. are also useful.
+	regexp.MustCompile(` is a vendor `),
+	// AMP's inlined styles use this.
 	regexp.MustCompile(`^Unrecognized at-rule @-[a-z]+-keyframes$`),
-	regexp.MustCompile(`^-[a-z]+-animation is a vendor extension$`),
 	// As of 20210917, the W3C validator appears to be choking on more stuff from inlined styles.
 	regexp.MustCompile(`^Parse Error  @(|-moz-|-ms-|-o-)keyframes -amp-start\{from\{visibility:hidden\}to\{visibility:visible\}\}$`),
-	// Permit styling scrollbars for WebKit-based browsers.
-	regexp.MustCompile(`-webkit-scrollbar is a vendor extended pseudo-element$`),
-	// Permit IE-only media queries and styling IE scrollbars.
-	regexp.MustCompile(`(-ms-high-contrast|-ms-overflow-style) is a vendor extension`),
 	// The W3C recommends quoting font families with spaces,
 	// but this isn't required: https://stackoverflow.com/a/13752149/6882947
 	// The minify package removes quotes and lowercases families:
