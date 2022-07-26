@@ -130,8 +130,10 @@ func Build(ctx context.Context, dir, out string, flags Flags) error {
 	}
 
 	// Create gzipped versions of text-based files for the HTTP server to use.
-	if err := compressDir(out); err != nil {
-		return err
+	if si.CompressPages {
+		if err := compressDir(out); err != nil {
+			return err
+		}
 	}
 
 	// Update directory timestamps to improve rsync performance.

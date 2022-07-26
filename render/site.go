@@ -95,6 +95,11 @@ type SiteInfo struct {
 	// made by CloudflareAnalyticsScriptURL.
 	CloudflareAnalyticsConnectPattern string `yaml:"-"`
 
+	// CompressPages specifies whether a .html.gz, gzip-compressed file should be generated
+	// alongside every .html file. This is useful for web hosts that don't automatically compress
+	// pages when they are being served.
+	CompressPages bool `yaml:"compress_pages"`
+
 	// dir contains the path to the base site directory (i.e. containing the "pages" subdirectory).
 	// It is assumed to be the directory that the SiteInfo was loaded from.
 	dir string
