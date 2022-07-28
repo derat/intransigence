@@ -334,6 +334,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	r.pi.LogoHTML = imgInfo{
 		Path:    r.si.LogoPathHTML,
+		Width:   r.si.LogoWidthHTML,
+		Height:  r.si.LogoHeightHTML,
 		Alt:     r.si.LogoAlt,
 		Classes: []string{"logo"},
 		noThumb: true, // looks weird, and absolute positioning conflicts with placeholder CSS
@@ -353,6 +355,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	r.pi.LogoAMP = imgInfo{
 		Path:    r.si.LogoPathAMP,
+		Width:   r.si.LogoWidthAMP,
+		Height:  r.si.LogoHeightAMP,
 		Alt:     r.si.LogoAlt,
 		Classes: []string{"logo"},
 		noThumb: true, // looks weird

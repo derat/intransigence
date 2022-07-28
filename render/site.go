@@ -41,8 +41,16 @@ type SiteInfo struct {
 	// The image's intrinsic dimensions for larger displays come from the smallest image.
 	// The second-smallest image is used for mobile if it isn't a 2x version of the smallest image.
 	LogoPathHTML string `yaml:"logo_path_html"`
+	// LogoWidthHTML contains LogoPathHTML's width in pixels. Only needed for SVG.
+	LogoWidthHTML int `yaml:"logo_width_html"`
+	// LogoHeightHTML contains LogoPathHTML's height in pixels. Only needed for SVG.
+	LogoHeightHTML int `yaml:"logo_height_html"`
 	// LogoPathAMP is the AMP analogue to LogoPathHTML.
 	LogoPathAMP string `yaml:"logo_path_amp"`
+	// LogoWidthAMP contains LogoPathAMP's width in pixels. Only needed for SVG.
+	LogoWidthAMP int `yaml:"logo_width_amp"`
+	// LogoHeightAMP contains LogoPathAMP's height in pixels. Only needed for SVG.
+	LogoHeightAMP int `yaml:"logo_height_amp"`
 	// LogoAlt contains the alt text for the logo image.
 	LogoAlt string `yaml:"logo_alt"`
 
