@@ -20,7 +20,10 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-const thumbnailSize = 4 // width/height in pixels for image thumbnails
+const (
+	thumbnailSize = 4      // width/height in pixels for image thumbnails
+	svgExt        = ".svg" // extension for SVG images
+)
 
 // imgInfo holds information used by img.tmpl.
 type imgInfo struct {
@@ -79,7 +82,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 
 	if wc := strings.IndexByte(info.Path, '*'); wc == -1 {
 		// There's no wildcard, so there's just one size.
-		if strings.HasSuffix(info.Path, WebPExt) {
+		if strings.HasSuffix(info.Path, WebPExt) || strings.HasSuffix(info.Path, svgExt) {
 			info.Src = info.Path
 		} else {
 			info.Src = removeExt(info.Path) + WebPExt
@@ -140,8 +143,8 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 		src := fmt.Sprintf("%s%d%s", pre, info.Width, suf)
 		info.biggestSrc = fmt.Sprintf("%s%d%s", pre, info.widths[len(info.widths)-1], suf)
 
-		if strings.HasSuffix(info.Path, WebPExt) {
-			// If this was already a set of WebP images, use them directly.
+		if strings.HasSuffix(info.Path, WebPExt) || strings.HasSuffix(info.Path, svgExt) {
+			// If this was already a set of WebP images or a vector SVG image, use it directly.
 			info.Src, info.Srcset = src, srcset
 		} else {
 			// Otherwise, make a WebP srcset and use the original images as a fallback.
@@ -179,7 +182,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	}
 
 	// Generate inline thumbnail.
-	if !info.noThumb {
+	if !info.noThumb && !strings.HasSuffix(info.Src, svgExt) {
 		origSrc := info.Src
 		if info.FallbackSrc != "" {
 			origSrc = info.FallbackSrc

@@ -45,12 +45,27 @@ type SiteInfo struct {
 	LogoPathAMP string `yaml:"logo_path_amp"`
 	// LogoAlt contains the alt text for the logo image.
 	LogoAlt string `yaml:"logo_alt"`
+
 	// NavTogglePath is the image used to expand or collapse the navbox on non-AMP mobile.
 	NavTogglePath string `yaml:"nav_toggle_path"`
+	// NavToggleWidth contains NavTogglePath's width in pixels. Only needed for SVG.
+	NavToggleWidth int `yaml:"nav_toggle_width"`
+	// NavToggleHeight contains NavTogglePath's height in pixels. Only needed for SVG.
+	NavToggleHeight int `yaml:"nav_toggle_height"`
+
 	// MenuButtonPath is the image used to show the menu on AMP.
 	MenuButtonPath string `yaml:"menu_button_path"`
+	// MenuButtonWidth contains MenuButtonPath's width in pixels. Only needed for SVG.
+	MenuButtonWidth int `yaml:"menu_button_width"`
+	// MenuButtonHeight contains MenuButtonPath's height in pixels. Only needed for SVG.
+	MenuButtonHeight int `yaml:"menu_button_height"`
+
 	// DarkButtonPath is the image used to toggle between light and dark mode.
 	DarkButtonPath string `yaml:"dark_button_path"`
+	// DarkButtonWidth contains DarkButtonPath's width in pixels. Only needed for SVG.
+	DarkButtonWidth int `yaml:"dark_button_width"`
+	// DarkButtonHeight contains DarkButtonPath's height in pixels. Only needed for SVG.
+	DarkButtonHeight int `yaml:"dark_button_height"`
 
 	// The following fields are used in structured data.
 	AuthorName        string `yaml:"author_name"`

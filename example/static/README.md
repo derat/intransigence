@@ -16,8 +16,8 @@ distributed under [CC BY 2.0].
 <https://fuckyeah-pixels.tumblr.com/post/52078048469>. [Nyan Cat] was originally
 created by Christopher Torres.
 
-`resources/collapse-*.png` and `resources/menu-*.png` were created by me, if
-memory serves. Feel free to use them if you want.
+`resources/brightness-4.svg`, `resources/chevron-up.svg`, and
+`resources/menu.svg` were downloaded from <https://materialdesignicons.com/>.
 
 [CC BY 2.0]: https://creativecommons.org/licenses/by/2.0/
 [Nyan Cat]: https://en.wikipedia.org/wiki/Nyan_Cat

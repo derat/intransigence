@@ -9,9 +9,15 @@ feed_desc: New pages on example.org
 logo_path_html: resources/logo-html-*.png
 logo_path_amp: resources/logo-amp-*.png
 logo_alt: Example.org
-nav_toggle_path: resources/collapse-*.png
-menu_button_path: resources/menu-*.png
-dark_button_path: resources/dark-*.png
+nav_toggle_path: resources/chevron-up.svg
+nav_toggle_width: 20
+nav_toggle_height: 20
+menu_button_path: resources/menu.svg
+menu_button_width: 20
+menu_button_height: 20
+dark_button_path: resources/brightness-4.svg
+dark_button_width: 20
+dark_button_height: 20
 author_name: Site Author
 author_email: user@example.org
 publisher_name: example.org

@@ -365,6 +365,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	// On mobile, collapse the navbox if the page doesn't have subpages.
 	r.pi.NavToggle = imgInfo{
 		Path:    r.si.NavTogglePath,
+		Width:   r.si.NavToggleWidth,
+		Height:  r.si.NavToggleHeight,
 		Alt:     "[toggle navigation]",
 		Classes: []string{"toggle"},
 		noThumb: true, // tiny
@@ -379,6 +381,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	r.pi.MenuButton = imgInfo{
 		Path:    r.si.MenuButtonPath,
+		Width:   r.si.MenuButtonWidth,
+		Height:  r.si.MenuButtonHeight,
 		Alt:     "[toggle menu]",
 		Classes: []string{"menu"},
 		Attr: []template.HTMLAttr{
@@ -395,6 +399,8 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 
 	r.pi.DarkButton = imgInfo{
 		Path:    r.si.DarkButtonPath,
+		Width:   r.si.DarkButtonWidth,
+		Height:  r.si.DarkButtonHeight,
 		Alt:     "[toggle theme]",
 		Classes: []string{"dark"},
 		Attr: []template.HTMLAttr{
