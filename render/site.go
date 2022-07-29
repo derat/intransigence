@@ -30,12 +30,12 @@ type SiteInfo struct {
 	DefaultDesc string `yaml:"default_desc"`
 	// ManifestPath contains the path to the web manifest file, e.g. "site.webmanifest".
 	ManifestPath string `yaml:"manifest_path"`
+	// FaviconPaths contains paths to favicon images in the order they should be listed.
+	// See https://dev.to/masakudamatsu/favicon-nightmare-how-to-maintain-sanity-3al7.
+	FaviconPaths []string `yaml:"favicon_paths"`
 	// AppleTouchIconPath is the path to the apple-touch-icon image.
 	// Per https://realfavicongenerator.net/faq, this should be a 180x180 PNG named "apple-touch-icon.png".
 	AppleTouchIconPath string `yaml:"apple_touch_icon_path"`
-	// FaviconPaths contains paths to multiple favicon images in display order.
-	// Per https://realfavicongenerator.net/faq, this should contain "favicon-32x32.png" and "favicon-16x16.png".
-	FaviconPaths []string `yaml:"favicon_paths"`
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
 	// FeedTitle is used as the title for the RSS (Atom) feed.
@@ -114,11 +114,8 @@ type SiteInfo struct {
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
 
-	// AppleTouchIconWidth and AppleTouchIconHeight are inferred from AppleTouchIconPath.
-	AppleTouchIconWidth  int `yaml:"-"`
-	AppleTouchIconHeight int `yaml:"-"`
-	// Favicons is automatically generated from FaviconPaths.
-	Favicons []faviconInfo `yaml:"-"`
+	// LinkTags is automatically generated from ManifestPath, FaviconPaths, and AppleTouchIconPath.
+	LinkTags []linkTagInfo `yaml:"-"`
 
 	// CloudflareAnalyticsScriptURL is sourced for Cloudflare Web Analytics.
 	CloudflareAnalyticsScriptURL string `yaml:"-"`
@@ -138,10 +135,7 @@ type SiteInfo struct {
 	codeCSS string // CSS class definitions for code syntax highlighting
 }
 
-type faviconInfo struct {
-	Path          string
-	Width, Height int
-}
+type linkTagInfo struct{ Rel, Href, Sizes, Type string }
 
 // NewSiteInfo constructs a new SiteInfo from the YAML file at p.
 func NewSiteInfo(p string) (*SiteInfo, error) {
@@ -179,18 +173,44 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		si.codeCSS += css
 	}
 
-	if si.AppleTouchIconPath != "" {
-		if si.AppleTouchIconWidth, si.AppleTouchIconHeight, err = imageSize(
-			filepath.Join(si.StaticDir(), si.AppleTouchIconPath)); err != nil {
-			return nil, fmt.Errorf("failed getting apple-touch-icon dimensions: %v", err)
+	// See https://dev.to/masakudamatsu/favicon-nightmare-how-to-maintain-sanity-3al7.
+	for _, fp := range si.FaviconPaths {
+		if err := si.CheckStatic(fp); err != nil {
+			return nil, err
+		}
+		switch filepath.Ext(fp) {
+		case svgExt:
+			si.LinkTags = append(si.LinkTags, linkTagInfo{Rel: "icon", Href: fp, Type: "image/svg+xml"})
+		case ".ico":
+			si.LinkTags = append(si.LinkTags, linkTagInfo{Rel: "icon", Href: fp, Sizes: "any"})
+		default:
+			width, height, err := imageSize(filepath.Join(si.StaticDir(), fp))
+			if err != nil {
+				return nil, fmt.Errorf("failed getting favicon dimensions: %v", err)
+			}
+			si.LinkTags = append(si.LinkTags, linkTagInfo{
+				Rel:   "icon",
+				Href:  fp,
+				Sizes: fmt.Sprintf("%dx%d", width, height),
+			})
 		}
 	}
-	for _, fp := range si.FaviconPaths {
-		width, height, err := imageSize(filepath.Join(si.StaticDir(), fp))
+	if si.AppleTouchIconPath != "" {
+		width, height, err := imageSize(filepath.Join(si.StaticDir(), si.AppleTouchIconPath))
 		if err != nil {
-			return nil, fmt.Errorf("failed getting favicon dimensions: %v", err)
+			return nil, fmt.Errorf("failed getting apple-touch-icon dimensions: %v", err)
 		}
-		si.Favicons = append(si.Favicons, faviconInfo{fp, width, height})
+		si.LinkTags = append(si.LinkTags, linkTagInfo{
+			Rel:   "apple-touch-icon",
+			Href:  si.AppleTouchIconPath,
+			Sizes: fmt.Sprintf("%dx%d", width, height),
+		})
+	}
+	if si.ManifestPath != "" {
+		if err := si.CheckStatic(si.ManifestPath); err != nil {
+			return nil, err
+		}
+		si.LinkTags = append(si.LinkTags, linkTagInfo{Rel: "manifest", Href: si.ManifestPath})
 	}
 
 	return &si, nil

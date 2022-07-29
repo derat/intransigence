@@ -14,18 +14,10 @@
 
     <title>{{.FullTitle}}</title>
 
-    {{if .SiteInfo.AppleTouchIconPath -}}
-    <link rel="apple-touch-icon" {{/**/ -}}
-          sizes="{{.SiteInfo.AppleTouchIconWidth}}x{{.SiteInfo.AppleTouchIconHeight}}" {{/**/ -}}
-          href="{{.SiteInfo.AppleTouchIconPath}}">
-    {{end -}}
-
-    {{range .SiteInfo.Favicons -}}
-    <link rel="icon" sizes="{{.Width}}x{{.Height}}" href="{{.Path}}">
-    {{end -}}
-
-    {{if .SiteInfo.ManifestPath -}}
-    <link rel="manifest" href="{{.SiteInfo.ManifestPath}}">
+    {{range .SiteInfo.LinkTags -}}
+    <link rel="{{.Rel}}" href="{{.Href}}"
+      {{- if .Sizes}} sizes="{{.Sizes}}"{{end}}
+      {{- if .Type}} type="{{.Type}}"{{end}}>
     {{end -}}
 
     <script type="application/ld+json">{{.StructData}}</script>

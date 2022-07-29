@@ -53,8 +53,9 @@ func TestBuild_Full(t *testing.T) {
 		`<link rel="amphtml"\s+href="https://www.example.org/index.amp.html">`,
 		`<link rel="alternate"\s+type="application/atom\+xml"\s+href="https://www\.example\.org/atom\.xml">`,
 		`(?s)<title>\s*Welcome\s+to\s+an\s+example\s+site\s*</title>`, // hide_title_suffix
-		`<link rel="apple-touch-icon" sizes="192x192" href="resources/favicon\.png">`,
-		`<link rel="icon" sizes="192x192" href="resources/favicon\.png">`,
+		`<link rel="icon" href="favicon\.ico" sizes="any">`,
+		`<link rel="icon" href="resources/favicon\.png" sizes="192x192">`,
+		`<link rel="apple-touch-icon" href="resources/favicon\.png" sizes="192x192">`,
 		`<link rel="manifest" href="site\.webmanifest">`,
 		`<script type="application/ld\+json">` + // structured data
 			`{"@context":"http://schema\.org","@type":"Article",` +
