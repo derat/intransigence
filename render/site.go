@@ -28,8 +28,14 @@ type SiteInfo struct {
 	TitleSuffix string `yaml:"title_suffix"`
 	// DefaultDesc is used as the default meta description for pages.
 	DefaultDesc string `yaml:"default_desc"`
-	// FaviconPath is the path to the favicon image, e.g. "resources/favicon.png".
-	FaviconPath string `yaml:"favicon_path"`
+	// ManifestPath contains the path to the web manifest file, e.g. "site.webmanifest".
+	ManifestPath string `yaml:"manifest_path"`
+	// AppleTouchIconPath is the path to the apple-touch-icon image.
+	// Per https://realfavicongenerator.net/faq, this should be a 180x180 PNG named "apple-touch-icon.png".
+	AppleTouchIconPath string `yaml:"apple_touch_icon_path"`
+	// FaviconPaths contains paths to multiple favicon images in display order.
+	// Per https://realfavicongenerator.net/faq, this should contain "favicon-32x32.png" and "favicon-16x16.png".
+	FaviconPaths []string `yaml:"favicon_paths"`
 	// NavText is displayed near the logo in the navigation area.
 	NavText string `yaml:"nav_text"`
 	// FeedTitle is used as the title for the RSS (Atom) feed.
@@ -108,9 +114,11 @@ type SiteInfo struct {
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
 
-	// FaviconWidth and FaviconHeight are automatically inferred from FaviconPath.
-	FaviconWidth  int `yaml:"-"`
-	FaviconHeight int `yaml:"-"`
+	// AppleTouchIconWidth and AppleTouchIconHeight are inferred from AppleTouchIconPath.
+	AppleTouchIconWidth  int `yaml:"-"`
+	AppleTouchIconHeight int `yaml:"-"`
+	// Favicons is automatically generated from FaviconPaths.
+	Favicons []faviconInfo `yaml:"-"`
 
 	// CloudflareAnalyticsScriptURL is sourced for Cloudflare Web Analytics.
 	CloudflareAnalyticsScriptURL string `yaml:"-"`
@@ -128,6 +136,11 @@ type SiteInfo struct {
 	dir string
 
 	codeCSS string // CSS class definitions for code syntax highlighting
+}
+
+type faviconInfo struct {
+	Path          string
+	Width, Height int
 }
 
 // NewSiteInfo constructs a new SiteInfo from the YAML file at p.
@@ -166,11 +179,18 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		si.codeCSS += css
 	}
 
-	if si.FaviconPath != "" {
-		if si.FaviconWidth, si.FaviconHeight, err = imageSize(
-			filepath.Join(si.StaticDir(), si.FaviconPath)); err != nil {
+	if si.AppleTouchIconPath != "" {
+		if si.AppleTouchIconWidth, si.AppleTouchIconHeight, err = imageSize(
+			filepath.Join(si.StaticDir(), si.AppleTouchIconPath)); err != nil {
+			return nil, fmt.Errorf("failed getting apple-touch-icon dimensions: %v", err)
+		}
+	}
+	for _, fp := range si.FaviconPaths {
+		width, height, err := imageSize(filepath.Join(si.StaticDir(), fp))
+		if err != nil {
 			return nil, fmt.Errorf("failed getting favicon dimensions: %v", err)
 		}
+		si.Favicons = append(si.Favicons, faviconInfo{fp, width, height})
 	}
 
 	return &si, nil

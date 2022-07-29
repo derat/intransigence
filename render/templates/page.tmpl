@@ -14,9 +14,18 @@
 
     <title>{{.FullTitle}}</title>
 
-    {{if .SiteInfo.FaviconPath -}}
-    <link rel="apple-touch-icon-precomposed" href="{{.SiteInfo.FaviconPath}}">
-    <link rel="icon" sizes="{{.SiteInfo.FaviconWidth}}x{{.SiteInfo.FaviconHeight}}" href="{{.SiteInfo.FaviconPath}}">
+    {{if .SiteInfo.AppleTouchIconPath -}}
+    <link rel="apple-touch-icon" {{/**/ -}}
+          sizes="{{.SiteInfo.AppleTouchIconWidth}}x{{.SiteInfo.AppleTouchIconHeight}}" {{/**/ -}}
+          href="{{.SiteInfo.AppleTouchIconPath}}">
+    {{end -}}
+
+    {{range .SiteInfo.Favicons -}}
+    <link rel="icon" sizes="{{.Width}}x{{.Height}}" href="{{.Path}}">
+    {{end -}}
+
+    {{if .SiteInfo.ManifestPath -}}
+    <link rel="manifest" href="{{.SiteInfo.ManifestPath}}">
     {{end -}}
 
     <script type="application/ld+json">{{.StructData}}</script>

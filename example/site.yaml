@@ -2,7 +2,9 @@
 base_url: https://www.example.org/
 title_suffix: ' - example.org'
 default_desc: Example site
-favicon_path: resources/favicon.png
+apple_touch_icon_path: resources/favicon.png
+favicon_paths: ['resources/favicon.png']
+manifest_path: site.webmanifest
 nav_text: Example site
 feed_title: example.org
 feed_desc: New pages on example.org
