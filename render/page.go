@@ -371,9 +371,14 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		Path:    r.si.NavTogglePath,
 		Width:   r.si.NavToggleWidth,
 		Height:  r.si.NavToggleHeight,
-		Alt:     "[toggle navigation]",
+		Alt:     "Toggle menu",
 		Classes: []string{"toggle"},
+		Attr: []template.HTMLAttr{
+			template.HTMLAttr(`tabindex="0"`),
+			template.HTMLAttr(`role="button"`),
+		},
 		noThumb: true, // tiny
+		inline:  true,
 	}
 	if len(r.pi.NavItem.Children) == 0 {
 		r.pi.NavToggle.Classes = append(r.pi.NavToggle.Classes, "expand")
@@ -383,11 +388,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		return
 	}
 
+	// Just used for AMP.
 	r.pi.MenuButton = imgInfo{
 		Path:    r.si.MenuButtonPath,
 		Width:   r.si.MenuButtonWidth,
 		Height:  r.si.MenuButtonHeight,
-		Alt:     "[toggle menu]",
+		Alt:     "Toggle menu",
 		Classes: []string{"menu"},
 		Attr: []template.HTMLAttr{
 			template.HTMLAttr(`tabindex="0"`),
@@ -395,6 +401,7 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 			template.HTMLAttr(`on="tap:sidebar.open"`),
 		},
 		noThumb: true, // tiny
+		inline:  true,
 	}
 	if err := r.pi.MenuButton.finish(r.si, r.amp, &r.didThumb); err != nil {
 		r.setErrorf("menu button failed: %v", err)
@@ -405,13 +412,14 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		Path:    r.si.DarkButtonPath,
 		Width:   r.si.DarkButtonWidth,
 		Height:  r.si.DarkButtonHeight,
-		Alt:     "[toggle theme]",
+		Alt:     "Toggle theme",
 		Classes: []string{"dark"},
 		Attr: []template.HTMLAttr{
 			template.HTMLAttr(`tabindex="0"`),
 			template.HTMLAttr(`role="button"`),
 		},
 		noThumb: true, // tiny
+		inline:  true,
 	}
 	if r.amp {
 		r.pi.DarkButton.Attr = append(r.pi.DarkButton.Attr,

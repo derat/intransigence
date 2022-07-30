@@ -59,7 +59,8 @@ main .box {
 body.dark {
   background-color: #222;
   color: #ccc;
-  header img {
+  header img,
+  header svg {
     filter: invert(1) brightness(0.9);
   }
   .box > {

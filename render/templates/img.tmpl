@@ -1,6 +1,9 @@
-{{/* Writes an image using either the amp-img or nonamp-img template. */}}
+{{/* Writes an image using the amp-img or nonamp-img template.
+     Invoked with an imgInfo struct. */}}
 {{define "img" -}}
-{{if amp}}{{template "amp-img" .}}{{else}}{{template "nonamp-img" .}}{{end -}}
+{{if .SVG -}}{{.SVG -}}
+{{else if amp}}{{template "amp-img" . -}}
+{{else}}{{template "nonamp-img" .}}{{end -}}
 {{end}}
 
 {{/* Writes a <picture> containing the regular and fallback images, possibly wrapped

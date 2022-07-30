@@ -68,6 +68,14 @@ func TestBuild_Full(t *testing.T) {
 			`"logo":{"@type":"ImageObject","url":"https://www\.example\.org/resources/logo-460\.png","width":460,"height":460}},` +
 			`"image":{"@type":"ImageObject","url":"https://www\.example\.org/scottish_fold/maru-800\.jpg","width":800,"height":500}}` +
 			`</script>`,
+		`<svg\s*viewBox="0 0 24 24"\s*width="20"\s*height="20"\s*class="toggle expand"\s*tabindex="0"\s*role="button">\s*` +
+			`<title>Toggle\s+menu</title>\s*` +
+			`<path\s+d="[^"]+"></path>\s*` +
+			`</svg>`,
+		`<svg\s*viewBox="0 0 24 24"\s*width="20"\s*height="20"\s*class="dark"\s*tabindex="0"\s*role="button">\s*` +
+			`<title>Toggle\s+theme</title>\s*` +
+			`<path\s+d="[^"]+"></path>\s*` +
+			`</svg>`,
 		`<meta name="description" content="Provides a high-level overview of features">`, // desc
 		`<h1 class="title">\s*Welcome\s*</h1>`,
 		`<section\s+class="box desktop-narrow">\s*<h2 class="title">\s*Narrow\s*</h2>`,

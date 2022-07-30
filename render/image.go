@@ -4,6 +4,8 @@
 package render
 
 import (
+	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"html/template"
@@ -11,6 +13,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -38,6 +41,7 @@ type imgInfo struct {
 	ID      string              // DOM ID for image
 	Classes []string            // CSS classes (can be modified before/after finishImgInfo)
 	Attr    []template.HTMLAttr // additional attrs to include (can be modified before/after finishImgInfo)
+	SVG     template.HTML       // inline <svg> tag to use instead of <img>
 
 	Src, Srcset                 string // attr values for preferred image
 	FallbackSrc, FallbackSrcset string // attr values for fallback image (if any)
@@ -50,6 +54,7 @@ type imgInfo struct {
 	widths     []int  // ascending widths in pixels of images if multi-res (set by finishImgInfo)
 	layout     string // AMP layout (consumed by finishImgInfo; "responsive" used if empty)
 	noThumb    bool   // avoid generating a thumbnail (consumed by finishImgInfo)
+	inline     bool   // inline the image if possible
 }
 
 // finish validates info and fills additional fields.
@@ -62,6 +67,11 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	if info.Alt == "" {
 		return errors.New("alt must be set")
 	}
+
+	if info.inline && strings.HasSuffix(info.Path, svgExt) {
+		return info.finishInlineSVG(si)
+	}
+
 	if amp {
 		if info.layout == "" {
 			info.layout = "responsive"
@@ -203,6 +213,95 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	}
 
 	return nil
+}
+
+// finishInlineSVG reads the SVG file at info.Path and writes an inline <svg> element to info.SVG.
+func (info *imgInfo) finishInlineSVG(si *SiteInfo) error {
+	f, err := os.Open(filepath.Join(si.StaticDir(), info.Path))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	var b bytes.Buffer
+	dec := xml.NewDecoder(f)
+	enc := xml.NewEncoder(&b)
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		var extra []xml.Token // extra tokens to write after this one
+
+		switch el := tok.(type) {
+		case xml.StartElement:
+			// xmlns is unneeded for inline SVGs in HTML5.
+			el.Name.Space = ""
+			removeXMLAttr(&el, "xmlns")
+			if el.Name.Local == "svg" {
+				setXMLAttr(&el, "width", strconv.Itoa(info.Width))
+				setXMLAttr(&el, "height", strconv.Itoa(info.Height))
+
+				if len(info.Classes) > 0 {
+					setXMLAttr(&el, "class", strings.Join(info.Classes, " "))
+				}
+				for _, attr := range info.Attr {
+					parts := strings.SplitN(string(attr), "=", 2)
+					if len(parts) != 2 {
+						return fmt.Errorf("bad attribute %q", attr)
+					}
+					setXMLAttr(&el, parts[0], strings.Trim(parts[1], `"`))
+				}
+				// Put alt text in a <title> element:
+				// https://css-tricks.com/accessible-svgs/#aa-2-inline-svg
+				extra = append(extra,
+					xml.StartElement{Name: xml.Name{Local: "title"}},
+					xml.CharData(info.Alt),
+					xml.EndElement{Name: xml.Name{Local: "title"}},
+				)
+			}
+			tok = el
+		case xml.EndElement:
+			el.Name.Space = ""
+			tok = el
+		}
+
+		if err := enc.EncodeToken(tok); err != nil {
+			return err
+		}
+		for _, t := range extra {
+			if err := enc.EncodeToken(t); err != nil {
+				return err
+			}
+		}
+	}
+	if err := enc.Flush(); err != nil {
+		return err
+	}
+
+	info.SVG = template.HTML(b.String())
+	return nil
+}
+
+// setXMLAttr sets local to var in el, removing it if it exists first.
+func setXMLAttr(el *xml.StartElement, local, val string) {
+	removeXMLAttr(el, local)
+	el.Attr = append(el.Attr, xml.Attr{Name: xml.Name{Local: local}, Value: val})
+}
+
+// removeXMLAttr removes local from el.
+func removeXMLAttr(el *xml.StartElement, local string) {
+	var n int
+	for _, attr := range el.Attr {
+		if attr.Name.Space != "" || attr.Name.Local != local {
+			el.Attr[n] = attr
+			n++
+		}
+	}
+	el.Attr = el.Attr[:n]
 }
 
 // imageSize returns the dimensions of the image at p.
