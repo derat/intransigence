@@ -124,6 +124,12 @@ Usage of intransigence:
         Prompt with a diff before replacing dest dir (only if -out is empty) (default true)
   -serve
         Serve output over HTTP while displaying diff (default true)
+  -thumbnail string
+        Generate base64-encoded GIF thumbnail for specified image file
+  -thumbnail-height int
+        Height in pixels for -thumbnail (default 4)
+  -thumbnail-width int
+        Width in pixels for -thumbnail (default 4)
   -validate
         Validate generated files (default true)
 ```

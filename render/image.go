@@ -199,7 +199,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 		}
 		// Ignore "webp: invalid format" errors that the webp package seems to return when passed
 		// animated images.
-		if thumb, err := genThumb(filepath.Join(si.StaticDir(), origSrc),
+		if thumb, err := Thumb(filepath.Join(si.StaticDir(), origSrc),
 			thumbnailSize, thumbnailSize); err == nil {
 			info.ThumbSrc = template.URL("data:image/gif;base64," + thumb)
 		} else if err.Error() != "webp: invalid format" {

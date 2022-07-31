@@ -18,9 +18,9 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-// genThumb reads an image from p, scales it down to the supplied dimensions,
+// Thumb reads an image from p, scales it down to the supplied dimensions,
 // and returns base64-encoded GIF data.
-func genThumb(p string, width, height int) (string, error) {
+func Thumb(p string, width, height int) (string, error) {
 	// Require thumbnails to be small enough that we know that their colors will fit in the palette.
 	// We don't do anything to choose colors intelligently while quantizing.
 	if width*height > 256 {

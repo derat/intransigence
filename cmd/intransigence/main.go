@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/derat/intransigence/build"
+	"github.com/derat/intransigence/render"
 )
 
 func main() {
@@ -23,8 +24,21 @@ func main() {
 	pretty := flag.Bool("pretty", true, "Pretty-print HTML")
 	prompt := flag.Bool("prompt", true, "Prompt with a diff before replacing dest dir (only if -out is empty)")
 	serve := flag.Bool("serve", true, "Serve output over HTTP while displaying diff")
+	thumb := flag.String("thumbnail", "", "Generate base64-encoded GIF thumbnail for specified image file")
+	thumbWidth := flag.Int("thumbnail-height", 4, "Height in pixels for -thumbnail")
+	thumbHeight := flag.Int("thumbnail-width", 4, "Width in pixels for -thumbnail")
 	validate := flag.Bool("validate", true, "Validate generated files")
 	flag.Parse()
+
+	if *thumb != "" {
+		data, err := render.Thumb(*thumb, *thumbWidth, *thumbHeight)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed generating thumbnail:", err)
+			os.Exit(1)
+		}
+		fmt.Println(data)
+		os.Exit(0)
+	}
 
 	var flags build.Flags
 	if *pretty {
