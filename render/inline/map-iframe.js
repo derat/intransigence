@@ -219,6 +219,7 @@ function updateStyle() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  applyTheme(); // update text color in case initializeMap() fails
   darkQuery.addEventListener('change', () => updateStyle());
   window.addEventListener('storage', () => updateStyle());
   initializeMap();
