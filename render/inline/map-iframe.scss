@@ -9,6 +9,13 @@ body {
 }
 body.dark {
   color-scheme: dark;
+
+  // Make map controls not be blindingly white.
+  .gm-style-mtc,
+  .gm-fullscreen-control,
+  .gm-bundled-control {
+    filter: brightness(0.7);
+  }
 }
 
 .loading {
@@ -37,4 +44,19 @@ a.location {
 // after clicking a marker: https://stackoverflow.com/a/68906199
 .gm-style-iw button:focus {
   outline: 0;
+}
+
+// MapOptions.controlSize annoyingly doesn't affect the map type (Map vs.
+// Satellite) button and dropdown menu, so style them manually to match the
+// other controls at size 32.
+.gm-style-mtc {
+  * {
+    font-size: 16px !important; // override 18px
+  }
+  button {
+    padding: 7px 18px 6px 12px !important; // shrink total height to 32px
+    img {
+      margin-top: 0 !important; // override -2px
+    }
+  }
 }

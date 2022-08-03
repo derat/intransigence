@@ -29,6 +29,8 @@ function initializeMap() {
     // Disable scrollwheel zooming; it's too easy to trigger while scrolling the
     // page up or down.
     scrollwheel: false,
+    // Make controls less huge.
+    controlSize: 32,
     mapTypeControl: true,
     mapTypeControlOptions: {
       style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
