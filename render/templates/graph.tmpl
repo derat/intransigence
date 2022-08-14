@@ -2,7 +2,7 @@
 {{template "figure_start" .}}
 {{- if amp}}<amp-iframe {{else}}<iframe {{end -}}
 class="graph" title="Graph ({{.Name}})" width={{.Width}} height={{.Height}} {{/**/ -}}
-{{- if amp}} layout="responsive" frameborder="0" {{else}} {{end -}}
+{{- if amp}} layout="responsive" frameborder="0" {{else}}loading="lazy" {{end -}}
 sandbox="{{if not amp}}allow-same-origin {{end}}allow-scripts" src="{{.Href}}?{{.Name}}">
 {{- if amp}}</amp-iframe>{{else}}</iframe>{{end}}
 {{template "figure_end" .}}
