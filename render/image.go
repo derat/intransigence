@@ -316,6 +316,20 @@ func imageSize(p string) (w, h int, err error) {
 	return cfg.Width, cfg.Height, err
 }
 
+// imageType guesses p's MIME type based on its extension.
+// An empty string is returned if the extension is unknown.
+func imageType(p string) string {
+	switch filepath.Ext(p) {
+	case ".gif":
+		return "image/gif"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	}
+	return ""
+}
+
 // makeSrcset returns a srcset attribute value corresponding to the
 // images matched by pre and suf under the supplied static dir.
 // The returned slice contains image widths in ascending order.
@@ -349,4 +363,49 @@ func makeSrcset(dir, pre, suf string) (string, []int, error) {
 		srcs = append(srcs, fmt.Sprintf("%s%d%s %dw", pre, width, suf, width))
 	}
 	return strings.Join(srcs, ", "), widths, nil
+}
+
+// Generates one or more background-image CSS property declarations for displaying img.
+// If dir is non-empty, it is prepended to img when calling CheckStatic but not in the CSS.
+func makeBackgroundImage(si *SiteInfo, img, dir string) ([]string, error) {
+	var rules []string
+	if err := si.CheckStatic(filepath.Join(dir, img)); err != nil {
+		return nil, err
+	}
+
+	rules = append(rules, fmt.Sprintf("background-image:url(%s)", img))
+
+	// Add the WebP version if it's supported:
+	// https://ole.michelsen.dk/blog/using-webp-images-html-css/
+	// https://css-tricks.com/using-performant-next-gen-images-in-css-with-image-set/
+	if !strings.HasSuffix(img, WebPExt) {
+		ext := filepath.Ext(img)
+		webp := img[:len(img)-len(ext)] + WebPExt
+		if err := si.CheckStatic(filepath.Join(dir, webp)); err != nil {
+			return nil, err
+		}
+		imgType := imageType(img)
+
+		// TODO: The image-set() landscape is a mess as of mid-2022:
+		// https://caniuse.com/css-image-set
+		// https://stackoverflow.com/questions/68392499
+		//
+		// Chrome 104.0.5112.83 seems to only support -webkit-image-set, but even its
+		// support for that is fragile: it gives 'Invalid property value' if type() is
+		// supplied, a resolution isn't supplied, etc.
+		// https://crbug.com/630597
+		// https://chromestatus.com/feature/5432024223449088
+
+		// Vendor-prefixed property without type() and with resolution for Chrome.
+		// WebP image comes last since that's the one that Chrome seems to load.
+		rules = append(rules, fmt.Sprintf(
+			`background-image:-webkit-image-set(url(%s) 1x, url(%s) 1x)`, img, webp))
+
+		// Proper syntax for browsers that understand it (only Firefox?).
+		// Last so it will override -webkit-image-set.
+		rules = append(rules, fmt.Sprintf(
+			`background-image:image-set("%s" type("image/webp"), "%s" type("%s"))`, webp, img, imgType))
+	}
+
+	return rules, nil
 }

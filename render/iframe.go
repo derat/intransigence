@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"path/filepath"
+	"strings"
 )
 
 // IframeOutDir is the subdirectory under the output dir for generated iframe pages.
@@ -85,18 +86,23 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			return nil, err
 		}
 	case data.MapPoints != nil:
-		// The generated page will be in a subdir, so make sure that the placeholder path takes
-		// that into account.
-		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholderLight)); err != nil {
-			return nil, fmt.Errorf("map_placeholder_light: %v", err)
-		}
-		if err := si.CheckStatic(filepath.Join(IframeOutDir, data.MapPlaceholderDark)); err != nil {
-			return nil, fmt.Errorf("map_placeholder_dark: %v", err)
-		}
 		jsonData, err := json.MarshalIndent(data.MapPoints, "", "  ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal data to JSON: %v", err)
 		}
+
+		// Generate background-image CSS property declarations for the placeholders.
+		// The generated page will be in a subdir, so make sure that the placeholder
+		// path takes that into account.
+		lightImg, err := makeBackgroundImage(&si, data.MapPlaceholderLight, IframeOutDir)
+		if err != nil {
+			return nil, fmt.Errorf("map_placeholder_light: %v", err)
+		}
+		darkImg, err := makeBackgroundImage(&si, data.MapPlaceholderDark, IframeOutDir)
+		if err != nil {
+			return nil, fmt.Errorf("map_placeholder_dark: %v", err)
+		}
+
 		var td = struct {
 			ScriptURLs    []string
 			InlineScripts []template.JS
@@ -111,8 +117,8 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			},
 			BodyScript: template.JS(getStdInline("map-iframe-body.js")),
 			InlineStyle: template.CSS(getStdInline("map-iframe.css") + si.ReadInline("map-iframe.css") +
-				"body{background-image:url('" + data.MapPlaceholderLight + "')}" +
-				"body.dark{background-image:url('" + data.MapPlaceholderDark + "')}",
+				"body{" + strings.Join(lightImg, ";") + "}" +
+				"body.dark{" + strings.Join(darkImg, ";") + "}",
 			),
 		}
 		// Don't use CSP here; Maps API's gonna do whatever it wants.

@@ -487,12 +487,12 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		commonStyle += getStdInline("graph.css") + r.si.ReadInline("graph.css")
 	}
 	if r.pi.HasMap {
-		if err := r.si.CheckStatic(r.pi.MapPlaceholderLight); err != nil {
+		style, err := r.getMapPlaceholderStyle(false /* dark */)
+		if err != nil {
 			r.setErrorf("map_placeholder_light: %v", err)
 			return
 		}
-		commonStyle += getStdInline("map.css") + r.si.ReadInline("map.css") +
-			fmt.Sprintf("body .mapbox iframe{background-image:url(%s)}", r.pi.MapPlaceholderLight)
+		commonStyle += getStdInline("map.css") + r.si.ReadInline("map.css") + style
 	}
 	if r.pi.HighlightCode {
 		commonStyle += r.si.codeCSS
@@ -533,14 +533,14 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		}
 
 		// AMP doesn't use dark-theme maps (since there doesn't seem to be a good way for the
-		// iframe to watch for theme changes), so only use the dark placeholder for non-AMP.
+		// iframe to watch for theme changes), so add the dark placeholder only for non-AMP.
 		if r.pi.HasMap {
-			if err := r.si.CheckStatic(r.pi.MapPlaceholderDark); err != nil {
+			style, err := r.getMapPlaceholderStyle(true /* dark */)
+			if err != nil {
 				r.setErrorf("map_placeholder_dark: %v", err)
 				return
 			}
-			commonStyle += fmt.Sprintf("body.dark .mapbox iframe{background-image:url(%s)}",
-				r.pi.MapPlaceholderDark)
+			commonStyle += style
 		}
 
 		r.pi.HTMLStyle = template.CSS(commonStyle +
@@ -584,6 +584,23 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 	}
 
 	r.setError(r.tmpl.runNamed(w, []string{"page.tmpl", "img.tmpl"}, "start", &r.pi, nil))
+}
+
+// Returns a CSS rule that sets the mapbox's background-image style to a placeholder image.
+func (r *renderer) getMapPlaceholderStyle(dark bool) (string, error) {
+	img := r.pi.MapPlaceholderLight
+	if dark {
+		img = r.pi.MapPlaceholderDark
+	}
+	rules, err := makeBackgroundImage(r.si, img, "")
+	if err != nil {
+		return "", err
+	}
+	body := "body"
+	if dark {
+		body += ".dark"
+	}
+	return fmt.Sprintf("%s .mapbox iframe{%s}", body, strings.Join(rules, ";")), nil
 }
 
 func (r *renderer) RenderFooter(w io.Writer, ast *bf.Node) {

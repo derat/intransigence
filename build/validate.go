@@ -20,6 +20,8 @@ import (
 var htmlIgnore = []*regexp.Regexp{
 	// Blackfriday uses align attributes on generated tables.
 	regexp.MustCompile(`^The align attribute on the (td|th) element is obsolete. Use CSS instead\.$`),
+	// The validator doesn't seem to understand image-set() yet.
+	regexp.MustCompile(`background-image: image-set\(.*\) is not a background-image value\.$`),
 }
 
 var ampIgnore []*regexp.Regexp
@@ -40,7 +42,9 @@ var cssIgnore = []*regexp.Regexp{
 	regexp.MustCompile(`^Family names containing whitespace should be quoted\. ` +
 		`If quoting is omitted, any whitespace characters before and after the ` +
 		`name are ignored and any sequence of whitespace characters inside the ` +
-		`name is converted to a single space.$`),
+		`name is converted to a single space\.$`),
+	// The validator doesn't seem to understand image-set() yet.
+	regexp.MustCompile(`background-image image-set\(.*\) is not a background-image value`),
 }
 
 // validateFiles validates files at the supplied paths.
