@@ -31,7 +31,9 @@
 {{- end -}}
 <picture>{{/**/ -}}
   {{if .FallbackSrc -}}
-  <source type="image/webp" sizes="{{.Sizes}}" srcset="{{.Srcset}}">{{/**/ -}}
+  <source type="image/webp" {{/**/ -}}
+      {{if .Sizes}}sizes="{{.Sizes}}" {{end -}}
+      srcset="{{.Srcset}}">{{/**/ -}}
   {{end -}}
   <img {{if .ID}}id="{{.ID}}" {{end}}{{range .Attr}}{{.}} {{end -}}
       {{if .Classes}}class="{{range .Classes}}{{.}} {{end}}" {{end -}}
@@ -54,7 +56,9 @@
 {{if .FallbackSrc -}}
 <amp-img fallback {{range .Attr}}{{.}} {{end -}}
     {{if .Classes}}class="{{range .Classes}}{{.}} {{end}}" {{end -}}
-    src="{{.FallbackSrc}}" sizes="{{.Sizes}}" srcset="{{.FallbackSrcset}}" {{/**/ -}}
+    src="{{.FallbackSrc}}" {{/**/ -}}
+    {{if .Sizes}}sizes="{{.Sizes}}" {{end -}}
+    srcset="{{.FallbackSrcset}}" {{/**/ -}}
     width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}"></amp-img>{{/**/ -}}
 {{end -}}
 {{if .ThumbSrc -}}

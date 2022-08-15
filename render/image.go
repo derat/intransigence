@@ -136,6 +136,7 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 				for _, w := range info.widths[1:] {
 					if w == 2*info.widths[0] {
 						p = fmt.Sprintf("%s%d%s", pre, info.widths[0], suf)
+						break
 					}
 				}
 			} else if info.Width > 0 {
@@ -176,7 +177,22 @@ func (info *imgInfo) finish(si *SiteInfo, amp bool, didThumb *bool) error {
 	}
 
 	if info.Sizes == "" {
+		// TODO: I think it'd be best to just use something like the following here:
+		// fmt.Sprintf("min(%dpx, 100vw)", info.Width)
+		//
+		// That fails validation, apparently due to missing browser support:
+		// https://github.com/validator/validator/issues/803
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=1449070
+		// https://bugs.webkit.org/show_bug.cgi?id=184027
+		//
+		// So, add a media query to make make big images use 100vw on mobile.
+		// This makes it more likely that the browser will choose a smaller size
+		// when possible (e.g. if the intrinsic size is 800px, a 400px-wide 2x
+		// device can use 800px instead of 1600px).
 		info.Sizes = fmt.Sprintf("%dpx", info.Width)
+		if len(info.widths) >= 2 && info.Width > mobileMaxWidth {
+			info.Sizes = fmt.Sprintf("(max-width: %dpx) 100vw, ", mobileMaxWidth) + info.Sizes
+		}
 	}
 
 	if err := si.CheckStatic(info.Src); err != nil {
@@ -334,7 +350,7 @@ func imageType(p string) string {
 // images matched by pre and suf under the supplied static dir.
 // The returned slice contains image widths in ascending order.
 // If no files are matched, an empty string is returned.
-func makeSrcset(dir, pre, suf string) (string, []int, error) {
+func makeSrcset(dir, pre, suf string) (srcset string, widths []int, err error) {
 	glob := filepath.Join(dir, pre+"*"+suf)
 	ps, err := filepath.Glob(glob)
 	if err != nil {
@@ -352,7 +368,6 @@ func makeSrcset(dir, pre, suf string) (string, []int, error) {
 	})
 
 	var srcs []string
-	var widths []int
 	preLen := len(filepath.Join(dir, pre))
 	for _, p := range ps {
 		width, err := strconv.Atoi(p[preLen : len(p)-len(suf)])
