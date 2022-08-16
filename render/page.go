@@ -570,6 +570,11 @@ func (r *renderer) RenderHeader(w io.Writer, ast *bf.Node) {
 		csp.add(cspImg, "data:") // needed for inline image thumbnails
 		csp.add(cspManifest, cspSelf)
 
+		// This is apparently needed to avoid errors in Lighthouse's Best Practices
+		// and SEO reports about the CSP blocking access to robots.txt:
+		// https://stackoverflow.com/a/56469252
+		csp.add(cspConnect, cspSelf)
+
 		if r.si.CloudflareAnalyticsToken != "" {
 			csp.add(cspScript, cspSource(r.si.CloudflareAnalyticsScriptURL))
 			csp.add(cspConnect, cspSource(r.si.CloudflareAnalyticsConnectPattern))
