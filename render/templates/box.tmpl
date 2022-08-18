@@ -7,8 +7,8 @@
   <h{{.Level}} class="title">
     {{- if .MapLabel}}<span class="location-label">{{.MapLabel}}</span> {{end}}
     {{- .Title -}}
-    {{- /* For non-AMP, a click handler is added on page load instead. */ -}}
-    {{- if .MapLabel}} (<a class="map-link"{{if amp}} href="#map"{{end}}>map</a>){{end}}
+    {{- /* For non-AMP, a click handler is added on page load. */ -}}
+    {{- if .MapLabel}} (<a class="map-link" href="#map">map</a>){{end}}
   </h{{.Level}}>
   <div class="body">
 {{end}}

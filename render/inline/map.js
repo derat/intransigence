@@ -5,8 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   for (let i = 0; i < anchors.length; i++) {
     const a = anchors[i];
     const id = a.parentElement.parentElement.id;
-    a.addEventListener('click', () =>
-      iframe.contentWindow.postMessage({ id }, '*', [])
-    );
+    a.addEventListener('click', (e) => {
+      iframe.contentWindow.postMessage({ id }, '*', []);
+      e.stopPropagation();
+      e.preventDefault();
+    });
   }
 });
