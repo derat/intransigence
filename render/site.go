@@ -135,6 +135,12 @@ type SiteInfo struct {
 	codeCSS string // CSS class definitions for code syntax highlighting
 }
 
+const (
+	// Color brightness thresholds for syntax highlighting.
+	codeMaxBrightnessLight = 0.10
+	codeMinBrightnessDark  = 0.85
+)
+
 type linkTagInfo struct{ Rel, Href, Sizes, Type string }
 
 // NewSiteInfo constructs a new SiteInfo from the YAML file at p.
@@ -164,10 +170,12 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 		return nil, err
 	}
 
-	if si.codeCSS, err = getCodeCSS(si.CodeStyleLight, ""); err != nil {
+	if si.codeCSS, err = getCodeCSS(si.CodeStyleLight, si.CodeStyleLight, "body:not(.dark)",
+		0, codeMaxBrightnessLight); err != nil {
 		return nil, err
 	}
-	if css, err := getCodeCSS(si.CodeStyleDark, "body.dark "); err != nil {
+	if css, err := getCodeCSS(si.CodeStyleDark, si.CodeStyleLight, "body.dark ",
+		codeMinBrightnessDark, 1); err != nil {
 		return nil, err
 	} else {
 		si.codeCSS += css

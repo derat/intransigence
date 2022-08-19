@@ -17,13 +17,63 @@ import (
 
 var chromaFmt = html.New(html.WithClasses(true), html.WithPreWrapper(&preWrapper{}))
 
+// Fallbacks for Chroma token types missing in a style.
+// See https://pygments.org/docs/tokens/ for descriptions.
+var chromaTokenMap = map[chroma.TokenType]chroma.TokenType{
+	chroma.LiteralStringChar:  chroma.LiteralString, // e.g. C 'a'
+	chroma.NameBuiltin:        chroma.NameVariable,  // builtins in global namespace
+	chroma.NameBuiltinPseudo:  chroma.NameVariable,  // e.g. Ruby self or Java this
+	chroma.NameEntity:         chroma.NameConstant,  // e.g. HTML &nbsp;
+	chroma.NameFunctionMagic:  chroma.NameFunction,  // e.g. Python __init__
+	chroma.NameLabel:          chroma.NameFunction,  // e.g. C goto label
+	chroma.NameVariableGlobal: chroma.NameVariable,  // e.g. Ruby global variables
+	chroma.NameVariableMagic:  chroma.NameVariable,  // e.g. Python __doc__
+}
+
 // getCodeCSS generates CSS class definitions for the named Chroma style.
+// baseStyle should contain the Chroma style that is passed to writeCode().
 // If selPrefix is non-empty (e.g. "body.dark "), it will be prefixed to each selector.
-func getCodeCSS(style, selPrefix string) (string, error) {
+// Colors will be adjusted to have a brightness within minBrightness and maxBrightness
+// in the range [0, 1].
+func getCodeCSS(style, baseStyle, selPrefix string, minBrightness, maxBrightness float64) (string, error) {
 	cs := styles.Get(style)
 	if cs == nil {
 		return "", fmt.Errorf("couldn't find chroma style %q", style)
 	}
+
+	// Build a new style with the token types defined in the base style.
+	// The base style determines the classes that will be used by writeCode(),
+	// so we want this CSS to cover the same token types.
+	bs := cs
+	if baseStyle != style {
+		if bs = styles.Get(baseStyle); bs == nil {
+			return "", fmt.Errorf("couldn't find base chroma style %q", baseStyle)
+		}
+	}
+
+	sb := chroma.NewStyleBuilder(style + "-adjusted")
+	for _, tt := range bs.Types() {
+		var se chroma.StyleEntry
+		if cs.Has(tt) {
+			se = cs.Get(tt) // exact match
+		} else if mt, ok := chromaTokenMap[tt]; ok && cs.Has(mt) {
+			se = cs.Get(mt) // custom mapping
+		} else {
+			se = cs.Get(tt) // builtin fallback
+		}
+
+		if br := se.Colour.Brightness(); br < minBrightness {
+			se.Colour = se.Colour.Brighten(minBrightness - br)
+		} else if br > maxBrightness {
+			se.Colour = se.Colour.Brighten(maxBrightness - br)
+		}
+		sb.Add(tt, se.String())
+	}
+	var err error
+	if cs, err = sb.Build(); err != nil {
+		return "", err
+	}
+
 	var b bytes.Buffer
 	if err := chromaFmt.WriteCSS(&b, cs); err != nil {
 		return "", err
