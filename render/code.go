@@ -9,10 +9,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/lexers"
-	"github.com/alecthomas/chroma/styles"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 )
 
 var chromaFmt = html.New(html.WithClasses(true), html.WithPreWrapper(&preWrapper{}))
@@ -61,12 +61,7 @@ func getCodeCSS(style, baseStyle, selPrefix string, minBrightness, maxBrightness
 		} else {
 			se = cs.Get(tt) // builtin fallback
 		}
-
-		if br := se.Colour.Brightness(); br < minBrightness {
-			se.Colour = se.Colour.Brighten(minBrightness - br)
-		} else if br > maxBrightness {
-			se.Colour = se.Colour.Brighten(maxBrightness - br)
-		}
+		se.Colour = se.Colour.ClampBrightness(minBrightness, maxBrightness)
 		sb.Add(tt, se.String())
 	}
 	var err error

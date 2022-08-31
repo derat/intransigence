@@ -137,8 +137,8 @@ type SiteInfo struct {
 
 const (
 	// Color brightness thresholds for syntax highlighting.
-	codeMaxBrightnessLight = 0.10
-	codeMinBrightnessDark  = 0.85
+	codeMaxBrightnessLight = 0.25
+	codeMinBrightnessDark  = 0.7
 )
 
 type linkTagInfo struct{ Rel, Href, Sizes, Type string }
