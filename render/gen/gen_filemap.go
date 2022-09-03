@@ -44,7 +44,6 @@ func main() {
 		name := filepath.Base(p)
 		data.Files[name] = string(b)
 
-		println(name)
 		hash.Write([]byte(name))
 		hash.Write([]byte{0})
 		hash.Write([]byte(base64.StdEncoding.EncodeToString(b)))
