@@ -110,6 +110,9 @@ type SiteInfo struct {
 	CodeStyleLight string `yaml:"code_style_light"`
 	// CodeStyleDark is like CodeStyleLight, but used for the dark theme.
 	CodeStyleDark string `yaml:"code_style_dark"`
+	// CodeForcePlain indicates that bold, italic, and underline formatting should be removed from
+	// Chroma styles.
+	CodeForcePlain bool `yaml:"code_force_plain"`
 
 	// NavItems specifies the site's navigation hierarchy.
 	NavItems []*NavItem `yaml:"nav_items"`
@@ -171,11 +174,11 @@ func NewSiteInfo(p string) (*SiteInfo, error) {
 	}
 
 	if si.codeCSS, err = getCodeCSS(si.CodeStyleLight, si.CodeStyleLight, "body:not(.dark)",
-		0, codeMaxBrightnessLight); err != nil {
+		0, codeMaxBrightnessLight, si.CodeForcePlain); err != nil {
 		return nil, err
 	}
 	if css, err := getCodeCSS(si.CodeStyleDark, si.CodeStyleLight, "body.dark ",
-		codeMinBrightnessDark, 1); err != nil {
+		codeMinBrightnessDark, 1, si.CodeForcePlain); err != nil {
 		return nil, err
 	} else {
 		si.codeCSS += css

@@ -34,8 +34,10 @@ var chromaTokenMap = map[chroma.TokenType]chroma.TokenType{
 // baseStyle should contain the Chroma style that is passed to writeCode().
 // If selPrefix is non-empty (e.g. "body.dark "), it will be prefixed to each selector.
 // Colors will be adjusted to have a brightness within minBrightness and maxBrightness
-// in the range [0, 1].
-func getCodeCSS(style, baseStyle, selPrefix string, minBrightness, maxBrightness float64) (string, error) {
+// in the range [0, 1]. If forcePlain is true, bold, italic, and underline formatting
+// will be removed from all style entries.
+func getCodeCSS(style, baseStyle, selPrefix string, minBrightness, maxBrightness float64,
+	forcePlain bool) (string, error) {
 	cs := styles.Get(style)
 	if cs == nil {
 		return "", fmt.Errorf("couldn't find chroma style %q", style)
@@ -62,6 +64,11 @@ func getCodeCSS(style, baseStyle, selPrefix string, minBrightness, maxBrightness
 			se = cs.Get(tt) // builtin fallback
 		}
 		se.Colour = se.Colour.ClampBrightness(minBrightness, maxBrightness)
+		if forcePlain {
+			se.Bold = chroma.Pass
+			se.Italic = chroma.Pass
+			se.Underline = chroma.Pass
+		}
 		sb.Add(tt, se.String())
 	}
 	var err error
