@@ -109,7 +109,12 @@ func Iframe(si SiteInfo, yb []byte) ([]byte, error) {
 			BodyScript    template.JS
 			InlineStyle   template.CSS
 		}{
-			ScriptURLs: []string{"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey},
+			ScriptURLs: []string{
+				// The no-op callback parameter is needed to avoid a dumb "Loading the Google Maps
+				// JavaScript API without a callback is not supported" error:
+				// https://stackoverflow.com/a/75212692
+				"https://maps.googleapis.com/maps/api/js?key=" + si.GoogleMapsAPIKey + "&callback=Function.prototype",
+			},
 			InlineScripts: []template.JS{
 				template.JS("const points = " + string(jsonData) + ";"),
 				template.JS(getStdInline("dark.js")), // used by map-iframe.js
