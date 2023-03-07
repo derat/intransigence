@@ -30,6 +30,15 @@ func main() {
 	validate := flag.Bool("validate", true, "Validate generated files")
 	flag.Parse()
 
+	if flag.NArg() != 0 {
+		if flag.Arg(0) == "false" {
+			fmt.Fprintln(os.Stderr, "Use -flag=false instead of -flag false")
+		} else {
+			fmt.Fprintln(os.Stderr, "Positional args are not accepted")
+		}
+		os.Exit(2)
+	}
+
 	if *thumb != "" {
 		data, err := render.Thumb(*thumb, *thumbWidth, *thumbHeight)
 		if err != nil {
